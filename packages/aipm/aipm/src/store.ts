@@ -1,9 +1,9 @@
 /** Project folder layout and the `.aipm/project.json` stage-state document. */
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { FIRST_STAGE_ID, STAGES, STAGE_IDS, findStage } from './stages.ts'
+import { STAGES, STAGE_IDS, findStage } from './stages.ts'
 
-/** Stage progress values shown on the stage board. */
+/** Per-stage progress: no output yet, work under way, or an output exists. */
 export type StageStatus = 'not_started' | 'in_progress' | 'done'
 
 /** Valid stage statuses. */
@@ -12,14 +12,12 @@ export const STAGE_STATUSES: readonly StageStatus[] = ['not_started', 'in_progre
 /** Recorded progress of one stage. */
 export interface StageState {
   status: StageStatus
-  /** Short progress note, e.g. which sub-step finished last. */
+  /** What the latest task in this stage produced or changed. */
   note?: string
   /** Session that last worked on this stage; the board reopens it. */
   sessionId?: string
   /** ISO timestamp of the last update. */
   updatedAt?: string
-  /** ISO timestamp of the user's completion confirmation. */
-  confirmedAt?: string
 }
 
 /** The whole project state document. */
@@ -28,8 +26,8 @@ export interface ProjectState {
   name: string
   summary: string
   createdAt: string
-  /** Stage the pipeline currently points at. */
-  currentStage: string
+  /** Stage the most recent task worked on, if any. */
+  lastStage?: string
   stages: Record<string, StageState>
 }
 
@@ -48,8 +46,6 @@ export interface UpdateStageInput {
   status?: StageStatus
   note?: string
   sessionId?: string
-  /** Must be true to mark a stage done: the user confirmed completion in chat. */
-  confirmedByUser?: boolean
 }
 
 /** A rejected project operation with a message meant for the model or the user. */
@@ -66,7 +62,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function normalizeStage(value: unknown): StageState {
   if (!isRecord(value) || !STAGE_STATUSES.includes(value.status as StageStatus)) return { status: 'not_started' }
   const stage: StageState = { status: value.status as StageStatus }
-  for (const key of ['note', 'sessionId', 'updatedAt', 'confirmedAt'] as const) {
+  for (const key of ['note', 'sessionId', 'updatedAt'] as const) {
     if (typeof value[key] === 'string') stage[key] = value[key]
   }
   return stage
@@ -90,15 +86,15 @@ export function parseProjectState(text: string): ProjectState {
   const stored = isRecord(value.stages) ? value.stages : {}
   const stages: Record<string, StageState> = {}
   for (const id of STAGE_IDS) stages[id] = normalizeStage(stored[id])
-  const currentStage = typeof value.currentStage === 'string' && findStage(value.currentStage) ? value.currentStage : FIRST_STAGE_ID
-  return {
+  const state: ProjectState = {
     schemaVersion: 1,
     name: value.name,
     summary: typeof value.summary === 'string' ? value.summary : '',
     createdAt: typeof value.createdAt === 'string' ? value.createdAt : '',
-    currentStage,
     stages,
   }
+  if (typeof value.lastStage === 'string' && findStage(value.lastStage)) state.lastStage = value.lastStage
+  return state
 }
 
 /**
@@ -126,12 +122,12 @@ async function writeProject(root: string, state: ProjectState): Promise<void> {
 }
 
 function agentsDocument(input: InitProjectInput): string {
-  const stageLines = STAGES.map(stage => `- \`${stage.id}/\`：${stage.title}`).join('\n')
+  const stageLines = STAGES.map(stage => `- \`${stage.id}/\`：${stage.title}（${stage.outputs}）`).join('\n')
   return `# ${input.name}
 
 ${input.summary}
 
-这是一个 AIPM Studio 产品项目。各阶段产出物放在对应的阶段目录里，后面的阶段要先读前面阶段的产出物。
+这是一个 AIPM Studio 产品项目。各阶段相互独立、按需使用，产出物放在对应的阶段目录里。用户自己的资料可以放在项目里任意位置，做任务前先读已有的资料和产出物。
 
 ${stageLines}
 
@@ -152,8 +148,8 @@ export async function initProject(root: string, input: InitProjectInput, now: Da
   if (await readProject(root) !== undefined) throw new ProjectError('this folder is already an AIPM project; read it with action "get"')
   for (const id of STAGE_IDS) await mkdir(join(root, id), { recursive: true })
   const agentsPath = join(root, 'AGENTS.md')
-  await writeFile(agentsPath, agentsDocument({ name, summary: input.summary.trim() }), { encoding: 'utf8', flag: 'wx' }).catch((error: NodeJS.ErrnoException) => {
-    if (error.code !== 'EEXIST') throw error
+  await writeFile(agentsPath, agentsDocument({ name, summary: input.summary.trim() }), { encoding: 'utf8', flag: 'wx' }).catch((error: unknown) => {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
   })
   const stages: Record<string, StageState> = {}
   for (const id of STAGE_IDS) stages[id] = { status: 'not_started' }
@@ -162,7 +158,6 @@ export async function initProject(root: string, input: InitProjectInput, now: Da
     name,
     summary: input.summary.trim(),
     createdAt: now.toISOString(),
-    currentStage: FIRST_STAGE_ID,
     stages,
   }
   await writeProject(root, state)
@@ -183,22 +178,13 @@ export async function updateStage(root: string, input: UpdateStageInput, now: Da
   if (input.status !== undefined && !STAGE_STATUSES.includes(input.status)) {
     throw new ProjectError(`unknown status ${JSON.stringify(input.status)}; valid statuses: ${STAGE_STATUSES.join(', ')}`)
   }
-  if (input.status === 'done' && input.confirmedByUser !== true) {
-    throw new ProjectError('a stage can be marked done only after the user confirmed it; ask with ask_user_question, then retry with confirmed_by_user: true')
-  }
-  const timestamp = now.toISOString()
   const stage: StageState = { ...(state.stages[input.stage] ?? { status: 'not_started' }) }
   if (input.status !== undefined) stage.status = input.status
   if (input.note !== undefined) stage.note = input.note
   if (input.sessionId !== undefined) stage.sessionId = input.sessionId
-  stage.updatedAt = timestamp
-  if (input.status === 'done') stage.confirmedAt = timestamp
+  stage.updatedAt = now.toISOString()
   state.stages[input.stage] = stage
-  if (input.status === 'in_progress') state.currentStage = input.stage
-  if (input.status === 'done') {
-    const next = STAGE_IDS[STAGE_IDS.indexOf(input.stage) + 1]
-    if (next !== undefined) state.currentStage = next
-  }
+  state.lastStage = input.stage
   await writeProject(root, state)
   return state
 }

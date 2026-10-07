@@ -1,4 +1,4 @@
-/** AIPM Studio pipeline plugin: the `aipm_stage` tool over the project state document. */
+/** AIPM Studio workbench plugin: the `aipm_stage` tool over the project state document. */
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-agent'
@@ -15,23 +15,23 @@ export const name = 'aipm'
 export const inject = ['tools']
 
 const STATUS_LABELS: Record<string, string> = {
-  not_started: '未开始',
+  not_started: '暂无产出',
   in_progress: '进行中',
-  done: '已完成',
+  done: '已有产出',
 }
 
 function describe(state: ProjectState): string {
   const rows = STAGES.map((stage) => {
     const entry = state.stages[stage.id] ?? { status: 'not_started' }
-    const skill = stage.skill === undefined ? 'skill 待接入' : `主 skill：${stage.skill}`
-    const note = entry.note === undefined ? '' : `；${entry.note}`
-    const marker = stage.id === state.currentStage ? '→ ' : '  '
-    return `${marker}${stage.id}（${stage.title}）：${STATUS_LABELS[entry.status]}；${skill}${note}`
+    const skill = stage.skill === undefined ? '专属 skill 待接入' : `skill：${stage.skill}`
+    const note = entry.note === undefined ? '' : `；最近：${entry.note}`
+    return `- ${stage.id}（${STATUS_LABELS[entry.status]}；${skill}；典型产出：${stage.outputs}${note}）`
   })
   return [
     `项目：${state.name}`,
     `概述：${state.summary || '（未填写）'}`,
-    `当前阶段：${state.currentStage}`,
+    `最近处理的阶段：${state.lastStage ?? '（无）'}`,
+    '各阶段相互独立，只处理与本次任务相关的阶段：',
     ...rows,
     `通用 skill：${GENERAL_SKILLS.join('、')}`,
   ].join('\n')
@@ -45,17 +45,16 @@ export function apply(ctx: Context): void {
   ctx.tools.register(defineTool({
     name: 'aipm_stage',
     description: 'Read or update the AIPM product project in the Session working directory. '
-      + `"get" returns the stage table; "init" turns the working directory into a project (stage folders ${STAGE_IDS.join(', ')}, ${PROJECT_STATE_FILE}, AGENTS.md); `
-      + '"update" changes one stage. Marking a stage "done" requires confirmed_by_user: true, which is allowed only after the user confirmed completion through ask_user_question. '
+      + '"get" returns the independent stages with their status, typical outputs, and skills; "init" turns the working directory into a project '
+      + `(stage folders ${STAGE_IDS.join(', ')}, ${PROJECT_STATE_FILE}, AGENTS.md); "update" records progress of one stage after a task changed its outputs. `
       + `Never edit ${PROJECT_STATE_FILE} directly.`,
     parameters: {
       action: { type: 'string', required: true, enum: ['get', 'init', 'update'], description: 'Operation to perform.' },
       name: { type: 'string', description: 'init: product name.' },
       summary: { type: 'string', description: 'init: one-line product summary.' },
       stage: { type: 'string', enum: [...STAGE_IDS], description: 'update: stage id.' },
-      status: { type: 'string', enum: [...STAGE_STATUSES], description: 'update: new stage status.' },
-      note: { type: 'string', description: 'update: short progress note shown on the stage board, e.g. "已完成第 3/8 站：需求池".' },
-      confirmed_by_user: { type: 'boolean', description: 'update: true only when the user confirmed the stage is complete.' },
+      status: { type: 'string', enum: [...STAGE_STATUSES], description: 'update: in_progress while a task works on the stage, done once its output is written.' },
+      note: { type: 'string', description: 'update: short note on what this task produced or changed, e.g. "生成立项报告.md 与 立项报告.html".' },
     },
     output: {
       schema: {
@@ -82,9 +81,8 @@ export function apply(ctx: Context): void {
       if (args.stage === undefined || findStage(args.stage) === undefined) throw new Error(`update requires stage, one of ${STAGE_IDS.join(', ')}`)
       const state = await updateStage(cwd, {
         stage: args.stage,
-        ...(args.status === undefined ? {} : { status: args.status as (typeof STAGE_STATUSES)[number] }),
+        ...(args.status === undefined ? {} : { status: args.status }),
         ...(args.note === undefined ? {} : { note: args.note }),
-        ...(args.confirmed_by_user === undefined ? {} : { confirmedByUser: args.confirmed_by_user }),
         sessionId: session.id,
       })
       return { summary: `已更新 ${args.stage}。\n${describe(state)}` }
