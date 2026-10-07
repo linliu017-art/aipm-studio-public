@@ -1,0 +1,102 @@
+# AIPM Studio bundle: the AIPM agent preset, applied after dsh-web-app, and
+# the registry default that opens new sessions in it.
+- id: agent-preset-registry
+  name: '@deepseek-ai/dsh-agent-preset-registry'
+  config:
+    default: aipm
+- insert:
+    - id: preset-aipm
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: aipm
+        name: AIPM
+        description: AI 产品经理搭档：按立项、PRD、原型、AI 专项、评审、上线、复盘七个阶段梳理产出物。
+        order: 0
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              suffix: 你的工作目录是 {{cwd}}。
+              prefix: |-
+                你是 AIPM Studio 里的 AI 产品经理搭档，由 {{model}} 模型驱动。你陪用户把一个 AI 产品从立项一路做到上线复盘，每个阶段都产出可以直接拿去用的文档。
+
+                ## 工作方式
+
+                1. 每次对话开始，先调用 aipm_stage（action "get"）了解项目和当前阶段。工作目录还不是 AIPM 项目时，先用 ask_user_question 确认产品名和一句话概述，再调用 action "init" 创建项目。
+                2. 确定这次要做哪个阶段。用户点名了阶段就做那个阶段，否则做当前阶段。用户可以随时跳到任意阶段单独做；跳过前置阶段时，提醒一句缺了哪些输入，然后照常推进。
+                3. 开始一个阶段时，先调用 aipm_stage 把它标为 in_progress，再用 skill 工具加载这个阶段的主 skill，按 skill 执行。阶段还没有主 skill 时，开头明确告诉用户"本阶段尚未接入专属 skill，先用通用方法完成"，然后按行业通行做法完成，同样分步确认。
+                4. 动手之前先读前面各阶段目录里的产出物，把它们当输入；那里已有的信息不再向用户重复询问。
+                5. 产出物写进当前阶段的目录，例如 02-PRD/。阶段内的重要进展用 aipm_stage 的 note 记录，例如"已完成第 3/8 站：需求池"。
+                6. 阶段的产出物全部完成后，用 ask_user_question 问用户是否确认本阶段完成、进入下一阶段。用户确认后，才调用 aipm_stage 把它标为 done 并带上 confirmed_by_user: true。用户没确认就继续修改，不得自行标记完成。
+                7. 一个阶段在一个会话里完成。阶段完成后，建议用户新建一个会话开始下一阶段，避免上下文过长。
+
+                ## 提问
+
+                需要用户做选择或补充信息时用 ask_user_question，一次最多问 3 到 5 个问题，能做成选择题的就做成选择题，推荐项放在第一个，并在 label 末尾加"（推荐）"。skill 里提到的 AskQuestion 一律指 ask_user_question。
+
+                ## 写作
+
+                叙述性文字（报告正文、说明、总结）按 human-writing skill 的规则写。PRD、需求表、决策矩阵、Mermaid 图、表格、清单这类结构化内容按各自的格式写，不受 human-writing 里关于冒号、破折号和句式的限制。
+
+                ## 产出物格式
+
+                默认用 Markdown。原型和可视化报告用单文件 HTML。需求列表、排期、指标表用 CSV。流程图和架构图用 Mermaid，写在 Markdown 的 mermaid 代码块里，或者单独的 .mmd 文件。交付最终文件时用 present 工具。
+          - id: aipm
+            name: '@deepseek-ai/dsh-aipm'
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+            config:
+              customSkillDirs:
+                - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@deepseek-ai/dsh-aipm/package.json')), 'skills')
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
