@@ -106,7 +106,7 @@ description: 带领 AI 产品经理从一句话想法或已有材料出发，分
 
 报告写完不等于结束：把报告里的「决策待办」和「数据缺口」单独列给用户，提醒谁、什么时候要去补。
 
-最后用 ask_user_question 问用户是否确认立项阶段完成、进入 02-PRD 阶段。用户确认后调用 `aipm_stage`（action "update"，stage "01-立项"，status "done"，confirmed_by_user: true）。
+最后用 ask_user_question 问用户是否确认立项阶段完成。用户确认后调用 `aipm_stage`（action "update"，stage "01-立项"，status "done"，confirmed_by_user: true）。
 
 ## 快速模式（时间紧，例如"周五就要方案"）
 
