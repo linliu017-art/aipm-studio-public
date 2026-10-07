@@ -1,4 +1,4 @@
-import { BrandWordmark, FishLogo } from '@deepseek-ai/dsh-client-ui-primitives'
+import { FishLogo } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SidebarBrandMarkOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 
 /**
@@ -11,9 +11,9 @@ export function OfficialBrandMark({ size }: SidebarBrandMarkOwnerProps) {
 }
 
 /**
- * Render the official name artwork without its independently slotted mark.
- * @returns the official name wordmark.
+ * Render the product name without its independently slotted mark.
+ * @returns the product name text.
  */
 export function OfficialBrandName() {
-  return <BrandWordmark includeMark={false} />
+  return <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: '0.01em' }}>AIPM Studio</span>
 }

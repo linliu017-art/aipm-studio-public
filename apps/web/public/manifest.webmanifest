@@ -1,6 +1,6 @@
 {
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
+  "name": "AIPM Studio",
+  "short_name": "AIPM",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
