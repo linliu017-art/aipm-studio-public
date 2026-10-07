@@ -85,6 +85,16 @@ describe('desktop package target', () => {
       .toThrow(/cannot use --prepare-only/u)
   })
 
+  it('accepts local macOS artifacts without allowing release-only combinations', () => {
+    expect(parseDesktopPackageInvocation(['mac-arm64', '--local'], 'darwin', 'arm64')).toMatchObject({
+      local: true, unsigned: false, prepareOnly: false,
+    })
+    expect(() => parseDesktopPackageInvocation(['win-x64', '--local'], 'win32', 'x64'))
+      .toThrow(/local requires a macOS target/u)
+    expect(() => parseDesktopPackageInvocation(['mac-arm64', '--local', '--prepare-only'], 'darwin', 'arm64'))
+      .toThrow(/local cannot use --prepare-only/u)
+  })
+
   it('removes ambient certificate inputs for unsigned builds and overrides an inherited signing mode', () => {
     const environment = {
       DSH_DESKTOP_APP_ID: 'com.example.desktop',

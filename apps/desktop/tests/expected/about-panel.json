@@ -1,53 +1,53 @@
 {
   "darwin:en-US": {
     "menu": [
-      { "label": "About DeepSeek Harness", "role": "about" },
+      { "label": "About AIPM Studio", "role": "about" },
       { "type": "separator" }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "AIPM Studio",
       "applicationVersion": "1.0.0",
       "version": "",
-      "copyright": "",
+      "copyright": "Built on DeepSeek Harness (MIT License)",
       "iconPath": "<app icon>"
     }
   },
   "darwin:zh-CN": {
     "menu": [
-      { "label": "关于 DeepSeek Harness", "role": "about" },
+      { "label": "关于 AIPM Studio", "role": "about" },
       { "type": "separator" }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "AIPM Studio",
       "applicationVersion": "1.0.0",
       "version": "",
-      "copyright": "",
+      "copyright": "Built on DeepSeek Harness (MIT License)",
       "iconPath": "<app icon>"
     }
   },
   "win32:zh-CN": {
     "menu": [
-      { "label": "关于 DeepSeek Harness" },
+      { "label": "关于 AIPM Studio" },
       { "type": "separator" }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "AIPM Studio",
       "applicationVersion": "1.0.0",
       "version": "",
-      "copyright": "",
+      "copyright": "Built on DeepSeek Harness (MIT License)",
       "iconPath": "<app icon>"
     }
   },
   "win32:en-US": {
     "menu": [
-      { "label": "About DeepSeek Harness" },
+      { "label": "About AIPM Studio" },
       { "type": "separator" }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "AIPM Studio",
       "applicationVersion": "1.0.0",
       "version": "",
-      "copyright": "",
+      "copyright": "Built on DeepSeek Harness (MIT License)",
       "iconPath": "<app icon>"
     }
   }

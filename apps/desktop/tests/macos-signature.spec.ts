@@ -42,7 +42,7 @@ describe('desktop macOS release signature', () => {
   it('loads release identifiers from the environment and requires code signing', async () => {
     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
     const config = createElectronBuilderConfig(RELEASE_ENVIRONMENT, 'darwin', 'arm64')
-    expect(config.protocols).toEqual([{ name: 'DeepSeek Harness', schemes: ['dsh'] }])
+    expect(config.protocols).toEqual([{ name: 'AIPM Studio', schemes: ['aipm', 'dsh'] }])
     expect(portablePath(config.directories.output)).toContain('/.desktop-build/targets/mac-arm64/artifacts')
     expect(config.mac.extendInfo.NSMicrophoneUsageDescription).toContain('microphone')
     expect(config.mac.entitlementsInherit).toBe(config.mac.entitlements)
@@ -135,6 +135,33 @@ describe('desktop macOS release signature', () => {
       .toThrow(/unsigned builds require Windows/u)
     expect(() => createElectronBuilderConfig({ ...RELEASE_ENVIRONMENT, DSH_DESKTOP_UNSIGNED: 'yes' }))
       .toThrow(/must be 0 or 1/u)
+  })
+
+  it('builds local macOS artifacts with ad-hoc signing and no update or notarization service', async () => {
+    const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
+    const config = createElectronBuilderConfig({
+      DSH_DESKTOP_APP_ID: 'com.linliu.aipm-studio',
+      DSH_DESKTOP_LOCAL_MACOS: '1',
+      DSH_DESKTOP_TARGET_PLATFORM: 'darwin',
+      DSH_DESKTOP_TARGET_ARCH: 'arm64',
+    }, 'darwin', 'arm64')
+    expect(portablePath(config.directories.output)).toContain('/targets/mac-arm64/local-artifacts')
+    expect(config).toMatchObject({
+      appId: 'com.linliu.aipm-studio',
+      productName: 'AIPM Studio',
+      mac: {
+        identity: '-',
+        forceCodeSigning: true,
+        hardenedRuntime: false,
+        notarize: false,
+        bundleShortVersion: '0.2.1',
+        bundleVersion: '0.2.1',
+      },
+      dmg: { sign: false },
+      publish: null,
+    })
+    expect(config.artifactBuildCompleted).toBeUndefined()
+    expect(config.extraMetadata.dshMandatoryUpdatePolicy).toBeUndefined()
   })
 
   it('accepts the configured authority and team', () => {

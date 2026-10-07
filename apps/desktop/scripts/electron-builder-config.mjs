@@ -51,10 +51,15 @@ export function createElectronBuilderConfig(
   preparedRuntimeVersion = undefined,
 ) {
   const appId = resolveDesktopAppId(env)
-  const policy = resolveDesktopPolicyEnvironment(env)
   const targetPlatform = env.DSH_DESKTOP_TARGET_PLATFORM
   const resolvedPlatform = targetPlatform ?? hostPlatform
   const resolvedArch = env.DSH_DESKTOP_TARGET_ARCH ?? hostArch
+  if (env.DSH_DESKTOP_LOCAL_MACOS !== undefined && !['0', '1'].includes(env.DSH_DESKTOP_LOCAL_MACOS)) {
+    throw new Error('desktop package: DSH_DESKTOP_LOCAL_MACOS must be 0 or 1')
+  }
+  const localMacOS = env.DSH_DESKTOP_LOCAL_MACOS === '1'
+  if (localMacOS && resolvedPlatform !== 'darwin') throw new Error('desktop package: local packaging requires macOS')
+  const policy = localMacOS ? undefined : resolveDesktopPolicyEnvironment(env)
   if (env.DSH_DESKTOP_UNSIGNED !== undefined && !['0', '1'].includes(env.DSH_DESKTOP_UNSIGNED)) {
     throw new Error('desktop package: DSH_DESKTOP_UNSIGNED must be 0 or 1')
   }
@@ -63,8 +68,8 @@ export function createElectronBuilderConfig(
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
   const packagesWindows = resolvedPlatform === 'win32'
   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
-  const macOSSigning = packagesMacOS ? resolveMacOSSigningEnvironment(env) : undefined
-  if (packagesMacOS) resolveMacOSNotarizationEnvironment(env)
+  const macOSSigning = packagesMacOS && !localMacOS ? resolveMacOSSigningEnvironment(env) : undefined
+  if (packagesMacOS && !localMacOS) resolveMacOSNotarizationEnvironment(env)
   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch))
   let primaryRuntimeDestination
   let dshDestination
@@ -90,16 +95,19 @@ export function createElectronBuilderConfig(
   if (windowsSigner !== undefined) {
     installWindowsNsisBootstrapSigner({ sign: windowsSigner })
   }
-  const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
+  const update = unsigned || localMacOS ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
   const productVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
   const buildVersion = resolveDesktopBuildVersion(env, productVersion)
+  // Launch Services rejects prerelease semver strings in the two macOS bundle-version fields.
+  // Keep the full semver in package metadata/artifact names, but use Apple's numeric form in Info.plist.
+  const macBundleVersion = productVersion.match(/^\d+\.\d+\.\d+/u)?.[0] ?? productVersion
   const packaged = resolveDesktopBuildCommit(env)
   return {
     appId,
-    protocols: [{ name: 'AIPM Studio', schemes: ['dsh'] }],
+    protocols: [{ name: 'AIPM Studio', schemes: ['aipm', 'dsh'] }],
     extraMetadata: {
       dshDesktopAppId: appId,
       dshMandatoryUpdatePolicy: policy,
@@ -109,7 +117,7 @@ export function createElectronBuilderConfig(
     productName: 'AIPM Studio',
     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
     artifactName: `aipm-studio-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
-    directories: { output: unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts },
+    directories: { output: localMacOS ? buildPaths.localArtifacts : unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts },
     asar: true,
     electronDist: buildPaths.electron,
     electronFuses: { runAsNode: true },
@@ -150,21 +158,24 @@ export function createElectronBuilderConfig(
     mac: {
       icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
       category: 'public.app-category.developer-tools',
+      ...(localMacOS ? { bundleShortVersion: macBundleVersion, bundleVersion: macBundleVersion } : {}),
       // macOS matches the application locale against this bundle, not Electron Framework resources.
-      extendInfo: { CFBundleLocalizations: ['en', 'zh_CN'] },
-      identity: macOSSigning?.signingIdentity,
+      identity: localMacOS ? '-' : macOSSigning?.signingIdentity,
       forceCodeSigning: true,
-      hardenedRuntime: true,
-      extendInfo: { NSMicrophoneUsageDescription: 'AIPM Studio uses your microphone to transcribe speech into message drafts.' },
+      hardenedRuntime: !localMacOS,
+      extendInfo: {
+        CFBundleLocalizations: ['en', 'zh_CN'],
+        NSMicrophoneUsageDescription: 'AIPM Studio uses your microphone to transcribe speech into message drafts.',
+      },
       entitlements: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       entitlementsInherit: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       // ASAR-unpacked native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
       signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '/Contents/Resources/runtime/primary-runtime(?:/|$)', '\\.pak$'],
-      notarize: true,
+      notarize: !localMacOS,
       target: ['dmg', 'zip'],
     },
     dmg: {
-      sign: true,
+      sign: !localMacOS,
       writeUpdateInfo: false,
     },
     beforePack: async context => {
@@ -205,6 +216,7 @@ export function createElectronBuilderConfig(
         await verifyWindowsAsarUnpack(buildPaths.dsh, context.packager.getResourcesDir(context.appOutDir), windowsCode)
       }
       if (context.electronPlatformName !== 'darwin') return
+      if (localMacOS) return
       const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
       if (update !== undefined) {
         await verifyMacOSAppUpdateConfig(appPath, resolveMacOSAppUpdateFeed(context.packager.config.publish),
@@ -212,7 +224,7 @@ export function createElectronBuilderConfig(
       }
       verifyMacOSSignatureAfterSign(context, macOSSigning ?? resolveMacOSSigningEnvironment(env))
     },
-    artifactBuildCompleted: artifact => {
+    artifactBuildCompleted: localMacOS ? undefined : artifact => {
       if (!artifact.file.endsWith('.dmg')) return
       return notarizeMacOSDiskImageArtifact(
         artifact,

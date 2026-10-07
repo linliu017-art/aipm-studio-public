@@ -190,6 +190,15 @@ describe('Desktop local packaging configuration', () => {
       }).toThrow(/APPLE_KEYCHAIN/u)
     })
   })
+
+  it('accepts local macOS packaging without release policy, update, signing, or notarization credentials', () => {
+    expect(() => validateDesktopPackageEnvironment({
+      DSH_DESKTOP_APP_ID: 'com.linliu.aipm-studio',
+    }, MACOS, { local: true })).not.toThrow()
+    expect(() => validateDesktopPackageEnvironment({
+      DSH_DESKTOP_APP_ID: 'com.linliu.aipm-studio',
+    }, WINDOWS, { local: true })).toThrow(/local packaging requires macOS/u)
+  })
 })
 
 it('owns macOS tuning in the local file and validates it before signing credentials', async () => {

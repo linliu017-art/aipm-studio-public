@@ -237,6 +237,8 @@ pnpm run package:desktop:win:x64
 
 macOS arm64 命令要求 Apple Silicon。macOS x64 命令可以在 Intel macOS 或带 Rosetta 的 Apple Silicon 上运行。Windows x64 命令要求 Windows x64。Linux 不是受支持的 Desktop 发布目标。
 
+只在构建它的本机使用、且需要完整独立运行的 Apple Silicon 安装包时，运行 `pnpm run package:desktop:mac:local`。该模式不需要 `.env.macos`、Apple Developer 证书、公证账号、更新地址或强制更新服务。它会捆绑完整运行时、执行临时签名、关闭自动更新，并把 DMG、ZIP 和未打包的 `AIPM Studio.app` 写入 `apps/desktop/.desktop-build/targets/mac-arm64/local-artifacts/`。安装后的应用不依赖源码仓库。由于应用未经公证，macOS 首次启动时可能要求用户确认；该模式不能替代公开发布流程。
+
 每个目标都在 `apps/desktop/.desktop-build/targets/<target>/` 下持有自己的打包输入、已准备运行时、包集合、dsh 依赖树、pnpm 准备状态、未打包应用、更新元数据和最终产物。Electron 归档缓存继续由 `.desktop-build/downloads` 共享，因为每个归档文件名都包含版本、平台和架构，并且在解包前经过验证。目标构建绝不读取其他目标的可变准备状态。
 
 ### 运行时文件筛选
