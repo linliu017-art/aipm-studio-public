@@ -77,6 +77,7 @@ function mountShell({ collapsed = false, width = 300, shortcuts = [] }: {
   )
   const view = render(root())
   return {
+    container: view.container,
     startSession,
     toggleSidebar,
     regionOwner: () => {
@@ -103,10 +104,10 @@ describe('SidebarRoot shell', () => {
     const shortcut: ShortcutCatalogEntry = { id: 'session.new' as ShortcutCommandId, label: 'New', aliases: [],
       binding: null, modified: true, conflicts: [], issue: null, keys: ['Ctrl', 'N'], aria: 'Control+N' }
     mountShell({ shortcuts: [shortcut] })
-    for (const button of screen.getAllByRole('button', { name: 'New session' })) {
+    for (const button of screen.getAllByRole('button', { name: 'New chat' })) {
       expect(button.getAttribute('aria-keyshortcuts')).toBe('Control+N')
     }
-    const expanded = screen.getAllByRole('button', { name: 'New session' }).find(button => button.querySelector('kbd') !== null)!
+    const expanded = screen.getAllByRole('button', { name: 'New chat' }).find(button => button.querySelector('kbd') !== null)!
     fireEvent.mouseEnter(expanded)
     fireEvent.focus(expanded)
     expect(screen.queryByRole('tooltip')).toBeNull()
@@ -116,7 +117,7 @@ describe('SidebarRoot shell', () => {
       usePanelInfo={neverHook} useSessions={neverHook} useSessionStatus={neverHook}
       useSessionRetainInfo={neverHook} useResource={useResource} useWorkspaces={neverHook}
       usePanels={select => select([])} useShortcuts={select => select([shortcut])} />)
-    const button = screen.getByRole('button', { name: 'New session' })
+    const button = screen.getByRole('button', { name: 'New chat' })
     expect(button.getAttribute('aria-keyshortcuts')).toBe('Control+N')
     fireEvent.focus(button)
     expect(Array.from(screen.getByRole('tooltip').querySelectorAll('kbd'), key => key.textContent)).toEqual(['Ctrl', 'N'])
@@ -126,12 +127,88 @@ describe('SidebarRoot shell', () => {
     expect(screen.getByTestId('custom-brand-mark')).toBeTruthy()
     expect(screen.getByTestId('custom-brand-name')).toBeTruthy()
     // Expanded, both the wordmark and the capsule start a session.
-    const starters = screen.getAllByRole('button', { name: 'New session' })
+    const starters = screen.getAllByRole('button', { name: 'New chat' })
     expect(starters).toHaveLength(2)
     for (const button of starters) fireEvent.click(button)
     expect(b.startSession).toHaveBeenCalledTimes(2)
     fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
     expect(b.toggleSidebar).toHaveBeenCalledOnce()
+  })
+
+  it('previews the full detail pane over the main area while a collapsed rail is hovered', () => {
+    vi.useFakeTimers()
+    const b = mountShell({ collapsed: true, width: 56 })
+    const root = b.container.firstElementChild as HTMLElement
+    const detail = root.querySelector('section') as HTMLElement
+    vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+      left: 0, right: 280, top: 0, bottom: 800, width: 280, height: 800,
+      x: 0, y: 0, toJSON: () => ({}),
+    })
+    expect(root.className).toContain('collapsed')
+    expect(detail.getAttribute('aria-hidden')).toBe('true')
+
+    fireEvent.pointerEnter(root)
+    expect(root.className).toContain('peek')
+    expect(root.style.width).toBe('280px')
+    expect(detail.getAttribute('aria-hidden')).toBe('false')
+
+    // A portalled tooltip is outside the sidebar's DOM tree, but remains
+    // inside the preview's screen rectangle and must not collapse it.
+    fireEvent.pointerLeave(root, { clientX: 100, clientY: 100 })
+    expect(root.className).toContain('peek')
+    expect(detail.getAttribute('aria-hidden')).toBe('false')
+
+    // A leave event can be synthesized when the preview changes the root's
+    // width. It must not close the preview without an actual outside move.
+    fireEvent.pointerLeave(root, { clientX: 320, clientY: 100 })
+    expect(root.className).toContain('peek')
+    act(() => { vi.advanceTimersByTime(160) })
+    expect(root.className).toContain('peek')
+
+    fireEvent.pointerMove(document, { clientX: 320, clientY: 100 })
+    act(() => { vi.advanceTimersByTime(160) })
+    expect(root.className).toContain('collapsed')
+    expect(detail.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('keeps an explicit collapse closed until the pointer leaves and re-enters', () => {
+    vi.useFakeTimers()
+    const b = mountShell({ collapsed: false, width: 300 })
+    const root = b.container.firstElementChild as HTMLElement
+    const detail = root.querySelector('section') as HTMLElement
+    vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+      left: 0, right: 300, top: 0, bottom: 800, width: 300, height: 800,
+      x: 0, y: 0, toJSON: () => ({}),
+    })
+
+    fireEvent.pointerEnter(root)
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    b.rerender({ collapsed: true, width: 56 })
+    act(() => { vi.advanceTimersByTime(150) })
+    expect(root.className).toContain('collapsed')
+    expect(root.className).not.toContain('peek')
+    expect(detail.getAttribute('aria-hidden')).toBe('true')
+
+    fireEvent.pointerMove(document, { clientX: 320, clientY: 100 })
+    act(() => { vi.advanceTimersByTime(160) })
+    fireEvent.pointerEnter(root)
+    expect(root.className).toContain('peek')
+    expect(detail.getAttribute('aria-hidden')).toBe('false')
+  })
+
+  it('keeps quick actions collapsed until requested and starts a prepared Agent chat', () => {
+    const shell = mountShell()
+    const toggle = screen.getByRole('button', { name: 'Quick actions' })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('button', { name: /Research and analysis/ })).toBeNull()
+
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: /Research and analysis/ }))
+    expect(shell.startSession).toHaveBeenCalledWith(undefined, {
+      prompt: expect.stringContaining('调研与分析'),
+      clearPreviousDraft: true,
+    })
   })
 
   it('renders generic brand fallbacks when no package fills the slots', () => {
@@ -148,7 +225,7 @@ describe('SidebarRoot shell', () => {
         options?.fallback ?? null) as SidebarRootComponentProps['renderSlot']}
     />)
 
-    expect(screen.getByText('DSH Local Build')).toBeTruthy()
+    expect(screen.getByText('Nini Flow')).toBeTruthy()
     expect(screen.getByText('1.2.3-rc.4-0123456-dirty')).toBeTruthy()
     expect(container.querySelector('svg')).not.toBeNull()
   })
@@ -168,7 +245,7 @@ describe('SidebarRoot shell', () => {
         options?.fallback ?? null) as SidebarRootComponentProps['renderSlot']}
     />)
 
-    expect(screen.getByText('DSH Local Build')).toBeTruthy()
+    expect(screen.getByText('Nini Flow')).toBeTruthy()
     expect(screen.getByText(expected)).toBeTruthy()
   })
 
@@ -183,15 +260,15 @@ describe('SidebarRoot shell', () => {
         options?.fallback ?? null) as SidebarRootComponentProps['renderSlot']}
     />)
 
-    expect(screen.getByText('DSH Local Build')).toBeTruthy()
+    expect(screen.getByText('Nini Flow')).toBeTruthy()
   })
 
   it('hands the region its wide flag and clamps expandSidebar to the collapsed state', () => {
     const b = mountShell()
     expect(b.regionOwner().wide).toBe(true)
     // The settings seat rides the same wide flag (ui-settings renders the row).
-    expect(b.settingsOwner().wide).toBe(true)
-    expect(b.footerActionOwner().wide).toBe(true)
+    expect(b.settingsOwner().wide).toBe(false)
+    expect(b.footerActionOwner().wide).toBe(false)
     // Expanded: the request is a no-op (no accidental collapse).
     b.regionOwner().expandSidebar()
     expect(b.toggleSidebar).not.toHaveBeenCalled()
@@ -205,7 +282,7 @@ describe('SidebarRoot shell', () => {
     expect(b.regionOwner().wide).toBe(true)
     vi.advanceTimersByTime(200)
     b.rerender({})
-    expect(b.regionOwner().wide).toBe(false)
+    expect(b.regionOwner().wide).toBe(true)
     expect(b.footerActionOwner().wide).toBe(false)
     expect(screen.getByTestId('region')).toBeTruthy()
     b.regionOwner().expandSidebar()
@@ -214,7 +291,7 @@ describe('SidebarRoot shell', () => {
 
   it('renders statically collapsed on a cold start (no crossfade classes)', () => {
     const b = mountShell({ collapsed: true })
-    expect(b.regionOwner().wide).toBe(false)
+    expect(b.regionOwner().wide).toBe(true)
     expect(screen.getByRole('button', { name: 'Open sidebar' })).toBeTruthy()
   })
 
@@ -254,7 +331,7 @@ it('keeps the macOS sidebar toggle in its top strip', () => {
   // The brand stays part of the logo row's window-drag surface: no button
   // role (the global no-drag rule would subtract it); only the dedicated
   // New Session capsule starts a session.
-  expect(screen.getAllByRole('button', { name: 'New session' })).toHaveLength(1)
+  expect(screen.getAllByRole('button', { name: 'New chat' })).toHaveLength(1)
   expect(screen.getByTestId('custom-brand-mark')).toBeTruthy()
 })
 
@@ -270,7 +347,7 @@ it('wires the shell.leading controls to the shared sidebar actions', () => {
   expect(startSession).toHaveBeenCalledOnce()
 })
 
-describe('Windows caption tooltips', () => {
+describe('rail tooltips', () => {
   afterEach(() => { document.documentElement.removeAttribute('data-windows-titlebar') })
 
   const hover = (button: HTMLElement): void => {
@@ -279,22 +356,22 @@ describe('Windows caption tooltips', () => {
   }
 
   it.each([false, true])(
-    'drops the sidebar toggle bubble below the caption (collapsed=%s)',
+    'keeps the sidebar toggle bubble beside the rail (collapsed=%s)',
     (collapsed) => {
       vi.useFakeTimers()
       document.documentElement.setAttribute('data-windows-titlebar', '')
       mountShell({ collapsed, width: collapsed ? 0 : 300 })
       hover(screen.getByRole('button', { name: collapsed ? 'Open sidebar' : 'Collapse sidebar' }))
-      expect(screen.getByRole('tooltip').getAttribute('data-side')).toBe('bottom')
+      expect(screen.getByRole('tooltip').getAttribute('data-side')).toBe(collapsed ? 'right' : 'bottom')
     },
   )
 
-  it('drops the collapsed New Session bubble below the caption as well', () => {
+  it('labels the collapsed Agent entry beside the rail', () => {
     vi.useFakeTimers()
     document.documentElement.setAttribute('data-windows-titlebar', '')
     mountShell({ collapsed: true, width: 0 })
-    hover(screen.getByRole('button', { name: 'New session' }))
-    expect(screen.getByRole('tooltip').getAttribute('data-side')).toBe('bottom')
+    hover(screen.getByRole('button', { name: 'Back to Agent chat' }))
+    expect(screen.getByRole('tooltip').getAttribute('data-side')).toBe('right')
   })
 
   it('keeps the ordinary Web bubble beside its anchor', () => {

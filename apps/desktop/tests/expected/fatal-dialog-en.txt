@@ -1,4 +1,4 @@
-DeepSeek Harness is unavailable
+Nini Flow is unavailable
 The application could not start or stopped unexpectedly.
 Desktop Host failed
 Plugin initialization failed

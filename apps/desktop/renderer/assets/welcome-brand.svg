@@ -1,8 +1,10 @@
 <svg width="472" height="40" viewBox="0 0 472 40" fill="none" xmlns="http://www.w3.org/2000/svg">
 <style>
-  :root { --mark: #5B5BF0; --label: #0f1115; }
-  @media (prefers-color-scheme: dark) { :root { --mark: #A5A5FF; --label: #f9fafb; } }
+  :root { --mark: #6C341F; --tile: #F2EAE6; --tile-border: #DCCBC3; --label: #0f1115; }
+  @media (prefers-color-scheme: dark) { :root { --mark: #DDA98E; --tile: #513426; --tile-border: #76503D; --label: #f9fafb; } }
 </style>
-<path transform="translate(2 2) scale(1.5)" d="M7 2H17A5 5 0 0 1 22 7V17A5 5 0 0 1 17 22H7A5 5 0 0 1 2 17V7A5 5 0 0 1 7 2ZM7 4A3 3 0 0 0 4 7V17A3 3 0 0 0 7 20H17A3 3 0 0 0 20 17V7A3 3 0 0 0 17 4ZM7 13H9V17H7ZM11 10H13V17H11ZM15 7H17V17H15Z" fill="var(--mark)"/>
-<text x="50" y="29" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="26" font-weight="600" fill="var(--label)">AIPM Studio</text>
+<rect x="2.75" y="2.75" width="34.5" height="34.5" rx="10" fill="var(--tile)" stroke="var(--tile-border)" stroke-width="1.5"/>
+<path d="M17 10.5C17 15.1667 19.3333 17.5 24 17.5C19.3333 17.5 17 19.8333 17 24.5C17 19.8333 14.6667 17.5 10 17.5C14.6667 17.5 17 15.1667 17 10.5Z" stroke="var(--mark)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M27 9C27 11.3333 28.1667 12.5 30.5 12.5C28.1667 12.5 27 13.6667 27 16C27 13.6667 25.8333 12.5 23.5 12.5C25.8333 12.5 27 11.3333 27 9Z" stroke="var(--mark)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="50" y="29" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="26" font-weight="600" fill="var(--label)">Nini Flow</text>
 </svg>

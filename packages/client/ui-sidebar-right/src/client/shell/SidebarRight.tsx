@@ -299,8 +299,8 @@ function PanelChrome({ sessionId, fullscreen, actions, t, shortcuts, toggleFulls
  * The panel: the docked surface with the two controls in its top-right strip,
  * anchored to the frame's right edge and slid off it while collapsed.
  */
-function SidebarPanel(panel: PanelProps & { width: number; panelRef: RefObject<HTMLDivElement> }): ReactNode {
-  const { sessionId, surface, actions, t, renderSlot, openTab, width, reportRoom, fullscreen, panelRef } = panel
+function SidebarPanel(panel: PanelProps & { width: number; position: 'right' | 'center'; panelRef: RefObject<HTMLDivElement> }): ReactNode {
+  const { sessionId, surface, actions, t, renderSlot, openTab, width, position, reportRoom, fullscreen, panelRef } = panel
   const { expanded } = surface.layout
   const types = panel.useTabTypes(value => value)
   return (
@@ -308,9 +308,10 @@ function SidebarPanel(panel: PanelProps & { width: number; panelRef: RefObject<H
       ref={panelRef}
       className={css.panel}
       style={{ width: fullscreen ? '100vw' : width,
-        '--dsh-sidebar-width': fullscreen ? '100vw' : `${width}px` } as CSSProperties}
+        '--dsh-sidebar-width': fullscreen || position === 'center' ? '100vw' : `${width}px` } as CSSProperties}
       data-sidebar-right-session={sessionId}
       data-sidebar-right-panel={fullscreen ? 'fullscreen' : 'push'}
+      data-sidebar-right-position={position}
       data-sidebar-right-open={expanded || undefined}
       // Dockkit hides individual docked hosts; floating descendants remain accessible.
       aria-hidden={(!expanded && surface.layout.floats.length === 0) || undefined}
@@ -350,7 +351,7 @@ function SidebarPanel(panel: PanelProps & { width: number; panelRef: RefObject<H
  * measured and the automatic fullscreen rule of its frame width.
  */
 export function RightbarSeat({
-  sessionId, width, viewportWidth, canShow, useStore, actions, t, renderSlot, syncPresentation, measureRoom, reportAutoFullscreen,
+  sessionId, width, position = 'right', viewportWidth, canShow, useStore, actions, t, renderSlot, syncPresentation, measureRoom, reportAutoFullscreen,
   openTab, closeTab, useTabTypes, useTabNavigation, occurrence, retainTab, active, useShortcuts, splitPane, toggleFullscreen,
 }: RightbarSeatProps): ReactNode {
   // One store instance per session, so this map holds this session's surface.
@@ -419,5 +420,5 @@ export function RightbarSeat({
     sessionId, actions, t, renderSlot, surface, openTab, closeTab, useTabTypes, useTabNavigation, useStore, occurrence,
     fullscreen, autoFullscreen, reportRoom, active, retainTab, shortcuts, splitPane, toggleFullscreen,
   }
-  return <SidebarPanel {...panel} width={width} panelRef={panelRef} />
+  return <SidebarPanel {...panel} width={width} position={position} panelRef={panelRef} />
 }

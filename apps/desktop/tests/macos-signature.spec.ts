@@ -42,7 +42,7 @@ describe('desktop macOS release signature', () => {
   it('loads release identifiers from the environment and requires code signing', async () => {
     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
     const config = createElectronBuilderConfig(RELEASE_ENVIRONMENT, 'darwin', 'arm64')
-    expect(config.protocols).toEqual([{ name: 'AIPM Studio', schemes: ['aipm', 'dsh'] }])
+    expect(config.protocols).toEqual([{ name: 'Nini Flow', schemes: ['aipm', 'dsh'] }])
     expect(portablePath(config.directories.output)).toContain('/.desktop-build/targets/mac-arm64/artifacts')
     expect(config.mac.extendInfo.NSMicrophoneUsageDescription).toContain('microphone')
     expect(config.mac.entitlementsInherit).toBe(config.mac.entitlements)
@@ -65,6 +65,7 @@ describe('desktop macOS release signature', () => {
     expect(config.asarUnpack).toEqual(expect.arrayContaining([
       '**/*.{node,dylib,dll,so,exe}',
       '**/@vscode/ripgrep-*/bin/rg',
+      '**/node_modules/@deepseek-ai/dsh-aipm/skills/**/*',
     ]))
     expect(config).toMatchObject({
       appId: RELEASE_ENVIRONMENT.DSH_DESKTOP_APP_ID,
@@ -148,7 +149,7 @@ describe('desktop macOS release signature', () => {
     expect(portablePath(config.directories.output)).toContain('/targets/mac-arm64/local-artifacts')
     expect(config).toMatchObject({
       appId: 'com.linliu.aipm-studio',
-      productName: 'AIPM Studio',
+      productName: 'Nini Flow',
       mac: {
         identity: '-',
         forceCodeSigning: true,

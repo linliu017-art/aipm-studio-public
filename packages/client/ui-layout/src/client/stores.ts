@@ -31,6 +31,8 @@ type LayoutInfo = {
    * the frame and closing the panel preserve this preference.
    */
   rightbar: number | null
+  /** Which content occupies the flexible centre track while the right surface is docked. */
+  rightbarPosition: 'right' | 'center'
   /**
    * Whether the right panel is drawn at all, in either presentation.
    *
@@ -62,6 +64,7 @@ type LayoutActions = {
   toggleSidebar: (draft: LayoutState) => void
   setViewportWidth: (draft: LayoutState, width: number) => void
   setRightbar: (draft: LayoutState, px: number) => void
+  setRightbarPosition: (draft: LayoutState, position: 'right' | 'center') => void
   openRightbar: (draft: LayoutState, track: boolean, fullscreen: boolean) => void
   closeRightbar: (draft: LayoutState) => void
 }
@@ -84,6 +87,7 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
         viewportWidth: window.innerWidth,
         narrowExpanded: false,
         rightbar: null,
+        rightbarPosition: 'right',
         rightbarShown: false,
         rightbarTrack: false,
         rightbarFullscreen: false,
@@ -123,6 +127,9 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
       setRightbar: (d, px: number) => {
         d.layoutInfo.rightbarInstant = false
         d.layoutInfo.rightbar = clampWidth(px, RIGHTBAR_MIN, Math.max(RIGHTBAR_MIN, d.layoutInfo.viewportWidth * RIGHTBAR_MAX_RATIO))
+      },
+      setRightbarPosition: (d, position: 'right' | 'center') => {
+        d.layoutInfo.rightbarPosition = position
       },
       openRightbar: (d, track: boolean, fullscreen: boolean) => {
         if (!d.layoutInfo.rightbarShown || d.layoutInfo.rightbarTrack !== track || d.layoutInfo.rightbarFullscreen !== fullscreen) {

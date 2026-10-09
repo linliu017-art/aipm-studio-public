@@ -1,4 +1,4 @@
-/** AIPM Studio workbench plugin: the `aipm_stage` tool over the project state document. */
+/** Nini Flow workbench plugin: the `aipm_stage` tool over the project state document. */
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-agent'
@@ -7,6 +7,7 @@ import { PROJECT_STATE_FILE, STAGE_STATUSES, initProject, readProject, updateSta
 
 export * from './stages.ts'
 export * from './store.ts'
+export * from './project-view.ts'
 
 /** Stable Loader identity. */
 export const name = 'aipm'

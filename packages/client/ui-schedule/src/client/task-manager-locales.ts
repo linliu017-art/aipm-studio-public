@@ -3,7 +3,7 @@ import { frequencyEn, frequencyZh } from './frequency-locales.ts'
 
 /** English task-manager dictionary and key domain. */
 export const en = {
-  'panel': 'Automation tasks',
+  'panel': 'Task center',
   'title': 'Automation tasks',
   'new.action': 'New',
   'list.label': 'Task catalog',
@@ -147,7 +147,7 @@ export type TaskManagerKey = keyof typeof en
 
 /** Simplified Chinese dictionary with the same keys as English. */
 export const zh: Record<TaskManagerKey, string> = {
-  'panel': '自动化任务',
+  'panel': '任务中心',
   'title': '自动化任务',
   'new.action': '新建',
   'list.label': '任务列表',

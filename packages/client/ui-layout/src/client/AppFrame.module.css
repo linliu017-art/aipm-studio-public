@@ -62,7 +62,17 @@
   border-right: 0.5px solid var(--dsw-alias-border-l3);
 }
 
+/* The collapsed Nini Flow rail owns a hover/focus preview that overlays the
+   main area without changing the grid's 56px reservation. */
+.frame[data-sidebar-collapsed] .sidebarCol {
+  position: relative;
+  z-index: 12;
+  overflow: visible;
+}
+
 .centerCol {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -163,12 +173,6 @@
   background: var(--dsw-alias-bg-base);
 }
 
-/* The darwin closed sidebar has no rail: the centre reaches the window edge,
-   where a separator would draw a seam against nothing. */
-:global([data-platform='darwin']) [data-sidebar-collapsed] .centerCol {
-  border-left: none;
-}
-
 /* Published while the shell.leading seat is mounted (same condition as the
    TSX mount: darwin with the sidebar collapsed — the collapse that hides the
    column entirely): the inline band the window chrome occupies, measured from
@@ -265,9 +269,21 @@
  * where it is. The occupant draws its own left border.
  */
 .rightbarCol {
+  grid-column: 3;
+  grid-row: 1;
   position: relative;
   min-width: 0;
   overflow: visible;
+}
+
+/* Project deliverables use the file surface as the primary work area while
+   keeping the producing conversation visible in the fixed right column. */
+.frame[data-rightbar-position='center'] .centerCol {
+  grid-column: 3;
+}
+
+.frame[data-rightbar-position='center'] .rightbarCol {
+  grid-column: 2;
 }
 
 .bottomRow {

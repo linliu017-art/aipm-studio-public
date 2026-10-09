@@ -435,7 +435,7 @@ export async function packageTarget(
     electronBuilderEnv.DSH_DESKTOP_LOCAL_MACOS = '1'
     // Keep local-only packaging self-contained and writable even when the user's
     // standard macOS cache directory is unavailable to the build process.
-    electronBuilderEnv.ELECTRON_BUILDER_CACHE ??= join(tmpdir(), 'aipm-studio-electron-builder-cache')
+    electronBuilderEnv.ELECTRON_BUILDER_CACHE ??= join(tmpdir(), 'nini-flow-electron-builder-cache')
   }
   for (const name of WINDOWS_SIGNING_ENV_NAMES) {
     if (!invocation.unsigned && environment[name] !== undefined) electronBuilderEnv[name] = environment[name]
@@ -527,7 +527,7 @@ export async function packageTarget(
   } else if (target.platform === 'darwin') {
     await execute([...desktopElectronBuilderArguments(target, true), '--config.mac.notarize=false'], electronBuilderEnv)
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts'], targetEnv)
-    const appPath = join(buildPaths.artifacts, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'AIPM Studio.app')
+    const appPath = join(buildPaths.artifacts, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'Nini Flow.app')
     await withMacOSNotarizationProxy(mac?.notarizationProxy,
       () => notarizeMacOS({ appPath, ...resolveMacOSNotarizationEnvironment(environment) }), undefined, undefined, proxyEvent)
   } else {

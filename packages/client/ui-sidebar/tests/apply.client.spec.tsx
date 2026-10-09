@@ -33,10 +33,18 @@ async function bench(declare = true) {
   if (ctx === undefined) throw new Error('the sidebar fixture owner did not activate')
   await ctx.plugin(SlotRegistry).await()
   const layout = { toggleSidebar: vi.fn(), selectPanel: vi.fn() }
-  const uiWorkspace = { startSession: vi.fn() }
+  const uiWorkspace = {
+    startSession: vi.fn(),
+    openWorkspace: vi.fn(() => Promise.resolve()),
+    openSession: vi.fn(),
+  }
+  const sidebarRight = { openResource: vi.fn() }
   ctx.provide('shortcuts', { catalog: createSnapshotStore([]) } as never)
   ctx.provide('layout', layout)
   ctx.provide('uiWorkspace', uiWorkspace as never)
+  ctx.provide('remote', { workspaceFiles: { list: vi.fn(), read: vi.fn() } } as never)
+  ctx.provide('remote.workspaceFiles', {} as never)
+  ctx.provide('sidebarRight', sidebarRight as never)
   ctx.provide('locale', new LocaleRuntime(ctx))
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
@@ -49,7 +57,7 @@ async function bench(declare = true) {
       SidebarFrame,
     )
   }
-  return { ctx, slots, layout, uiWorkspace }
+  return { ctx, slots, layout, uiWorkspace, sidebarRight }
 }
 
 describe('ui-sidebar apply', () => {
@@ -58,7 +66,10 @@ describe('ui-sidebar apply', () => {
   })
 
   it('declares only the services it uses', () => {
-    expect(inject).toEqual(['slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts'])
+    expect(inject).toEqual([
+      'slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts',
+      'remote', 'remote.workspaceFiles', 'sidebarRight',
+    ])
   })
 
   it('registers the shell and declares its child seats', async () => {
@@ -81,19 +92,43 @@ describe('ui-sidebar apply', () => {
     expect(leading[0]!.inject).toBe(b.slots.entries('sidebar')[0]!.inject)
     const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
     expect(Object.keys(injected)).toEqual(['startSession', 'toggleSidebar', 'selectPanel', 'hooks'])
-    expect(injected.hooks.panels.getSnapshot()).toEqual([])
-    expect(b.slots.entries('main')).toEqual([])
+    expect(injected.hooks.panels.getSnapshot().map(panel => panel.id)).toEqual([
+      'aipm-projects',
+    ])
+    expect(b.slots.entries('main').map(entry => entry.options.key)).toEqual([
+      'aipm-projects',
+    ])
     // Both arms delegate to the Workspace UI's shared New Session action.
     injected.startSession('workspace' as never)
-    expect(b.uiWorkspace.startSession).toHaveBeenCalledWith('workspace')
+    expect(b.uiWorkspace.startSession).toHaveBeenCalledWith('workspace', undefined)
     injected.startSession()
-    expect(b.uiWorkspace.startSession).toHaveBeenLastCalledWith(undefined)
+    expect(b.uiWorkspace.startSession).toHaveBeenLastCalledWith(undefined, undefined)
+    injected.startSession(undefined, { prompt: '调研任务', clearPreviousDraft: true })
+    expect(b.uiWorkspace.startSession).toHaveBeenLastCalledWith(undefined, {
+      prompt: '调研任务', clearPreviousDraft: true,
+    })
     injected.toggleSidebar()
     expect(b.layout.toggleSidebar).toHaveBeenCalledOnce()
     const panelId = 'custom-panel' as MainPanelId
     injected.selectPanel(panelId)
     expect(b.layout.selectPanel).toHaveBeenCalledExactlyOnceWith(panelId)
-    expectTypeOf<Parameters<SidebarRootInjected['selectPanel']>[0]>().toEqualTypeOf<MainPanelId>()
+    expectTypeOf<Parameters<SidebarRootInjected['selectPanel']>[0]>().toEqualTypeOf<MainPanelId | null>()
+  })
+
+  it('opens a project deliverable in the centre beside its producing conversation', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const project = b.slots.entries('main').find(entry => entry.options.key === 'aipm-projects')
+    const injected = (project?.inject as (() => { openProjectFile: (sessionId: never, root: never, path: string) => void }))()
+
+    injected.openProjectFile('session-a' as never, '/workspace' as never, '01-立项/report.md')
+    await Promise.resolve()
+
+    expect(b.uiWorkspace.openSession).toHaveBeenCalledWith('session-a')
+    expect(b.sidebarRight.openResource).toHaveBeenCalledWith(
+      expect.stringContaining('01-%E7%AB%8B%E9%A1%B9/report.md'),
+      { position: 'center' },
+    )
   })
 
   it('waits for the sidebar declaration before registering', async () => {
@@ -127,14 +162,22 @@ describe('ui-sidebar apply', () => {
     try {
       await panel.await()
       await vi.waitFor(() => {
-        expect(injected.hooks.panels.getSnapshot()).toEqual([
-          { id: 'custom-panel', order: 20, label: 'Custom panel' },
+        expect(injected.hooks.panels.getSnapshot().map(item => item.id)).toEqual([
+          'aipm-projects', 'custom-panel',
         ])
       })
-      expect(b.slots.entries('main').map(entry => entry.options.key)).toEqual(['custom-panel'])
+      expect(b.slots.entries('main').map(entry => entry.options.key)).toEqual([
+        'aipm-projects', 'custom-panel',
+      ])
       await panel.dispose()
-      await vi.waitFor(() => { expect(injected.hooks.panels.getSnapshot()).toEqual([]) })
-      expect(b.slots.entries('main')).toEqual([])
+      await vi.waitFor(() => {
+        expect(injected.hooks.panels.getSnapshot().map(item => item.id)).toEqual([
+          'aipm-projects',
+        ])
+      })
+      expect(b.slots.entries('main').map(entry => entry.options.key)).toEqual([
+        'aipm-projects',
+      ])
     } finally {
       await panel.dispose()
       await sidebar.dispose()

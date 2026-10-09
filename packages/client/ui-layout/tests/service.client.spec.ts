@@ -11,6 +11,7 @@ function fakePanels(): PanelActions {
     toggleSidebar: vi.fn(),
     setViewportWidth: vi.fn(),
     setRightbar: vi.fn(),
+    setRightbarPosition: vi.fn(),
     openRightbar: vi.fn(),
     closeRightbar: vi.fn(),
   }
@@ -32,6 +33,17 @@ describe('LayoutController', () => {
     expect(panels.closeRightbar).toHaveBeenCalledTimes(1)
     // The drag width stays the frame's own business, never the caller's.
     expect(panels.setRightbar).not.toHaveBeenCalled()
+  })
+
+  it('forwards the requested docked right-surface position', () => {
+    const panels = fakePanels()
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
+
+    service.setRightbarPosition('center')
+    service.setRightbarPosition('right')
+
+    expect(panels.setRightbarPosition).toHaveBeenNthCalledWith(1, 'center')
+    expect(panels.setRightbarPosition).toHaveBeenNthCalledWith(2, 'right')
   })
 
   it('can toggle the sidebar immediately after construction', () => {

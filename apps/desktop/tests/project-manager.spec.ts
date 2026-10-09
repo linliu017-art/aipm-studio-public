@@ -43,6 +43,34 @@ afterEach(() => {
 })
 
 describe('desktop external plugin profile', () => {
+  it('adds the AIPM product layer to an existing pre-AIPM Desktop profile', async () => {
+    const { manager } = setup()
+    await manager.applyRelease()
+    const manifestPath = join(manager.paths.profile, 'package.json')
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+      dependencies: Record<string, string>
+      dsh: { profile: { bundles: string[] } }
+    }
+    manifest.dependencies.plugin = '1.0.0'
+    manifest.dsh.profile.bundles = [
+      '@deepseek-ai/dsh-base',
+      '@deepseek-ai/dsh-web-app',
+      'plugin',
+    ]
+    writeFileSync(manifestPath, JSON.stringify(manifest))
+
+    await manager.applyRelease()
+
+    const migrated = JSON.parse(readFileSync(manifestPath, 'utf8')) as typeof manifest
+    expect(migrated.dependencies).toEqual({ plugin: '1.0.0' })
+    expect(migrated.dsh.profile.bundles).toEqual([
+      '@deepseek-ai/dsh-base',
+      '@deepseek-ai/dsh-web-app',
+      '@deepseek-ai/dsh-aipm',
+      'plugin',
+    ])
+  })
+
   it('preserves installed packages, profile state, and the lockfile when preparing a launch', async () => {
     const { manager } = setup()
     await manager.applyRelease()

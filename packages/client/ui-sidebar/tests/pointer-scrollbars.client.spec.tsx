@@ -73,7 +73,11 @@ function mountColumn(): { column: HTMLElement; quiet: () => boolean } {
 function movePointer(column: HTMLElement, direction: 'in' | 'out'): void {
   const outside = document.body
   if (direction === 'in') fireEvent.pointerOver(column, { relatedTarget: outside })
-  else fireEvent.pointerOut(column, { relatedTarget: outside })
+  else fireEvent.pointerOut(column, {
+    relatedTarget: outside,
+    clientX: COLUMN_WIDTH + 1,
+    clientY: COLUMN_HEIGHT / 2,
+  })
 }
 
 /**

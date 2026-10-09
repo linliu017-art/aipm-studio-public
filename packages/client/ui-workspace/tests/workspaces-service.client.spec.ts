@@ -290,7 +290,7 @@ function bench(options: BenchOptions = {}) {
   const layout = new LayoutController({
     selectPanel: vi.fn(), retainMainPanels: vi.fn(),
     setSidebar: vi.fn(), toggleSidebar: vi.fn(), setViewportWidth: vi.fn(),
-    setRightbar: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn(),
+    setRightbar: vi.fn(), setRightbarPosition: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn(),
   }, () => true, createSnapshotStore({ activePanelId: null }))
   const selectPanel = vi.spyOn(layout, 'selectPanel')
   ctx.provide('layout', layout)
@@ -745,6 +745,26 @@ describe('UiWorkspaceService', () => {
     missingMember.uiWorkspace.startSession()
     await vi.waitFor(() => {
       expect(missingMember.sessions.create).toHaveBeenCalledWith({ workspaceId: wid('newer') })
+    })
+  })
+
+  it('uses the automatic default Workspace before the current or recent Workspace', async () => {
+    const current = summary('current', { cwd: '/w/current-home', updatedAt: 3 })
+    const b = bench({
+      sessions: sessionState([current]),
+      workspaces: workspaceState([
+        workspace('current-home', [current.id]),
+        workspace('default-workspace'),
+      ]),
+    })
+    b.uiWorkspace.openSession(current.id)
+    b.sessions.retain.mockClear()
+
+    b.uiWorkspace.startSession()
+
+    await vi.waitFor(() => {
+      expect(b.sessions.create).toHaveBeenCalledWith({ workspaceId: wid('default-workspace') })
+      expect(b.sessions.retain).toHaveBeenLastCalledWith(sid('created-default-workspace'), { source: 'mainView' })
     })
   })
 

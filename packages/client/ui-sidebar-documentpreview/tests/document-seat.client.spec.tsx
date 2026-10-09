@@ -40,7 +40,9 @@ async function boot() {
   const rt = await SlotTestRuntime.create()
   runtime = rt
   rt.ctx.provide('configForms', { developerTools: { enabled: createSnapshotStore(true) } } as never)
-  rt.ctx.provide('layout', { openRightbar: vi.fn(), closeRightbar: vi.fn(), panelInfo: rt.panelInfo } as never)
+  rt.ctx.provide('layout', {
+    openRightbar: vi.fn(), closeRightbar: vi.fn(), setRightbarPosition: vi.fn(), panelInfo: rt.panelInfo,
+  } as never)
   rt.ctx.provide('shortcuts', { register: () => () => {}, catalog: { getSnapshot: () => SHORTCUT_CATALOG, subscribe: () => () => {} } } as never)
   const locale = new LocaleRuntime(rt.ctx)
   rt.ctx.provide('locale', locale)

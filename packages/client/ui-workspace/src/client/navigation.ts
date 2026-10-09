@@ -15,6 +15,7 @@ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type {
   IWorkspaces, WorkspaceId, WorkspaceSnapshot, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import { DEFAULT_WORKSPACE_DIRECTORY } from '@deepseek-ai/dsh-api-workspace-controller/default-workspace'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { DraftInitializationOptions } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -63,7 +64,8 @@ export interface UiWorkspace {
   /**
    * Start a New Session flow and navigate to its Session; a creation the Host
    * refuses is shown through the Workspace notice and leaves the selection as it was.
-   * @param workspaceId - explicit target; absent inherits the current or most recent Workspace.
+   * @param workspaceId - explicit target; absent uses the automatic default Workspace,
+   * then inherits the current or most recent Workspace when that default is unavailable.
    * @param options - initial content; existing text or attachments are preserved unless clearPreviousDraft is true.
    */
   startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void
@@ -239,7 +241,10 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const recent = workspace.phase === 'ready' && sessions.phase === 'ready'
       ? recentWorkspace(workspace.items, sessions.byId)
       : undefined
-    const target = workspaceId ?? currentWorkspaceId ?? recent
+    const automaticDefault = workspace.phase === 'ready'
+      ? workspace.items.find(item => item.title === DEFAULT_WORKSPACE_DIRECTORY)?.workspaceId
+      : undefined
+    const target = workspaceId ?? automaticDefault ?? currentWorkspaceId ?? recent
     if (target === undefined) {
       if (initializeDraft) {
         this.notify({ kind: 'createFailed', message: this.ctx.locale.bind('workspace')('draft.workspaceRequired') })

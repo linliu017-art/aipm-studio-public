@@ -132,6 +132,8 @@ export interface SidebarRightHost {
    * @returns the rule's verdict for the frame width the seats last rendered at.
    */
   readonly autoFullscreen: () => boolean
+  /** Select the docked column arrangement for a public resource opening. */
+  readonly setPosition: (position: 'right' | 'center') => void
   /**
    * Commit a page operation and focus the pane it selects.
    * @param sessionId - the Session whose page is opening.
@@ -164,6 +166,8 @@ export interface SidebarRightPlacement {
 
 /** How a caller wants a resource opened. */
 export interface SidebarRightOpenResourceOptions extends SidebarRightPlacement {
+  /** Put this resource in the usual right column, or in the flexible centre column. */
+  readonly position?: 'right' | 'center'
   /** Name the opening type instead of letting the registry rank claims; its `canOpen` still applies. */
   readonly kind?: string
   /** The resource's navigation parameters, typed by resource type; delivered as `navigation.params`. */
@@ -322,6 +326,7 @@ export class SidebarRightController implements ISidebarRight {
   openResource(address: string, options: SidebarRightOpenResourceOptions = {}): void {
     const { sessionId, actions } = this.require()
     this.placeResource(sessionId, actions, address, options)
+    this.host.setPosition(options.position ?? 'right')
   }
 
   /**

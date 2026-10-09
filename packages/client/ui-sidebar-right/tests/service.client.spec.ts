@@ -47,8 +47,10 @@ function harness() {
     title: address => address.slice(address.lastIndexOf('/') + 1),
   })
   const pin = vi.fn<(address: string, signal: AbortSignal) => void>()
+  const setPosition = vi.fn<(position: 'right' | 'center') => void>()
   const { controller, adopt, show, measure } = createSidebarRightController(tabs, pin, {
     autoFullscreen: () => false,
+    setPosition,
     openWithFocus: (_sessionId, open) => { open() },
     closeWithFocus: (_sessionId, _paneId, close) => { close() },
   })
@@ -80,10 +82,24 @@ function harness() {
   const entries = (): number => instance.getSnapshot().bySession[SESSION]?.history.entries.length ?? 0
   // A surface starts empty; expanding seeds the default guide ('seed').
   const expand = (): void => { instance.actions.setExpanded(SESSION, true) }
-  return { controller, adopt, unadopt, show, measure, tabs, instance, pin, publish, titles, tabOf, layout, entries, room, expand }
+  return {
+    controller, adopt, unadopt, show, measure, tabs, instance, pin, setPosition,
+    publish, titles, tabOf, layout, entries, room, expand,
+  }
 }
 
 describe('SidebarRightController — opening', () => {
+  it('selects the requested public resource column and restores the default for ordinary opens', () => {
+    const h = harness()
+    const release = h.publish()
+    try {
+      h.controller.openResource('dsh-resource://file/session/s-test/a.txt', { position: 'center' })
+      h.controller.openResource('dsh-resource://file/session/s-test/a.txt')
+      expect(h.setPosition).toHaveBeenNthCalledWith(1, 'center')
+      expect(h.setPosition).toHaveBeenNthCalledWith(2, 'right')
+    } finally { release() }
+  })
+
   it('keeps independently opened instances distinct when they return to the same pane', () => {
     const h = harness()
     h.tabs.register({ id: 'test/terminal', kind: 'terminal', multiple: true, title: () => 'terminal' })

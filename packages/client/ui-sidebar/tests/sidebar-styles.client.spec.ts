@@ -26,42 +26,38 @@ function declarations(selector: string): Map<string, string> | undefined {
 }
 
 describe('SidebarRoot.module.css', () => {
-  it('shares and cancels the wide shell trailing padding structurally', () => {
+  it('keeps the permanent rail compact and lets the detail column own its spacing', () => {
     const root = declarations('.root')
     expect(root?.get('--dsh-sidebar-inline-padding')).toBe('12px')
-    expect(root?.get('padding')).toBe('6px var(--dsh-sidebar-inline-padding)')
-    expect(declarations('.regionArea')?.get('margin-left')).toBe('-4px')
-    expect(declarations('.regionArea')?.get('padding-left')).toBe('4px')
-    expect(declarations('.regionArea')?.get('margin-right')).toBe(
-      'calc(-1 * var(--dsh-sidebar-inline-padding))',
+    expect(declarations('.rail')?.get('flex')).toBe('0 0 58px')
+    expect(declarations('.detail')?.get('padding')).toBe('14px 12px 10px')
+    expect(declarations('.regionArea')?.get('margin')).toBe(
+      '8px calc(-1 * var(--dsh-sidebar-inline-padding)) 0 -4px',
     )
+    expect(declarations('.regionArea')?.get('padding-left')).toBe('4px')
     expect(declarations('.collapsed .regionArea')?.get('margin-left')).toBe('0')
     expect(declarations('.collapsed .regionArea')?.get('padding-left')).toBe('0')
     expect(declarations('.collapsed .regionArea')?.get('margin-right')).toBe('0')
   })
 
-  it('moves the four upper controls while the settings seat only fades', () => {
-    const animation = 'rail-in 150ms var(--ds-ease-in-out) backwards'
-    for (const selector of [
-      '.railIn .iconButton',
-      '.railIn .newSession',
-      '.railIn .regionArea',
-    ]) {
-      expect(declarations(selector)?.get('animation')).toBe(animation)
-    }
-    expect(declarations('.railIn .footArea')?.get('animation')).toBe(
-      'rail-fade-in 150ms var(--ds-ease-in-out) backwards',
+  it('animates the permanent rail as one stable unit after collapse', () => {
+    expect(declarations('.railIn .rail')?.get('animation')).toBe(
+      'rail-in 150ms var(--ds-ease-in-out) backwards',
     )
     expect(css).toMatch(
-      /@keyframes rail-in\s*\{\s*from\s*\{\s*opacity: 0;\s*transform: translateX\(49px\);\s*}\s*}/,
+      /@keyframes rail-in\s*\{\s*from\s*\{\s*opacity: 0;\s*transform: translateX\(12px\);\s*}\s*}/,
     )
-    expect(css).toMatch(/@keyframes rail-fade-in\s*\{\s*from\s*\{\s*opacity: 0;\s*}\s*}/)
   })
 
-  it('gives shell rail controls the same base anchor for their shared translation', () => {
-    expect(declarations('.collapsed .logoRow')?.get('justify-content')).toBe('flex-start')
-    expect(declarations('.collapsed .newSession')?.get('align-self')).toBe('flex-start')
-    expect(declarations('.collapsed .newSession')?.get('width')).toBe('36px')
+  it('hides only the detail drawer when the sidebar collapses', () => {
+    expect(declarations('.collapsed .detail')?.get('display')).toBe('none')
+    expect(declarations('.collapsed .rail')?.get('flex-basis')).toBe('56px')
+  })
+
+  it('uses the Nini Flow glass tokens for the primary actions', () => {
+    expect(declarations('.newSession')?.get('border')).toBe('0.5px solid var(--dsw-nini-glass-border)')
+    expect(declarations('.newSession')?.get('backdrop-filter')).toBe('blur(20px) saturate(140%)')
+    expect(declarations('.quickToggle')?.get('border')).toBe('0.5px solid var(--dsw-nini-glass-border)')
   })
 
   it('keeps the slotted brand row at the full artwork height', () => {

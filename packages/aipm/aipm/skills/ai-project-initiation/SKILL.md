@@ -1,9 +1,49 @@
 ---
 name: ai-project-initiation
-description: 带领 AI 产品经理从一句话想法或已有材料出发，分站梳理需求、验证证据、排定范围，最终写成可拍板的立项报告（Markdown 定稿 + HTML 单页）。覆盖 0→1 新 AI 产品、已有产品的 AI 迭代或半年规划、B 端内部 AI 提效三类立项。当用户提到立项、立项报告、项目决策书、方向汇报、半年规划、"要不要做这个 AI 功能"、"老板让我出个方案"时使用。
+description: 从一句话想法或已有材料出发，分站梳理需求、验证证据、排定范围，生成可拍板的立项报告（Markdown 定稿 + HTML 单页）。既可直接响应立项、项目决策书、方向汇报、半年规划等任务，也可在下游产出缺少立项依据时作为前置 skill；完成立项产物后停止，不自行进入 PRD 等后续阶段。
+metadata:
+  aipm:
+    contract-version: 1
+    stage: "01-立项"
+    task-types:
+      - project-initiation
+    inputs:
+      accepts:
+        - product-idea
+        - existing-project-materials
+      required-artifacts: []
+    dependencies: []
+    outputs:
+      - id: project-initiation-report
+        label: 立项报告
+        primary: true
+        formats:
+          - markdown
+          - html
+      - id: project-initiation-workcards
+        label: 立项过程卡片
+        primary: false
+        formats:
+          - markdown
+    storage:
+      directory: "01-立项"
+      resume-file: "01-立项/00-盘点.md"
+    execution:
+      mode: checkpointed
+      can-run-as-prerequisite: true
+      stop-after-target: true
 ---
 
 # AI 产品立项报告
+
+## AIPM 调度契约
+
+- **目标产物**：`project-initiation-report`。完整交付包括 Markdown 定稿和 HTML 单页；用户只要求某张立项卡片时，以该卡片为本次目标产物。
+- **可接受输入**：一句话产品想法，或任何已有的产品、用户、业务、市场与方案材料。没有强制前置文档，因此 `dependencies` 为空。
+- **两种调用方式**：用户直接要求立项产物时作为目标 skill；PRD 等下游任务缺少可靠立项依据时，也可由 AIPM 作为前置 skill 调用。
+- **完成边界**：产出并确认本次目标后，把结果交还给 AIPM 调度器并停止。即使作为前置 skill，也不自行加载或执行 PRD、原型、测试等后续 skill。
+- **确认点**：每站卡片和最终 Markdown 定稿都需要用户确认；红旗命中时必须暂停，不能把未确认判断继续传给下游 skill。
+- **恢复位置**：从 `01-立项/00-盘点.md` 读取进度，复用已经确认的卡片，不重复询问已有信息。
 
 两句话贯穿全程：
 

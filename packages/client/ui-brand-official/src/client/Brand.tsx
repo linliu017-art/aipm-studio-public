@@ -15,5 +15,9 @@ export function OfficialBrandMark({ size }: SidebarBrandMarkOwnerProps) {
  * @returns the product name text.
  */
 export function OfficialBrandName() {
-  return <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: '0.01em' }}>AIPM Studio</span>
+  return (
+    <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: '0.01em' }}>
+      {process.env.DSH_CLIENT_TITLE}
+    </span>
+  )
 }

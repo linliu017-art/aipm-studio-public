@@ -3,7 +3,7 @@
 
 import type { ReactNode, RefObject } from 'react'
 import {
-  FISH_LOGO_PATH, FISH_LOGO_VIEWBOX, IconChevronDownOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
+  FishLogo, IconChevronDownOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
 import type { ConversationContentProps } from '../contract/slots.ts'
@@ -71,22 +71,11 @@ export interface HeroShellProps {
 }
 
 /**
- * The hero brand mark (34px wide). Decorative — hidden from the accessibility tree.
- * @returns the mark svg element.
+ * The hero brand mark. Decorative — hidden from the accessibility tree.
+ * @returns the product mark element.
  */
-function HeroFish() {
-  return (
-    <svg
-      className={css.fish}
-      width={34}
-      height={(34 * FISH_LOGO_VIEWBOX.height) / FISH_LOGO_VIEWBOX.width}
-      viewBox={`0 0 ${FISH_LOGO_VIEWBOX.width} ${FISH_LOGO_VIEWBOX.height}`}
-      fill="none"
-      aria-hidden="true"
-    >
-      <path d={FISH_LOGO_PATH} fill="currentColor" />
-    </svg>
-  )
+function HeroBrandMark() {
+  return <FishLogo className={css.heroMark} size={48} />
 }
 
 /**
@@ -99,20 +88,17 @@ export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
     <div className={css.root}>
       <div className={css.stack}>
         <div className={css.headline}>
-          {/* figma 34:10412: fish 34×25 leading the headline, gap 10. */}
-          <span className={css.fishHitbox}>
-            {renderSlot('conversation.hero.brand.mark', { size: 34, className: css.fish }, {
-              fallback: <HeroFish />,
+          <span className={css.markHitbox}>
+            {renderSlot('conversation.hero.brand.mark', { size: 48, className: css.heroMark }, {
+              fallback: <HeroBrandMark />,
             })}
           </span>
           <span className={css.titleGroup}>
-            {/* Own element: keeps the headline text addressable apart from the badge. */}
             <span>{t('hero.headline')}</span>
-            <span className={css.previewBadge}>{t('hero.preview')}</span>
           </span>
         </div>
         <div className={css.body}>
-          {/* The composer remains mounted outside this component. */}
+          <span className={css.description}>{t('hero.description')}</span>
         </div>
       </div>
       {children}

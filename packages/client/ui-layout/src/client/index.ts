@@ -27,7 +27,7 @@ import { ThemePresenter } from './theme-presenter.ts'
 // OwnerShare contracts below are the render-side halves registrants compose
 // against; the frame components and the store factory are package-internal.
 export { LayoutController } from './service.ts'
-export type { ILayout, MainPanelId, PanelInfo } from './service.ts'
+export type { ILayout, MainPanelId, PanelInfo, RightbarPosition } from './service.ts'
 
 /** Selector hook over root-scoped panel selection. */
 export type UsePanelInfo = SnapshotSelectorHook<PanelInfo>
@@ -137,6 +137,8 @@ export interface SidebarOwnerProps {
 export interface RightbarOwnerProps {
   /** Resolved normal panel width in px, not the saved preference; zero if it cannot fit. */
   width: number
+  /** Docked column occupied by the resource surface. */
+  position?: 'right' | 'center'
   /** Current frame width in px. */
   viewportWidth: number
   /**

@@ -1,4 +1,4 @@
-# AIPM Studio bundle: the AIPM agent preset, applied after dsh-web-app, and
+# Nini Flow bundle: the AIPM agent preset, applied after dsh-web-app, and
 # the registry default that opens new sessions in it.
 - id: agent-preset-registry
   name: '@deepseek-ai/dsh-agent-preset-registry'
@@ -18,7 +18,7 @@
             config:
               suffix: 你的工作目录是 {{cwd}}。
               prefix: |-
-                你是 AIPM Studio 里的 AI 产品经理搭档，由 {{model}} 模型驱动。用户是产品经理，会直接交给你一项具体任务，例如"帮我生成一份立项报告""根据现有 PRD 准备需求评审材料""整理上线检查清单"。你的职责是把这一项任务做好，做完就停。
+                你是 Nini Flow 里的 AI 产品经理搭档，由 {{model}} 模型驱动。用户是产品经理，会直接交给你一项具体任务，例如"帮我生成一份立项报告""根据现有 PRD 准备需求评审材料""整理上线检查清单"。你的职责是把这一项任务做好，做完就停。
 
                 ## 阶段相互独立
 
@@ -37,7 +37,7 @@
 
                 ## 任务完成后
 
-                用 present 交付本次产出，用几句话说明做了什么、还有哪些"待确认"。最后可以列一到三条接下来可能需要的工作，只作为建议，例如"如果需要，我可以根据这份立项报告起草 PRD"。然后结束本轮。不要自己开始建议里的工作，也不要为此弹窗询问；只有用户明确说要继续，才调用下一阶段的 skill。
+                用 present 交付本次产出，用几句话说明做了什么、还有哪些"待确认"。回复中明确写出本次使用的工作目录，并逐项列出产出物相对该目录的路径，让用户能立刻确认文件保存到了哪个项目。最后可以列一到三条接下来可能需要的工作，只作为建议，例如"如果需要，我可以根据这份立项报告起草 PRD"。然后结束本轮。不要自己开始建议里的工作，也不要为此弹窗询问；只有用户明确说要继续，才调用下一阶段的 skill。
 
                 ## 提问
 
@@ -83,8 +83,8 @@
           - id: skill-filesystem
             name: '@deepseek-ai/dsh-skill-filesystem'
             config:
-              customSkillDirs:
-                - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@deepseek-ai/dsh-aipm/package.json')), 'skills')
+              watch: false
+              bundledSkillDir: !!js (() => { const path = process.getBuiltinModule('node:path'); const separator = path.sep; const directory = path.join(path.dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@deepseek-ai/dsh-aipm/package.json')), 'skills'); return directory.replace(separator + 'app.asar' + separator, separator + 'app.asar.unpacked' + separator) })()
           - id: tool-skill
             name: '@deepseek-ai/dsh-tool-skill'
           - id: compaction

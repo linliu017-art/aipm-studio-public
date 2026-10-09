@@ -127,7 +127,7 @@ function agentsDocument(input: InitProjectInput): string {
 
 ${input.summary}
 
-这是一个 AIPM Studio 产品项目。各阶段相互独立、按需使用，产出物放在对应的阶段目录里。用户自己的资料可以放在项目里任意位置，做任务前先读已有的资料和产出物。
+这是一个 Nini Flow 产品项目。各阶段相互独立、按需使用，产出物放在对应的阶段目录里。用户自己的资料可以放在项目里任意位置，做任务前先读已有的资料和产出物。
 
 ${stageLines}
 

@@ -4,7 +4,7 @@ import type { AfterPackContext, BeforePackContext } from 'app-builder-lib'
 export interface DesktopElectronBuilderConfig {
   readonly appId: string
   readonly artifactName: string
-  readonly protocols: readonly [{ readonly name: 'AIPM Studio'; readonly schemes: readonly ['aipm', 'dsh'] }]
+  readonly protocols: readonly [{ readonly name: 'Nini Flow'; readonly schemes: readonly ['aipm', 'dsh'] }]
   readonly directories: {
     readonly output: string
   }

@@ -163,11 +163,11 @@ export function AppFrame({
     ? 0
     : layoutInfo.sidebar === 0 ? SIDEBAR_DEFAULT : layoutInfo.sidebar
   const rightbarPreference = layoutInfo.rightbar ?? viewport * RIGHTBAR_DEFAULT_RATIO
-  // Desktop reopen controls occupy the frame's shell.leading seat (macOS) or
-  // the Windows caption row; neither platform keeps an icon rail.
+  // AIPM keeps the navigation rail visible on macOS so Agent, project, task,
+  // and output navigation never disappears. Windows still uses caption-row
+  // controls because its native titlebar owns the same horizontal strip.
   const darwin = document.documentElement.dataset.platform === 'darwin'
-  const collapsedWidth = darwin
-    || document.documentElement.hasAttribute('data-windows-titlebar') ? 0 : SIDEBAR_COLLAPSED
+  const collapsedWidth = document.documentElement.hasAttribute('data-windows-titlebar') ? 0 : SIDEBAR_COLLAPSED
   // Opening on a narrow frame collapses the left sidebar. Eligibility must
   // include that space before the occupant's first shown report arrives.
   const normal = computeColumns(viewport, !layoutInfo.rightbarShown && narrow ? 0 : sidebarPreference, rightbarPreference, collapsedWidth)
@@ -253,7 +253,13 @@ export function AppFrame({
   // row (ui-sidebar). AppFrame.module.css publishes the matching
   // --dsh-frame-leading-clearance under the same collapsed condition.
   const leading = useMemo(() => renderSlot('shell.leading', {}), [renderSlot])
-  const leadingMounted = darwin && sidebarCollapsed
+  const leadingMounted = darwin && sidebarCollapsed && collapsedWidth === 0
+  // Project deliverables can ask the file surface to take the flexible centre
+  // track, leaving their producing conversation in the fixed right track.
+  // Fullscreen and hidden presentations retain the ordinary ordering.
+  const rightbarCentered = layoutInfo.rightbarPosition === 'center'
+    && layoutInfo.rightbarShown && layoutInfo.rightbarTrack && !layoutInfo.rightbarFullscreen
+  const renderedRightbarWidth = rightbarCentered ? normal.center : normal.rightbar
 
   return (
     <div
@@ -269,6 +275,7 @@ export function AppFrame({
       data-rightbar-collapsed={cols.rightbar === 0 || undefined}
       data-rightbar-fullscreen={layoutInfo.rightbarFullscreen || undefined}
       data-rightbar-instant={layoutInfo.rightbarInstant || undefined}
+      data-rightbar-position={rightbarCentered ? 'center' : undefined}
       data-dragging={dragging || undefined}
       data-animating={animating > 0 || undefined}
     >
@@ -283,7 +290,12 @@ export function AppFrame({
       <>
         <CenterColumn>{main}</CenterColumn>
         <RightbarColumn>
-          {renderSlot('rightbar', { width: normal.rightbar, viewportWidth: viewport, canShow: normal.rightbar > 0 })}
+          {renderSlot('rightbar', {
+            width: renderedRightbarWidth,
+            position: rightbarCentered ? 'center' : 'right',
+            viewportWidth: viewport,
+            canShow: normal.rightbar > 0,
+          })}
         </RightbarColumn>
       </>
       <div className={css.bottomRow} data-shell-bottom>

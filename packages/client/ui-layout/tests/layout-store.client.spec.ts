@@ -17,6 +17,7 @@ describe('createLayoutStore', () => {
         viewportWidth: 1920,
         narrowExpanded: false,
         rightbar: null,
+        rightbarPosition: 'right',
         rightbarShown: false,
         rightbarTrack: false,
         rightbarFullscreen: false,
@@ -34,6 +35,17 @@ describe('createLayoutStore', () => {
     expect(b.store.getSnapshot().layoutInfo.sidebar).toBe(280)
     expect(b.store.getSnapshot().layoutInfo.rightbar).toBeNull()
     expect(write).not.toHaveBeenCalled()
+  })
+
+  it('records the requested right-surface column independently of visibility', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setRightbarPosition('center')
+    expect(store.getSnapshot().layoutInfo).toMatchObject({ rightbarPosition: 'center', rightbarShown: false })
+    actions.openRightbar(true, false)
+    actions.closeRightbar()
+    expect(store.getSnapshot().layoutInfo).toMatchObject({ rightbarPosition: 'center', rightbarShown: false })
+    actions.setRightbarPosition('right')
+    expect(store.getSnapshot().layoutInfo.rightbarPosition).toBe('right')
   })
 
   it('clamps the sidebar to 264–420px', () => {

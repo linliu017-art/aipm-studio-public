@@ -23,12 +23,15 @@ import type { DesktopPaths } from './paths.ts'
 import type { DesktopRelease } from './release.ts'
 import { readDesktopRuntime } from './runtime-tree.ts'
 import {
-  initProfile, PROFILE_TEMPLATES, removeLinkProjections, sanitizeProfile, type ProfileTemplate,
+  initProfile, PROFILE_TEMPLATES, readProfileManifest, removeLinkProjections, sanitizeProfile,
+  writeProfileManifest, type ProfileTemplate,
 } from '@deepseek-ai/dsh-app-boot'
 
 const PROJECT_NAME = '@deepseek-ai/dsh-desktop-runtime'
 const DSH_PACKAGE = '@deepseek-ai/dsh'
 const CORE_BUILD_PACKAGE = '@deepseek-ai/dsh-subprocess-local'
+const WEB_BUNDLE = '@deepseek-ai/dsh-web-app'
+const AIPM_BUNDLE = '@deepseek-ai/dsh-aipm'
 const WEB_PROFILE = PROFILE_TEMPLATES.web as ProfileTemplate
 const WORKSPACE_SETTINGS = 'nodeLinker: hoisted\nautoInstallPeers: false\n'
 function writeJson(path: string, value: unknown): void {
@@ -55,6 +58,27 @@ function migrateProfileSettings(projectDir: string): void {
   if (readFileSync(path, 'utf8').replaceAll('\r\n', '\n') === legacy) {
     writeFileSync(path, workspaceFile())
   }
+}
+
+/** Add the AIPM product layer to Desktop profiles created before it shipped. */
+function migrateDesktopProfileBundles(projectDir: string): void {
+  const manifest = readProfileManifest('dsh', projectDir)
+  const bundles = manifest.dsh?.profile?.bundles ?? []
+  if (bundles.includes(AIPM_BUNDLE)) return
+  const webIndex = bundles.indexOf(WEB_BUNDLE)
+  if (webIndex < 0) return
+  const next = [...bundles]
+  next.splice(webIndex + 1, 0, AIPM_BUNDLE)
+  writeProfileManifest(projectDir, {
+    ...manifest,
+    dsh: {
+      ...manifest.dsh,
+      profile: {
+        ...manifest.dsh?.profile,
+        bundles: next,
+      },
+    },
+  })
 }
 
 /** Initializes the Desktop profile and disables third-party bundles during recovery. */
@@ -86,6 +110,7 @@ export class DesktopProjectManager {
       readDesktopRuntime(this.runtime.dsh)
       migrateProfileSettings(this.paths.profile)
       createPluginProfile(this.paths.profile)
+      migrateDesktopProfileBundles(this.paths.profile)
       removeLinkProjections(this.paths.profile)
     })
   }

@@ -1,28 +1,51 @@
 import type { IconProps } from './icons/props.ts'
 
-/** Native viewBox of {@link FISH_LOGO_PATH} (width and height in user units). */
-export const FISH_LOGO_VIEWBOX = { width: 24, height: 24 }
+/** Native square view box used by the Nini Flow product mark. */
+export const FISH_LOGO_VIEWBOX = { width: 48, height: 48 }
 
-/** The AIPM Studio mark path data, exported for consumers that compose their own svg (entrance effects, masks) around the same geometry. */
-export const FISH_LOGO_PATH = 'M7 2H17A5 5 0 0 1 22 7V17A5 5 0 0 1 17 22H7A5 5 0 0 1 2 17V7A5 5 0 0 1 7 2ZM7 4A3 3 0 0 0 4 7V17A3 3 0 0 0 7 20H17A3 3 0 0 0 20 17V7A3 3 0 0 0 17 4ZM7 13H9V17H7ZM11 10H13V17H11ZM15 7H17V17H15Z'
+/** @deprecated The current product mark uses multiple stroked paths. */
+export const FISH_LOGO_PATH = ''
 
 /**
- * Render the fish logo.
- * @param props.size - width in px (default 24; square).
- * @param props.className - extra class for layout placement.
- * @returns the logo svg (aria-hidden; pair with the wordmark for accessibility).
+ * Render the Nini Flow sparkle on its warm translucent tile.
+ * @param props.size - square mark size in px.
+ * @param props.className - extra class for host layout and motion.
+ * @returns the decorative product mark.
  */
-export function FishLogo({ size = 24, className }: IconProps) {
+export function FishLogo({ size = 48, className }: IconProps) {
   return (
     <svg
       width={size}
-      height={(size * FISH_LOGO_VIEWBOX.height) / FISH_LOGO_VIEWBOX.width}
+      height={size}
       className={className}
       viewBox={`0 0 ${FISH_LOGO_VIEWBOX.width} ${FISH_LOGO_VIEWBOX.height}`}
       fill="none"
       aria-hidden="true"
     >
-      <path d={FISH_LOGO_PATH} fill="currentColor" />
+      <rect
+        x="0.75"
+        y="0.75"
+        width="46.5"
+        height="46.5"
+        rx="13.25"
+        fill="var(--dsw-nini-mark-fill)"
+        stroke="var(--dsw-nini-mark-border)"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M20 12.5C20 18.1667 22.8333 21 28.5 21C22.8333 21 20 23.8333 20 29.5C20 23.8333 17.1667 21 11.5 21C17.1667 21 20 18.1667 20 12.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M32 10.5C32 13.1667 33.3333 14.5 36 14.5C33.3333 14.5 32 15.8333 32 18.5C32 15.8333 30.6667 14.5 28 14.5C30.6667 14.5 32 13.1667 32 10.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

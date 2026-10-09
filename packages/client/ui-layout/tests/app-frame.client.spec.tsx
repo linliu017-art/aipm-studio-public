@@ -205,8 +205,25 @@ describe('AppFrame', () => {
     const { frame, rightOwner, sidebarOwner, slotCalls } = mountFrame()
     expect(tracks(frame)).toEqual([280, 0])
     expect(sidebarOwner()).toEqual({ collapsed: false, width: 280 })
-    expect(rightOwner()).toEqual({ width: 864, viewportWidth: 1920, canShow: true })
+    expect(rightOwner()).toEqual({ width: 864, position: 'right', viewportWidth: 1920, canShow: true })
     expect(slotCalls.find(c => c.key === 'main')).toEqual({ key: 'main', props: {}, options: { entryKey: 'conversation' } })
+  })
+
+  it('swaps the resource surface into the flexible centre track on request', () => {
+    const { frame, instance, getByTestId, rightOwner } = mountFrame()
+    act(() => {
+      instance.actions.setRightbarPosition('center')
+      instance.actions.openRightbar(true, false)
+    })
+
+    expect(frame.dataset.rightbarPosition).toBe('center')
+    expect(rightOwner()).toEqual({ width: 776, position: 'center', viewportWidth: 1920, canShow: true })
+    expect(getByTestId('rightbar-content').parentElement?.className).toContain('rightbarCol')
+    expect(getByTestId('main-content').parentElement?.className).toContain('centerCol')
+
+    act(() => { instance.actions.setRightbarPosition('right') })
+    expect(frame.dataset.rightbarPosition).toBeUndefined()
+    expect(rightOwner()).toEqual({ width: 864, position: 'right', viewportWidth: 1920, canShow: true })
   })
 
   it('renders the column and bottom outlets without a current Session', () => {
@@ -254,7 +271,7 @@ describe('AppFrame', () => {
     expect(frame.querySelector('[data-shell-leading-band]')).toBeNull()
   })
 
-  it('mounts the shell.leading seat only while the darwin collapse hides the column', () => {
+  it('keeps the AIPM rail visible when the darwin detail column collapses', () => {
     document.documentElement.dataset.platform = 'darwin'
     const { frame, instance, sidebarOwner, queryByTestId } = mountFrame()
     // The frame declares no window drag of its own: every chrome row owns its
@@ -262,10 +279,10 @@ describe('AppFrame', () => {
     expect(frame.querySelector('[data-shell-leading-band]')).toBeNull()
     expect(queryByTestId('shell.leading-content')).toBeNull()
     act(() => { instance.actions.toggleSidebar() })
-    expect(tracks(frame)).toEqual([0, 0])
-    expect(sidebarOwner()).toEqual({ collapsed: true, width: 0 })
-    expect(frame.querySelector('[data-shell-leading]')).not.toBeNull()
-    expect(queryByTestId('shell.leading-content')).toBeTruthy()
+    expect(tracks(frame)).toEqual([56, 0])
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 56 })
+    expect(frame.querySelector('[data-shell-leading]')).toBeNull()
+    expect(queryByTestId('shell.leading-content')).toBeNull()
     act(() => { instance.actions.toggleSidebar() })
     expect(queryByTestId('shell.leading-content')).toBeNull()
   })
@@ -294,7 +311,7 @@ describe('AppFrame normal width concessions', () => {
     frameWidth = 1000
     const { instance, rightOwner } = mountFrame(1920)
     expect(instance.getSnapshot().layoutInfo.viewportWidth).toBe(1000)
-    expect(rightOwner()).toEqual({ width: 450, viewportWidth: 1000, canShow: true })
+    expect(rightOwner()).toEqual({ width: 450, position: 'right', viewportWidth: 1000, canShow: true })
     act(() => { instance.actions.openRightbar(true, false) })
     expect(instance.getSnapshot().layoutInfo.rightbar).toBe(450)
     resize(1920)
@@ -308,12 +325,12 @@ describe('AppFrame normal width concessions', () => {
     // The template carries the ratio-clamped preference; the panel (rightOwner
     // width) reports the resolved squeeze.
     expect(tracks(frame)).toEqual([420, 840])
-    expect(rightOwner()).toEqual({ width: 380, viewportWidth: 1200, canShow: true })
+    expect(rightOwner()).toEqual({ width: 380, position: 'right', viewportWidth: 1200, canShow: true })
     resize(1120)
     expect(tracks(frame)).toEqual([420, 784])
     resize(1119)
     expect(tracks(frame)).toEqual([420, 0])
-    expect(rightOwner()).toEqual({ width: 0, viewportWidth: 1119, canShow: false })
+    expect(rightOwner()).toEqual({ width: 0, position: 'right', viewportWidth: 1119, canShow: false })
     expect(frame.querySelector('[data-side="rightbar"]')).toBeNull()
     expect(instance.getSnapshot().layoutInfo).toMatchObject({ rightbarShown: true, rightbar: 864 })
     act(() => { instance.actions.closeRightbar() })
@@ -328,7 +345,7 @@ describe('AppFrame normal width concessions', () => {
     const { frame, instance, rightOwner } = mountFrame()
     act(() => { instance.actions.toggleSidebar() })
     expect(tracks(frame)).toEqual([280, 0])
-    expect(rightOwner()).toEqual({ width: 344, viewportWidth: 800, canShow: true })
+    expect(rightOwner()).toEqual({ width: 344, position: 'right', viewportWidth: 800, canShow: true })
     act(() => { instance.actions.openRightbar(true, false) })
     expect(tracks(frame)).toEqual([56, 360])
     expect(instance.getSnapshot().layoutInfo).toMatchObject({ narrowExpanded: false, rightbar: 360 })
@@ -339,7 +356,7 @@ describe('AppFrame normal width concessions', () => {
     frameWidth = width
     const { instance, rightOwner } = mountFrame()
     act(() => { instance.actions.toggleSidebar() })
-    expect(rightOwner()).toEqual({ width: rightbar, viewportWidth: width, canShow })
+    expect(rightOwner()).toEqual({ width: rightbar, position: 'right', viewportWidth: width, canShow })
   })
 
   it('does not anticipate another left collapse after the right panel is already shown', () => {
@@ -509,7 +526,7 @@ describe('AppFrame right panel presentation', () => {
     const { frame, instance, rightOwner } = mountFrame()
     act(() => { instance.actions.openRightbar(false, true) })
     expect(tracks(frame)).toEqual([56, 0])
-    expect(rightOwner()).toEqual({ width: 0, viewportWidth: 700, canShow: false })
+    expect(rightOwner()).toEqual({ width: 0, position: 'right', viewportWidth: 700, canShow: false })
     expect(instance.getSnapshot().layoutInfo.rightbarShown).toBe(true)
     expect(frame.querySelector('[data-side="rightbar"]')).toBeNull()
   })

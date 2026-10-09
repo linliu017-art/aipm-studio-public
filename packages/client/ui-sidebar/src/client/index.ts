@@ -1,9 +1,14 @@
 /** Registers the sidebar shell and global panel navigation. */
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the SlotRegistry service merge (ctx.slots).
@@ -12,6 +17,10 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { SidebarPanelMetadata, SidebarRootInjected } from './contract/slots.ts'
 import { HeaderLeadingControls } from './HeaderLeadingControls.tsx'
+import {
+  type AipmPanelsInjected, ProjectsPanel, ProjectsPanelIcon,
+} from './AipmPanels.tsx'
+import { readProjectView, type ProjectRemoteCarrier } from './project-reader.ts'
 import { SidebarRoot } from './SidebarRoot.tsx'
 import { en, zh, type SidebarKey } from './locales.ts'
 
@@ -31,19 +40,28 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'sidebar'
+const PROJECTS_PANEL_ID = 'aipm-projects' as MainPanelId
 
 interface WorkspaceNavigation {
-  startSession(workspaceId?: Parameters<SidebarRootInjected['startSession']>[0]): void
+  startSession(
+    workspaceId?: Parameters<SidebarRootInjected['startSession']>[0],
+    options?: Parameters<SidebarRootInjected['startSession']>[1],
+  ): void
+  openSession(sessionId: SessionId): void
 }
 
 /** Services required by the sidebar plugin. */
-export const inject = ['slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts']
+export const inject = [
+  'slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts',
+  'remote', 'remote.workspaceFiles', 'sidebarRight',
+]
 
 /** Registers the sidebar shell and its service callbacks.
  * @param ctx - Client root context.
  */
 export function apply(ctx: ClientContext): void {
-  const workspaceNavigation = ctx.get('uiWorkspace') as unknown as WorkspaceNavigation
+  const workspaceNavigation = ctx.get('uiWorkspace') as WorkspaceNavigation
+  const projectRemote = ctx.get('remote') as ProjectRemoteCarrier
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-sidebar: dictionaries')
   const panels = createSnapshotStore<readonly SidebarPanelMetadata[]>([])
   const syncPanels = (): void => {
@@ -64,8 +82,8 @@ export function apply(ctx: ClientContext): void {
 
   const injectProps = (): SidebarRootInjected => ({
     // The shell's New Session button rides the Workspace UI's shared action
-    // (current Session Workspace, then recent Workspace).
-    startSession: (workspaceId) => { workspaceNavigation.startSession(workspaceId) },
+    // (automatic default Workspace, then current or recent Workspace).
+    startSession: (workspaceId, options) => { workspaceNavigation.startSession(workspaceId, options) },
     toggleSidebar: () => { ctx.layout.toggleSidebar() },
     selectPanel: (id) => {
       if (id === 'plugins' || id === 'schedules') ctx.get('productAnalytics')?.track('sidebar_menu_click', { menu_name: id === 'plugins' ? 'plugin' : 'cron' })
@@ -96,5 +114,31 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: injectProps,
   }, HeaderLeadingControls))
+
+  const aipmPanelsInjected = (): AipmPanelsInjected => ({
+    readProject: (workspace, sessionId, signal) => readProjectView(projectRemote.workspaceFiles, workspace, sessionId, signal),
+    startWorkspaceSession: (workspaceId: WorkspaceId) => {
+      workspaceNavigation.startSession(workspaceId)
+    },
+    openProjectFile: (sessionId, workspaceRoot, relativePath) => {
+      workspaceNavigation.openSession(sessionId)
+      const open = (): void => {
+        try {
+          ctx.sidebarRight.openResource(fileAddressFor(sessionId, workspaceRoot, relativePath), { position: 'center' })
+        } catch (error) {
+          console.warn('open Nini Flow project file rejected:', error)
+        }
+      }
+      if (typeof window === 'undefined') queueMicrotask(open)
+      else window.requestAnimationFrame(open)
+    },
+  })
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main', key: PROJECTS_PANEL_ID, locale: NS, inject: aipmPanelsInjected,
+  }, ProjectsPanel))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist', id: PROJECTS_PANEL_ID, order: -20, locale: NS,
+    label: () => ctx.locale.bind(NS)('projects.panel'),
+  }, ProjectsPanelIcon))
   syncPanels()
 }

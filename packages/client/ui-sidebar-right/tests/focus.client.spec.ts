@@ -29,6 +29,7 @@ function harness() {
   const room = { allowed: true, autoFullscreen: false }
   const { controller, adopt, show: showSession, measure } = createSidebarRightController(tabs, vi.fn(), {
     autoFullscreen: () => room.autoFullscreen,
+    setPosition: vi.fn(),
     openWithFocus: (_sessionId, open) => { open() },
     closeWithFocus: (_sessionId, _paneId, close) => { close() },
   })

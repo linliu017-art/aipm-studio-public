@@ -10,45 +10,214 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
     style=""
   >
     <div
-      class="logoRow"
-      data-window-drag="true"
+      class="shellBody"
     >
-      <button
-        aria-label="Open sidebar"
-        class="iconButton toggle"
-        type="button"
+      <aside
+        aria-label="Global panels"
+        class="rail"
       >
-        <svg
-          aria-hidden="true"
-          class="panelIcon"
-          data-content="88020f34"
-          fill="none"
-          height="16"
-          stroke-width="1"
-          viewBox="0 0 16 16"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg"
-        />
-        <div
-          data-slot="sidebar.toggle.badge"
-          style="display: contents;"
-        />
-      </button>
-    </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
-    >
-      <span
-        class="newSessionLabelMask"
-      >
-        <span
-          class="newSessionContent"
+        <button
+          aria-label="Open sidebar"
+          class="brandToggle"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+            class="brandMark"
+          >
+            <div
+              data-slot="sidebar.brand.mark"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="5633854c"
+                fill="none"
+                height="40"
+                viewBox="0 0 48 48"
+                width="40"
+              />
+            </div>
+          </span>
+          <svg
+            aria-hidden="true"
+            class="collapseGlyph"
+            data-content="88020f34"
+            fill="none"
+            height="17"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="17"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+          <div
+            data-slot="sidebar.toggle.badge"
+            style="display: contents;"
+          />
+        </button>
+        <button
+          aria-current="page"
+          aria-label="Back to Agent chat"
+          class="railButton railButtonActive"
+          type="button"
         >
           <svg
             aria-hidden="true"
             data-content="47b5e433"
+            fill="none"
+            height="18"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="18"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+        <nav
+          aria-label="Global panels"
+          class="panelList"
+        >
+          <button
+            aria-label="Projects"
+            class="railButton"
+            type="button"
+          >
+            <div
+              data-slot="sidebar.panellist"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="964807f4"
+                fill="none"
+                height="18"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </div>
+          </button>
+        </nav>
+        <div
+          class="railSpacer"
+        />
+        <div
+          class="footerActions"
+        >
+          <div
+            data-slot="sidebar.footer.action"
+            style="display: contents;"
+          />
+        </div>
+        <div
+          class="settingsArea"
+        >
+          <div
+            data-slot="sidebar.settings"
+            style="display: contents;"
+          />
+        </div>
+      </aside>
+      <section
+        aria-hidden="true"
+        class="detail wide"
+      >
+        <header
+          class="detailHeader"
+        >
+          <div
+            class="detailBrandRow"
+          >
+            <button
+              aria-label="New chat"
+              class="brand"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="brandIdentity"
+              >
+                <span
+                  class="brandName"
+                >
+                  <div
+                    data-slot="sidebar.brand.name"
+                    style="display: contents;"
+                  >
+                    <span
+                      class="localBuildBrand"
+                    >
+                      <span
+                        class="localBuildTitle"
+                      >
+                        Nini Flow
+                      </span>
+                      <span
+                        class="buildVersion"
+                      >
+                        1.2.3-rc.4-abc1234-dirty
+                      </span>
+                    </span>
+                  </div>
+                </span>
+              </span>
+            </button>
+            <button
+              aria-label="Open sidebar"
+              class="detailToggle"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="88020f34"
+                fill="none"
+                height="17"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="17"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </button>
+          </div>
+          <strong>
+            Agent chat
+          </strong>
+          <span>
+            Continue a conversation or start a new task
+          </span>
+        </header>
+        <button
+          aria-label="New chat"
+          class="newSession"
+          type="button"
+        >
+          <span
+            class="newSessionContent"
+          >
+            <svg
+              aria-hidden="true"
+              data-content="2cd56dfd"
+              fill="none"
+              height="16"
+              stroke-width="1"
+              viewBox="0 0 16 16"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+            <span>
+              New chat
+            </span>
+          </span>
+        </button>
+        <button
+          aria-controls="aipm-quick-actions"
+          aria-expanded="false"
+          class="quickToggle"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            data-content="827a63da"
             fill="none"
             height="16"
             stroke-width="1"
@@ -56,36 +225,30 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
             width="16"
             xmlns="http://www.w3.org/2000/svg"
           />
-        </span>
-      </span>
-    </button>
-    <div
-      class="regionArea"
-    >
-      <div
-        data-slot="sidebar.workspaces"
-        style="display: contents;"
-      />
-    </div>
-    <div
-      class="footArea"
-    >
-      <div
-        class="footerActions"
-      >
+          <span>
+            Quick actions
+          </span>
+          <svg
+            aria-hidden="true"
+            class="quickChevron"
+            data-content="2b5d7fd1"
+            fill="none"
+            height="14"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
         <div
-          data-slot="sidebar.footer.action"
-          style="display: contents;"
-        />
-      </div>
-      <div
-        class="settingsArea"
-      >
-        <div
-          data-slot="sidebar.settings"
-          style="display: contents;"
-        />
-      </div>
+          class="regionArea"
+        >
+          <div
+            data-slot="sidebar.workspaces"
+            style="display: contents;"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -101,17 +264,15 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
     style="width: 300px;"
   >
     <div
-      class="logoRow"
-      data-window-drag="true"
+      class="shellBody"
     >
-      <button
-        aria-label="New session"
-        class="brand wide"
-        type="button"
+      <aside
+        aria-label="Global panels"
+        class="rail"
       >
         <span
           aria-hidden="true"
-          class="brandIdentity"
+          class="brandToggle"
         >
           <span
             class="brandMark"
@@ -122,113 +283,213 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
             >
               <svg
                 aria-hidden="true"
-                data-content="965fe321"
+                data-content="5633854c"
                 fill="none"
-                height="17.6580310880829"
-                viewBox="0 0 23.16 17.04"
-                width="24"
+                height="40"
+                viewBox="0 0 48 48"
+                width="40"
               />
             </div>
           </span>
-          <span
-            class="brandName"
-          >
-            <div
-              data-slot="sidebar.brand.name"
-              style="display: contents;"
-            >
-              <span
-                class="localBuildBrand"
-              >
-                <span
-                  class="localBuildTitle"
-                >
-                  DSH Local Build
-                </span>
-                <span
-                  class="buildVersion"
-                >
-                  1.2.3-rc.4-abc1234-dirty
-                </span>
-              </span>
-            </div>
-          </span>
+          <div
+            data-slot="sidebar.toggle.badge"
+            style="display: contents;"
+          />
         </span>
-      </button>
-      <button
-        aria-label="Collapse sidebar"
-        class="iconButton toggle"
-        type="button"
-      >
-        <svg
-          aria-hidden="true"
-          class="panelIcon"
-          data-content="88020f34"
-          fill="none"
-          height="16"
-          stroke-width="1"
-          viewBox="0 0 16 16"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg"
-        />
-      </button>
-    </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
-    >
-      <span
-        class="newSessionLabelMask"
-      >
-        <span
-          class="newSessionContent"
+        <button
+          aria-current="page"
+          aria-label="Back to Agent chat"
+          class="railButton railButtonActive"
+          type="button"
         >
           <svg
             aria-hidden="true"
             data-content="47b5e433"
             fill="none"
+            height="18"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="18"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+        <nav
+          aria-label="Global panels"
+          class="panelList"
+        >
+          <button
+            aria-label="Projects"
+            class="railButton"
+            type="button"
+          >
+            <div
+              data-slot="sidebar.panellist"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="964807f4"
+                fill="none"
+                height="18"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </div>
+          </button>
+        </nav>
+        <div
+          class="railSpacer"
+        />
+        <div
+          class="footerActions"
+        >
+          <div
+            data-slot="sidebar.footer.action"
+            style="display: contents;"
+          />
+        </div>
+        <div
+          class="settingsArea"
+        >
+          <div
+            data-slot="sidebar.settings"
+            style="display: contents;"
+          />
+        </div>
+      </aside>
+      <section
+        aria-hidden="false"
+        class="detail wide"
+      >
+        <header
+          class="detailHeader"
+        >
+          <div
+            class="detailBrandRow"
+          >
+            <button
+              aria-label="New chat"
+              class="brand"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="brandIdentity"
+              >
+                <span
+                  class="brandName"
+                >
+                  <div
+                    data-slot="sidebar.brand.name"
+                    style="display: contents;"
+                  >
+                    <span
+                      class="localBuildBrand"
+                    >
+                      <span
+                        class="localBuildTitle"
+                      >
+                        Nini Flow
+                      </span>
+                      <span
+                        class="buildVersion"
+                      >
+                        1.2.3-rc.4-abc1234-dirty
+                      </span>
+                    </span>
+                  </div>
+                </span>
+              </span>
+            </button>
+            <button
+              aria-label="Collapse sidebar"
+              class="detailToggle"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="88020f34"
+                fill="none"
+                height="17"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="17"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </button>
+          </div>
+          <strong>
+            Agent chat
+          </strong>
+          <span>
+            Continue a conversation or start a new task
+          </span>
+        </header>
+        <button
+          aria-label="New chat"
+          class="newSession"
+          type="button"
+        >
+          <span
+            class="newSessionContent"
+          >
+            <svg
+              aria-hidden="true"
+              data-content="2cd56dfd"
+              fill="none"
+              height="16"
+              stroke-width="1"
+              viewBox="0 0 16 16"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+            <span>
+              New chat
+            </span>
+          </span>
+        </button>
+        <button
+          aria-controls="aipm-quick-actions"
+          aria-expanded="false"
+          class="quickToggle"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            data-content="827a63da"
+            fill="none"
+            height="16"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+          <span>
+            Quick actions
+          </span>
+          <svg
+            aria-hidden="true"
+            class="quickChevron"
+            data-content="2b5d7fd1"
+            fill="none"
             height="14"
-            stroke-width="1.3"
+            stroke-width="1"
             viewBox="0 0 16 16"
             width="14"
             xmlns="http://www.w3.org/2000/svg"
           />
-          <span
-            class="newSessionLabel wide"
-          >
-            New Session
-          </span>
-        </span>
-      </span>
-    </button>
-    <div
-      class="regionArea"
-    >
-      <div
-        data-slot="sidebar.workspaces"
-        style="display: contents;"
-      />
-    </div>
-    <div
-      class="footArea"
-    >
-      <div
-        class="footerActions"
-      >
+        </button>
         <div
-          data-slot="sidebar.footer.action"
-          style="display: contents;"
-        />
-      </div>
-      <div
-        class="settingsArea"
-      >
-        <div
-          data-slot="sidebar.settings"
-          style="display: contents;"
-        />
-      </div>
+          class="regionArea"
+        >
+          <div
+            data-slot="sidebar.workspaces"
+            style="display: contents;"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -244,59 +505,56 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
     style=""
   >
     <div
-      class="logoRow"
-      data-window-drag="true"
+      class="shellBody"
     >
-      <button
-        aria-label="Open sidebar"
-        class="iconButton toggle"
-        type="button"
+      <aside
+        aria-label="Global panels"
+        class="rail"
       >
-        <span
-          aria-hidden="true"
-          class="railMark"
+        <button
+          aria-label="Open sidebar"
+          class="brandToggle"
+          type="button"
         >
-          <div
-            data-slot="sidebar.brand.mark"
-            style="display: contents;"
+          <span
+            aria-hidden="true"
+            class="brandMark"
           >
-            <svg
-              aria-hidden="true"
-              data-content="965fe321"
-              fill="none"
-              height="17.6580310880829"
-              viewBox="0 0 23.16 17.04"
-              width="24"
-            />
-          </div>
-        </span>
-        <svg
-          aria-hidden="true"
-          class="panelIcon"
-          data-content="88020f34"
-          fill="none"
-          height="18"
-          stroke-width="1"
-          viewBox="0 0 16 16"
-          width="18"
-          xmlns="http://www.w3.org/2000/svg"
-        />
-        <div
-          data-slot="sidebar.toggle.badge"
-          style="display: contents;"
-        />
-      </button>
-    </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
-    >
-      <span
-        class="newSessionLabelMask"
-      >
-        <span
-          class="newSessionContent"
+            <div
+              data-slot="sidebar.brand.mark"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="5633854c"
+                fill="none"
+                height="40"
+                viewBox="0 0 48 48"
+                width="40"
+              />
+            </div>
+          </span>
+          <svg
+            aria-hidden="true"
+            class="collapseGlyph"
+            data-content="88020f34"
+            fill="none"
+            height="17"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="17"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+          <div
+            data-slot="sidebar.toggle.badge"
+            style="display: contents;"
+          />
+        </button>
+        <button
+          aria-current="page"
+          aria-label="Back to Agent chat"
+          class="railButton railButtonActive"
+          type="button"
         >
           <svg
             aria-hidden="true"
@@ -308,36 +566,184 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
             width="18"
             xmlns="http://www.w3.org/2000/svg"
           />
-        </span>
-      </span>
-    </button>
-    <div
-      class="regionArea"
-    >
-      <div
-        data-slot="sidebar.workspaces"
-        style="display: contents;"
-      />
-    </div>
-    <div
-      class="footArea"
-    >
-      <div
-        class="footerActions"
-      >
+        </button>
+        <nav
+          aria-label="Global panels"
+          class="panelList"
+        >
+          <button
+            aria-label="Projects"
+            class="railButton"
+            type="button"
+          >
+            <div
+              data-slot="sidebar.panellist"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="964807f4"
+                fill="none"
+                height="18"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </div>
+          </button>
+        </nav>
         <div
-          data-slot="sidebar.footer.action"
-          style="display: contents;"
+          class="railSpacer"
         />
-      </div>
-      <div
-        class="settingsArea"
-      >
         <div
-          data-slot="sidebar.settings"
-          style="display: contents;"
-        />
-      </div>
+          class="footerActions"
+        >
+          <div
+            data-slot="sidebar.footer.action"
+            style="display: contents;"
+          />
+        </div>
+        <div
+          class="settingsArea"
+        >
+          <div
+            data-slot="sidebar.settings"
+            style="display: contents;"
+          />
+        </div>
+      </aside>
+      <section
+        aria-hidden="true"
+        class="detail wide"
+      >
+        <header
+          class="detailHeader"
+        >
+          <div
+            class="detailBrandRow"
+          >
+            <button
+              aria-label="New chat"
+              class="brand"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="brandIdentity"
+              >
+                <span
+                  class="brandName"
+                >
+                  <div
+                    data-slot="sidebar.brand.name"
+                    style="display: contents;"
+                  >
+                    <span
+                      class="localBuildBrand"
+                    >
+                      <span
+                        class="localBuildTitle"
+                      >
+                        Nini Flow
+                      </span>
+                      <span
+                        class="buildVersion"
+                      >
+                        1.2.3-rc.4-abc1234-dirty
+                      </span>
+                    </span>
+                  </div>
+                </span>
+              </span>
+            </button>
+            <button
+              aria-label="Open sidebar"
+              class="detailToggle"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="88020f34"
+                fill="none"
+                height="17"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="17"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </button>
+          </div>
+          <strong>
+            Agent chat
+          </strong>
+          <span>
+            Continue a conversation or start a new task
+          </span>
+        </header>
+        <button
+          aria-label="New chat"
+          class="newSession"
+          type="button"
+        >
+          <span
+            class="newSessionContent"
+          >
+            <svg
+              aria-hidden="true"
+              data-content="2cd56dfd"
+              fill="none"
+              height="16"
+              stroke-width="1"
+              viewBox="0 0 16 16"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+            <span>
+              New chat
+            </span>
+          </span>
+        </button>
+        <button
+          aria-controls="aipm-quick-actions"
+          aria-expanded="false"
+          class="quickToggle"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            data-content="827a63da"
+            fill="none"
+            height="16"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+          <span>
+            Quick actions
+          </span>
+          <svg
+            aria-hidden="true"
+            class="quickChevron"
+            data-content="2b5d7fd1"
+            fill="none"
+            height="14"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+        <div
+          class="regionArea"
+        >
+          <div
+            data-slot="sidebar.workspaces"
+            style="display: contents;"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -353,17 +759,15 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
     style="width: 300px;"
   >
     <div
-      class="logoRow"
-      data-window-drag="true"
+      class="shellBody"
     >
-      <button
-        aria-label="New session"
-        class="brand wide"
-        type="button"
+      <aside
+        aria-label="Global panels"
+        class="rail"
       >
         <span
           aria-hidden="true"
-          class="brandIdentity"
+          class="brandToggle"
         >
           <span
             class="brandMark"
@@ -374,113 +778,213 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
             >
               <svg
                 aria-hidden="true"
-                data-content="965fe321"
+                data-content="5633854c"
                 fill="none"
-                height="17.6580310880829"
-                viewBox="0 0 23.16 17.04"
-                width="24"
+                height="40"
+                viewBox="0 0 48 48"
+                width="40"
               />
             </div>
           </span>
-          <span
-            class="brandName"
-          >
-            <div
-              data-slot="sidebar.brand.name"
-              style="display: contents;"
-            >
-              <span
-                class="localBuildBrand"
-              >
-                <span
-                  class="localBuildTitle"
-                >
-                  DSH Local Build
-                </span>
-                <span
-                  class="buildVersion"
-                >
-                  1.2.3-rc.4-abc1234-dirty
-                </span>
-              </span>
-            </div>
-          </span>
+          <div
+            data-slot="sidebar.toggle.badge"
+            style="display: contents;"
+          />
         </span>
-      </button>
-      <button
-        aria-label="Collapse sidebar"
-        class="iconButton toggle"
-        type="button"
-      >
-        <svg
-          aria-hidden="true"
-          class="panelIcon"
-          data-content="88020f34"
-          fill="none"
-          height="16"
-          stroke-width="1"
-          viewBox="0 0 16 16"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg"
-        />
-      </button>
-    </div>
-    <button
-      aria-label="New session"
-      class="newSession"
-      type="button"
-    >
-      <span
-        class="newSessionLabelMask"
-      >
-        <span
-          class="newSessionContent"
+        <button
+          aria-current="page"
+          aria-label="Back to Agent chat"
+          class="railButton railButtonActive"
+          type="button"
         >
           <svg
             aria-hidden="true"
             data-content="47b5e433"
             fill="none"
+            height="18"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="18"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+        <nav
+          aria-label="Global panels"
+          class="panelList"
+        >
+          <button
+            aria-label="Projects"
+            class="railButton"
+            type="button"
+          >
+            <div
+              data-slot="sidebar.panellist"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="964807f4"
+                fill="none"
+                height="18"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </div>
+          </button>
+        </nav>
+        <div
+          class="railSpacer"
+        />
+        <div
+          class="footerActions"
+        >
+          <div
+            data-slot="sidebar.footer.action"
+            style="display: contents;"
+          />
+        </div>
+        <div
+          class="settingsArea"
+        >
+          <div
+            data-slot="sidebar.settings"
+            style="display: contents;"
+          />
+        </div>
+      </aside>
+      <section
+        aria-hidden="false"
+        class="detail wide"
+      >
+        <header
+          class="detailHeader"
+        >
+          <div
+            class="detailBrandRow"
+          >
+            <button
+              aria-label="New chat"
+              class="brand"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="brandIdentity"
+              >
+                <span
+                  class="brandName"
+                >
+                  <div
+                    data-slot="sidebar.brand.name"
+                    style="display: contents;"
+                  >
+                    <span
+                      class="localBuildBrand"
+                    >
+                      <span
+                        class="localBuildTitle"
+                      >
+                        Nini Flow
+                      </span>
+                      <span
+                        class="buildVersion"
+                      >
+                        1.2.3-rc.4-abc1234-dirty
+                      </span>
+                    </span>
+                  </div>
+                </span>
+              </span>
+            </button>
+            <button
+              aria-label="Collapse sidebar"
+              class="detailToggle"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="88020f34"
+                fill="none"
+                height="17"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="17"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </button>
+          </div>
+          <strong>
+            Agent chat
+          </strong>
+          <span>
+            Continue a conversation or start a new task
+          </span>
+        </header>
+        <button
+          aria-label="New chat"
+          class="newSession"
+          type="button"
+        >
+          <span
+            class="newSessionContent"
+          >
+            <svg
+              aria-hidden="true"
+              data-content="2cd56dfd"
+              fill="none"
+              height="16"
+              stroke-width="1"
+              viewBox="0 0 16 16"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+            <span>
+              New chat
+            </span>
+          </span>
+        </button>
+        <button
+          aria-controls="aipm-quick-actions"
+          aria-expanded="false"
+          class="quickToggle"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            data-content="827a63da"
+            fill="none"
+            height="16"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+          <span>
+            Quick actions
+          </span>
+          <svg
+            aria-hidden="true"
+            class="quickChevron"
+            data-content="2b5d7fd1"
+            fill="none"
             height="14"
-            stroke-width="1.3"
+            stroke-width="1"
             viewBox="0 0 16 16"
             width="14"
             xmlns="http://www.w3.org/2000/svg"
           />
-          <span
-            class="newSessionLabel wide"
-          >
-            New Session
-          </span>
-        </span>
-      </span>
-    </button>
-    <div
-      class="regionArea"
-    >
-      <div
-        data-slot="sidebar.workspaces"
-        style="display: contents;"
-      />
-    </div>
-    <div
-      class="footArea"
-    >
-      <div
-        class="footerActions"
-      >
+        </button>
         <div
-          data-slot="sidebar.footer.action"
-          style="display: contents;"
-        />
-      </div>
-      <div
-        class="settingsArea"
-      >
-        <div
-          data-slot="sidebar.settings"
-          style="display: contents;"
-        />
-      </div>
+          class="regionArea"
+        >
+          <div
+            data-slot="sidebar.workspaces"
+            style="display: contents;"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -496,17 +1000,15 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
     style="width: 300px;"
   >
     <div
-      class="logoRow"
-      data-window-drag="true"
+      class="shellBody"
     >
-      <button
-        aria-label="新建会话"
-        class="brand wide"
-        type="button"
+      <aside
+        aria-label="全局面板"
+        class="rail"
       >
         <span
           aria-hidden="true"
-          class="brandIdentity"
+          class="brandToggle"
         >
           <span
             class="brandMark"
@@ -517,113 +1019,213 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
             >
               <svg
                 aria-hidden="true"
-                data-content="965fe321"
+                data-content="5633854c"
                 fill="none"
-                height="17.6580310880829"
-                viewBox="0 0 23.16 17.04"
-                width="24"
+                height="40"
+                viewBox="0 0 48 48"
+                width="40"
               />
             </div>
           </span>
-          <span
-            class="brandName"
-          >
-            <div
-              data-slot="sidebar.brand.name"
-              style="display: contents;"
-            >
-              <span
-                class="localBuildBrand"
-              >
-                <span
-                  class="localBuildTitle"
-                >
-                  DSH 本地构建
-                </span>
-                <span
-                  class="buildVersion"
-                >
-                  1.2.3-rc.4-abc1234-dirty
-                </span>
-              </span>
-            </div>
-          </span>
+          <div
+            data-slot="sidebar.toggle.badge"
+            style="display: contents;"
+          />
         </span>
-      </button>
-      <button
-        aria-label="收起侧边栏"
-        class="iconButton toggle"
-        type="button"
-      >
-        <svg
-          aria-hidden="true"
-          class="panelIcon"
-          data-content="88020f34"
-          fill="none"
-          height="16"
-          stroke-width="1"
-          viewBox="0 0 16 16"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg"
-        />
-      </button>
-    </div>
-    <button
-      aria-label="新建会话"
-      class="newSession"
-      type="button"
-    >
-      <span
-        class="newSessionLabelMask"
-      >
-        <span
-          class="newSessionContent"
+        <button
+          aria-current="page"
+          aria-label="返回 Agent 对话"
+          class="railButton railButtonActive"
+          type="button"
         >
           <svg
             aria-hidden="true"
             data-content="47b5e433"
             fill="none"
+            height="18"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="18"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+        <nav
+          aria-label="全局面板"
+          class="panelList"
+        >
+          <button
+            aria-label="项目"
+            class="railButton"
+            type="button"
+          >
+            <div
+              data-slot="sidebar.panellist"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="964807f4"
+                fill="none"
+                height="18"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </div>
+          </button>
+        </nav>
+        <div
+          class="railSpacer"
+        />
+        <div
+          class="footerActions"
+        >
+          <div
+            data-slot="sidebar.footer.action"
+            style="display: contents;"
+          />
+        </div>
+        <div
+          class="settingsArea"
+        >
+          <div
+            data-slot="sidebar.settings"
+            style="display: contents;"
+          />
+        </div>
+      </aside>
+      <section
+        aria-hidden="false"
+        class="detail wide"
+      >
+        <header
+          class="detailHeader"
+        >
+          <div
+            class="detailBrandRow"
+          >
+            <button
+              aria-label="新建对话"
+              class="brand"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="brandIdentity"
+              >
+                <span
+                  class="brandName"
+                >
+                  <div
+                    data-slot="sidebar.brand.name"
+                    style="display: contents;"
+                  >
+                    <span
+                      class="localBuildBrand"
+                    >
+                      <span
+                        class="localBuildTitle"
+                      >
+                        Nini Flow
+                      </span>
+                      <span
+                        class="buildVersion"
+                      >
+                        1.2.3-rc.4-abc1234-dirty
+                      </span>
+                    </span>
+                  </div>
+                </span>
+              </span>
+            </button>
+            <button
+              aria-label="收起侧边栏"
+              class="detailToggle"
+              type="button"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="88020f34"
+                fill="none"
+                height="17"
+                stroke-width="1"
+                viewBox="0 0 16 16"
+                width="17"
+                xmlns="http://www.w3.org/2000/svg"
+              />
+            </button>
+          </div>
+          <strong>
+            Agent 对话
+          </strong>
+          <span>
+            继续历史对话或开始新任务
+          </span>
+        </header>
+        <button
+          aria-label="新建对话"
+          class="newSession"
+          type="button"
+        >
+          <span
+            class="newSessionContent"
+          >
+            <svg
+              aria-hidden="true"
+              data-content="2cd56dfd"
+              fill="none"
+              height="16"
+              stroke-width="1"
+              viewBox="0 0 16 16"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg"
+            />
+            <span>
+              新建对话
+            </span>
+          </span>
+        </button>
+        <button
+          aria-controls="aipm-quick-actions"
+          aria-expanded="false"
+          class="quickToggle"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            data-content="827a63da"
+            fill="none"
+            height="16"
+            stroke-width="1"
+            viewBox="0 0 16 16"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+          <span>
+            快捷操作
+          </span>
+          <svg
+            aria-hidden="true"
+            class="quickChevron"
+            data-content="2b5d7fd1"
+            fill="none"
             height="14"
-            stroke-width="1.3"
+            stroke-width="1"
             viewBox="0 0 16 16"
             width="14"
             xmlns="http://www.w3.org/2000/svg"
           />
-          <span
-            class="newSessionLabel wide"
-          >
-            新会话
-          </span>
-        </span>
-      </span>
-    </button>
-    <div
-      class="regionArea"
-    >
-      <div
-        data-slot="sidebar.workspaces"
-        style="display: contents;"
-      />
-    </div>
-    <div
-      class="footArea"
-    >
-      <div
-        class="footerActions"
-      >
+        </button>
         <div
-          data-slot="sidebar.footer.action"
-          style="display: contents;"
-        />
-      </div>
-      <div
-        class="settingsArea"
-      >
-        <div
-          data-slot="sidebar.settings"
-          style="display: contents;"
-        />
-      </div>
+          class="regionArea"
+        >
+          <div
+            data-slot="sidebar.workspaces"
+            style="display: contents;"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </div>

@@ -278,6 +278,20 @@ body {
   --dsw-specific-sidebar-nav-item-hover: var(--dsw-static-neutral-bluish-75);
   --dsw-specific-tip: var(--dsw-static-neutral-bluish-60);
 
+  /* Nini Flow's bear-brown accent family. Components consume only these
+     semantic variables so the warm translucent treatment stays theme-aware. */
+  --dsw-nini-accent: rgb(116 59 37);
+  --dsw-nini-accent-light: rgb(152 88 58);
+  --dsw-nini-accent-text: rgb(108 52 31);
+  --dsw-nini-accent-contrast: rgb(255 255 255);
+  --dsw-nini-accent-soft: rgb(116 59 37 / 11%);
+  --dsw-nini-glass: rgb(255 248 243 / 68%);
+  --dsw-nini-glass-highlight: rgb(255 255 255 / 72%);
+  --dsw-nini-glass-border: rgb(116 59 37 / 20%);
+  --dsw-nini-shadow: rgb(116 59 37 / 12%);
+  --dsw-nini-mark-fill: rgb(116 59 37 / 10%);
+  --dsw-nini-mark-border: rgb(116 59 37 / 16%);
+
   background-color: var(--dsw-alias-bg-base);
 }
 
@@ -395,6 +409,18 @@ body[data-ds-dark-theme] {
   --dsw-specific-sidebar-nav-item-active: var(--dsw-static-neutral-bluish-750);
   --dsw-specific-sidebar-nav-item-hover: var(--dsw-static-neutral-bluish-850);
   --dsw-specific-tip: var(--dsw-static-neutral-bluish-800);
+
+  --dsw-nini-accent: rgb(151 95 68);
+  --dsw-nini-accent-light: rgb(178 119 89);
+  --dsw-nini-accent-text: rgb(221 169 142);
+  --dsw-nini-accent-contrast: rgb(255 255 255);
+  --dsw-nini-accent-soft: rgb(201 142 112 / 16%);
+  --dsw-nini-glass: rgb(103 62 43 / 38%);
+  --dsw-nini-glass-highlight: rgb(255 255 255 / 8%);
+  --dsw-nini-glass-border: rgb(234 183 154 / 22%);
+  --dsw-nini-shadow: rgb(0 0 0 / 34%);
+  --dsw-nini-mark-fill: rgb(201 142 112 / 16%);
+  --dsw-nini-mark-border: rgb(234 183 154 / 22%);
 }
 
 /* Overlays without MenuSurface's opaque backing cannot blur page content over

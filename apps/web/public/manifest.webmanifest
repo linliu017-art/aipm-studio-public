@@ -1,6 +1,6 @@
 {
-  "name": "AIPM Studio",
-  "short_name": "AIPM",
+  "name": "Nini Flow",
+  "short_name": "Nini Flow",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

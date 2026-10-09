@@ -15,6 +15,9 @@ import type { createLayoutStore } from './stores.ts'
 /** Identity shared by a sidebar panel entry and its main-slot occupant. */
 export type MainPanelId = Branded<'MainPanelId'>
 
+/** Which column the right-surface content occupies in docked presentation. */
+export type RightbarPosition = 'right' | 'center'
+
 /** Root-scoped navigation state exposed to panel-aware components. */
 export interface PanelInfo {
   /** Selected global panel; null displays the current Conversation. */
@@ -41,6 +44,8 @@ export interface ILayout {
   beginNavigation(): AbortSignal
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void
+  /** Put the right-surface content in its usual right column or swap it with the centre content. */
+  setRightbarPosition(position: RightbarPosition): void
   /**
    * Report the right panel's presentation without changing its expanded state.
    * @param track - whether the normal panel width reserves a grid track,
@@ -92,6 +97,11 @@ export class LayoutController implements ILayout {
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void {
     this.panels.toggleSidebar()
+  }
+
+  /** Select the docked column arrangement without changing whether the surface is open. */
+  setRightbarPosition(position: RightbarPosition): void {
+    this.panels.setRightbarPosition(position)
   }
 
   /** Report the right panel's track and fullscreen presentation. */

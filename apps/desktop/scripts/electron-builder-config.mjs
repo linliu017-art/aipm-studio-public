@@ -75,6 +75,7 @@ export function createElectronBuilderConfig(
   let dshDestination
   let windowsCode = []
   const unpack = ['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
+    '**/node_modules/@deepseek-ai/dsh-aipm/skills/**/*',
     `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`]
   const windowsSigner = packagesWindows && !unsigned
     ? createWindowsTokenSigner({
@@ -107,16 +108,16 @@ export function createElectronBuilderConfig(
   const packaged = resolveDesktopBuildCommit(env)
   return {
     appId,
-    protocols: [{ name: 'AIPM Studio', schemes: ['aipm', 'dsh'] }],
+    protocols: [{ name: 'Nini Flow', schemes: ['aipm', 'dsh'] }],
     extraMetadata: {
       dshDesktopAppId: appId,
       dshMandatoryUpdatePolicy: policy,
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
     },
-    productName: 'AIPM Studio',
+    productName: 'Nini Flow',
     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
-    artifactName: `aipm-studio-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
+    artifactName: `nini-flow-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
     directories: { output: localMacOS ? buildPaths.localArtifacts : unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts },
     asar: true,
     electronDist: buildPaths.electron,
@@ -165,7 +166,7 @@ export function createElectronBuilderConfig(
       hardenedRuntime: !localMacOS,
       extendInfo: {
         CFBundleLocalizations: ['en', 'zh_CN'],
-        NSMicrophoneUsageDescription: 'AIPM Studio uses your microphone to transcribe speech into message drafts.',
+        NSMicrophoneUsageDescription: 'Nini Flow uses your microphone to transcribe speech into message drafts.',
       },
       entitlements: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       entitlementsInherit: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),

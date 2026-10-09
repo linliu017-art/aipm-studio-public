@@ -9,6 +9,15 @@
   ],
   "references": [
     {
+      "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "../../api/session-controller/tsconfig.client.json"
+    },
+    {
+      "path": "../../api/workspace-files/tsconfig.client.json"
+    },
+    {
       "path": "../../api/workspace-controller/tsconfig.client.json"
     },
     {
@@ -34,6 +43,15 @@
     },
     {
       "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-sidebar-right"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../util/workspace-path"
     },
     {
       "path": "../locale/tsconfig.client.json"
