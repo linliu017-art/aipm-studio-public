@@ -10,12 +10,17 @@ describe('clampWidth', () => {
 })
 
 describe('computeColumns', () => {
+  it('uses only the fixed rail on workspace pages, then restores the saved history width', () => {
+    expect(computeColumns(1024, 360, 400, true)).toEqual({ sidebar: 58, center: 566, rightbar: 400 })
+    expect(computeColumns(1024, 360, 0, true)).toEqual({ sidebar: 58, center: 966, rightbar: 0 })
+    expect(computeColumns(1024, 360, 0)).toEqual({ sidebar: 360, center: 664, rightbar: 0 })
+  })
   it('gives each edge column its preference when the center has enough room', () => {
     expect(computeColumns(1920, 280, 864)).toEqual({ sidebar: 280, center: 776, rightbar: 864 })
   })
 
-  it('keeps only the left rail when both panels are closed', () => {
-    expect(computeColumns(1920, 0, 0)).toEqual({ sidebar: 56, center: 1864, rightbar: 0 })
+  it('clamps an invalid zero sidebar request to the permanent minimum width', () => {
+    expect(computeColumns(1920, 0, 0)).toEqual({ sidebar: 264, center: 1656, rightbar: 0 })
   })
 
   it('clamps sidebar preferences and limits the right panel to 70% of the frame', () => {
@@ -29,12 +34,12 @@ describe('computeColumns', () => {
     [1120, 420, 300, 400],
     [1119, 420, 0, 699],
     [1024, 420, 0, 604],
-    [756, 0, 300, 400],
-    [755, 0, 0, 699],
-    [455, 0, 0, 399],
-    [20, 0, 0, 0],
+    [964, 264, 300, 400],
+    [963, 264, 0, 699],
+    [663, 264, 0, 399],
+    [20, 264, 0, 0],
   ])('solves frame %i and sidebar %i to right %i and center %i', (viewport, sidebar, rightbar, center) => {
-    expect(computeColumns(viewport, sidebar, 864)).toEqual({ sidebar: sidebar || 56, center, rightbar })
+    expect(computeColumns(viewport, sidebar, 864)).toEqual({ sidebar, center, rightbar })
   })
 
   it('does not reduce the wide sidebar to keep a normal right panel open', () => {
@@ -47,7 +52,7 @@ describe('computeColumns', () => {
   })
 
   it('leaves a closed right track closed when the frame widens', () => {
-    expect(computeColumns(755, 0, 0).rightbar).toBe(0)
-    expect(computeColumns(1920, 0, 0).rightbar).toBe(0)
+    expect(computeColumns(755, 280, 0).rightbar).toBe(0)
+    expect(computeColumns(1920, 280, 0).rightbar).toBe(0)
   })
 })

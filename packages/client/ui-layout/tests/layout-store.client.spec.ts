@@ -15,7 +15,6 @@ describe('createLayoutStore', () => {
       layoutInfo: {
         sidebar: 280,
         viewportWidth: 1920,
-        narrowExpanded: false,
         rightbar: null,
         rightbarPosition: 'right',
         rightbarShown: false,
@@ -56,36 +55,13 @@ describe('createLayoutStore', () => {
     expect(store.getSnapshot().layoutInfo.sidebar).toBe(420)
   })
 
-  it('toggles the wide sidebar between closed and default width', () => {
-    const { store, actions } = createLayoutStore().create()
-    actions.setSidebar(400)
-    actions.toggleSidebar()
-    expect(store.getSnapshot().layoutInfo.sidebar).toBe(0)
-    actions.toggleSidebar()
-    expect(store.getSnapshot().layoutInfo.sidebar).toBe(280)
-  })
-
-  it('keeps the sidebar preference while toggling its narrow override', () => {
+  it('keeps the sidebar width fixed across viewport changes', () => {
     const { store, actions } = createLayoutStore().create()
     actions.setSidebar(400)
     actions.setViewportWidth(980)
-    actions.toggleSidebar()
-    expect(store.getSnapshot().layoutInfo).toMatchObject({ sidebar: 400, viewportWidth: 980, narrowExpanded: true })
-    actions.toggleSidebar()
-    expect(store.getSnapshot().layoutInfo).toMatchObject({ sidebar: 400, narrowExpanded: false })
-  })
-
-  it('clears the manual override only when crossing 1024px', () => {
-    const { store, actions } = createLayoutStore().create()
-    actions.setViewportWidth(980)
-    actions.toggleSidebar()
-    actions.setViewportWidth(980)
-    actions.setViewportWidth(1023)
-    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(true)
-    actions.setViewportWidth(1024)
-    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(false)
-    actions.setViewportWidth(980)
-    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(false)
+    expect(store.getSnapshot().layoutInfo).toMatchObject({ sidebar: 400, viewportWidth: 980 })
+    actions.setViewportWidth(500)
+    expect(store.getSnapshot().layoutInfo.sidebar).toBe(400)
   })
 })
 
@@ -131,7 +107,7 @@ describe('main panel selection', () => {
     expect(store.getSnapshot().layoutInfo).toBe(selected.layoutInfo)
   })
 
-  it.each(['setSidebar', 'toggleSidebar', 'setViewportWidth', 'setRightbar', 'openRightbar', 'closeRightbar'] as const)(
+  it.each(['setSidebar', 'setViewportWidth', 'setRightbar', 'openRightbar', 'closeRightbar'] as const)(
     'preserves panelInfo identity when %s changes layoutInfo', (action) => {
       const { store, actions } = createLayoutStore().create()
       actions.selectPanel(panelA)
@@ -139,7 +115,6 @@ describe('main panel selection', () => {
       const previous = store.getSnapshot()
       switch (action) {
         case 'setSidebar': actions.setSidebar(400); break
-        case 'toggleSidebar': actions.toggleSidebar(); break
         case 'setViewportWidth': actions.setViewportWidth(980); break
         case 'setRightbar': actions.setRightbar(500); break
         case 'openRightbar': actions.openRightbar(true, true); break
@@ -208,21 +183,6 @@ describe('right panel', () => {
     expect(store.getSnapshot().layoutInfo.rightbar).toBe(300)
   })
 
-  it('collapses a manually expanded narrow sidebar on opening, not presentation reports', () => {
-    const { store, actions } = createLayoutStore().create()
-    actions.setSidebar(400)
-    actions.setViewportWidth(800)
-    actions.toggleSidebar()
-    actions.openRightbar(true, false)
-    expect(store.getSnapshot().layoutInfo).toMatchObject({ sidebar: 400, narrowExpanded: false })
-    actions.toggleSidebar()
-    actions.openRightbar(true, true)
-    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(true)
-    actions.closeRightbar()
-    actions.openRightbar(true, false)
-    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(false)
-  })
-
   it('keeps the wide sidebar preference and never opens a closed right panel on resize', () => {
     const { store, actions } = createLayoutStore().create()
     actions.setSidebar(420)
@@ -273,13 +233,12 @@ describe('right panel instant geometry', () => {
     expect(store.getSnapshot().layoutInfo).toMatchObject({ rightbarTrack: false, rightbarInstant: false })
   })
 
-  it.each(['setSidebar', 'toggleSidebar', 'setRightbar', 'setViewportWidth'] as const)('clears instant geometry on %s', (action) => {
+  it.each(['setSidebar', 'setRightbar', 'setViewportWidth'] as const)('clears instant geometry on %s', (action) => {
     const { store, actions } = createLayoutStore().create()
     actions.openRightbar(true, true)
     actions.closeRightbar()
     expect(store.getSnapshot().layoutInfo.rightbarInstant).toBe(true)
-    if (action === 'toggleSidebar') actions.toggleSidebar()
-    else actions[action](action === 'setViewportWidth' ? 1800 : 350)
+    actions[action](action === 'setViewportWidth' ? 1800 : 350)
     expect(store.getSnapshot().layoutInfo.rightbarInstant).toBe(false)
     actions.closeRightbar()
     expect(store.getSnapshot().layoutInfo.rightbarInstant).toBe(false)

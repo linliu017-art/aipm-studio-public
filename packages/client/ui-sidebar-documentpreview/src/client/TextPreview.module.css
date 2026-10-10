@@ -175,9 +175,11 @@
 
 /* The type's 16px sheet before the chip's text; the chip's title row centres
    it on the text's line and spaces it. */
-.titleIcon {
+.titleIcon, .markdownTitleIcon {
   flex: none;
 }
+
+.markdownTitleIcon { color: var(--dsw-nini-accent-text); }
 
 .statusLine {
   display: flex;

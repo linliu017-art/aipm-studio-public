@@ -14,16 +14,22 @@
 
 :global([data-platform='darwin']) .root { background: transparent; }
 
-.root.quietBars {
-  --dsh-scrollbar-thumb: transparent;
-  --dsh-scrollbar-thumb-hover: transparent;
+.topNavigation {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-primary);
 }
 
-.topStrip {
-  flex: none;
-  height: 48px;
-  background: var(--dsw-alias-bg-base);
-  border-bottom: 0.5px solid var(--dsw-alias-border-l1);
+:global([data-platform='darwin']) .topNavigation { padding-left: 82px; }
+:global([data-platform='darwin'][data-fullscreen]) .topNavigation { padding-left: 20px; }
+
+.topPageTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
+
+@media (max-width: 600px) {
+  .topNavigation { padding-right: 12px; }
 }
 
 .shellBody {
@@ -45,7 +51,6 @@
   background: color-mix(in srgb, var(--dsw-specific-sidebar-fill) 84%, transparent);
 }
 
-.brandToggle,
 .railButton {
   position: relative;
   flex: none;
@@ -61,21 +66,16 @@
   cursor: pointer;
 }
 
-.brandToggle {
+.railBrand {
+  flex: none;
+  display: grid;
+  place-items: center;
   margin-bottom: 8px;
   width: 40px;
   height: 40px;
   color: var(--dsw-nini-accent-text);
+  cursor: default;
 }
-
-.brandToggle:is(button):hover .brandMark { display: none; }
-.brandToggle:is(button):hover .collapseGlyph { display: block; }
-.brandToggle:is(button):hover {
-  border: 0.5px solid var(--dsw-nini-mark-border);
-  background: var(--dsw-nini-mark-fill);
-}
-.collapseGlyph { display: none; }
-.brandMark { display: inline-flex; align-items: center; justify-content: center; }
 
 .railButton:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 .railButtonActive {
@@ -86,7 +86,7 @@
   backdrop-filter: blur(18px) saturate(135%);
 }
 
-.brandToggle:focus-visible,
+.brand:focus-visible,
 .railButton:focus-visible,
 .newSession:focus-visible,
 .quickToggle:focus-visible,
@@ -117,6 +117,8 @@
   background: color-mix(in srgb, var(--dsw-specific-sidebar-fill) 72%, transparent);
 }
 
+.detail[hidden] { display: none; }
+
 .detailHeader {
   flex: none;
   display: flex;
@@ -146,30 +148,9 @@
   cursor: pointer;
 }
 
-.detailToggle {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: var(--dsw-radius-sm);
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 120ms var(--ds-ease-in-out), background 120ms var(--ds-ease-in-out);
-}
-
-.detail:is(:hover, :focus-within) .detailToggle,
-.peek .detailToggle { opacity: 1; }
-.detailToggle:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
-.detailToggle:focus-visible { opacity: 1; outline: var(--dsw-focus-ring-width) solid var(--dsw-nini-accent); outline-offset: -2px; }
-
 :global([data-platform='darwin']) .brand { cursor: default; }
 .brandIdentity { display: inline-flex; align-items: center; min-width: 0; height: 24px; }
-.brandName { display: inline-flex; align-items: center; min-width: 0; height: 24px; font-size: 18px; line-height: 24px; font-weight: 600; }
+.brandName { display: inline-flex; align-items: center; min-width: 0; height: 24px; font-size: 18px; line-height: 24px; font-weight: 500; }
 .fallbackBrandName { font-size: 17px; white-space: nowrap; }
 .localBuildBrand { display: inline-flex; flex-direction: column; justify-content: center; gap: 1px; height: 24px; white-space: nowrap; }
 .localBuildTitle { font-size: 12px; line-height: 13px; }
@@ -257,40 +238,6 @@
   overflow: hidden;
 }
 
-.collapsed .detail { display: none; }
-.collapsed .rail { flex-basis: 56px; border-right: none; }
-.collapsed .regionArea { margin-left: 0; margin-right: 0; padding-left: 0; }
-
-/* A collapsed rail can preview the complete detail pane over the main area.
-   Clicking either toggle pins the same pane open through the layout store. */
-.peek {
-  position: relative;
-  z-index: 12;
-  background: var(--dsw-specific-sidebar-fill);
-  box-shadow: 12px 0 30px rgb(0 0 0 / 0.13);
-}
-.peek .rail {
-  border-right: 0.5px solid var(--dsw-alias-border-l2);
-  background: var(--dsw-specific-sidebar-fill);
-}
-.peek .detail { background: var(--dsw-specific-sidebar-fill); }
-
-/* The regular macOS sidebar uses window vibrancy. A hover preview sits above
-   readable document content, so it must become an opaque popover rather than
-   carrying that vibrancy through and compositing two sets of text. */
-:global([data-platform='darwin']) .root.peek {
-  background: var(--dsw-specific-sidebar-fill);
-}
-
-.fading > * { opacity: 0; transition: opacity 150ms var(--ds-ease-in-out); }
-.wide { animation: wide-in 200ms var(--ds-ease-in-out); }
-@keyframes wide-in { from { opacity: 0; } }
-.railIn .rail { animation: rail-in 150ms var(--ds-ease-in-out) backwards; }
-@keyframes rail-in { from { opacity: 0; transform: translateX(12px); } }
-
 @media (prefers-reduced-motion: reduce) {
-  .wide,
-  .fading > *,
-  .railIn .rail,
   .quickChevron { transition: none; animation: none; }
 }

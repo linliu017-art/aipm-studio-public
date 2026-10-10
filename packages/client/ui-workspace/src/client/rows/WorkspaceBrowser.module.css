@@ -10,10 +10,6 @@
   padding-right: var(--dsh-session-list-edge-inset);
 }
 
-.root.rail {
-  padding-right: 0;
-}
-
 .iconButton {
   flex: none;
   display: inline-flex;
@@ -65,7 +61,7 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-.root:not(.rail) .sectionHeader {
+.sectionHeader {
   margin-top: 2px;
   margin-right: -4px;
 }
@@ -248,53 +244,6 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-/* Rail variant (own .rail class from the wide owner prop — the region never
-   reads the shell's class names): the two icon controls stack as 36x36
-   circles matching the shell's rail rhythm. Both use the rail's shared base
-   left anchor so the outer shell can translate the whole region uniformly. */
-.rail .sectionHeader {
-  gap: 0;
-  padding-left: 0;
-  margin-bottom: 12px;
-  justify-content: flex-start;
-}
-
-.rail .headerActions {
-  max-width: none;
-}
-
-.rail .iconButton {
-  width: 36px;
-  height: 36px;
-  /* Rail hovers share the shell rail's 12px rounding. */
-  border-radius: var(--dsw-radius-md);
-  color: var(--dsw-alias-label-primary);
-}
-
-.rail .search {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  margin: 0 0 12px;
-  gap: 0;
-  /* The collapsed search frame clips its button's hover, so it must carry the
-     rail's 12px rounding itself. */
-  border-radius: var(--dsw-radius-md);
-  border-color: transparent;
-  background: transparent;
-}
-
-.rail .searchButton {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--dsw-radius-md);
-  color: var(--dsw-alias-label-primary);
-}
-
-.rail .searchButton:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
 /* List seat: always mounted so the shell foot never moves. */
 .listArea {
   flex: 1;
@@ -307,12 +256,6 @@
   /* The list remains the scroll clip. This seat stays visible so the
      absolutely positioned first-boundary marker can occupy the header gap. */
   overflow: visible;
-}
-
-.rail .listArea {
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 0;
 }
 
 /* Relative for the bottom fade overlay. */
@@ -340,15 +283,6 @@
    opaque fill gradient would paint a solid smear instead of a fade. */
 :global([data-platform='darwin']) .fade {
   display: none;
-}
-
-/* Wide-only content fades back in on expand remount (mirrors the shell). */
-.wide {
-  animation: wide-in 200ms var(--ds-ease-in-out);
-}
-
-@keyframes wide-in {
-  from { opacity: 0; }
 }
 
 /* List: the only scrolling region. Block children keep their design heights
@@ -602,10 +536,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wide {
-    animation: none;
-  }
-
   .skeletonDot,
   .skeletonBar {
     animation: none;

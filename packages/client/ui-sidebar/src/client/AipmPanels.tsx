@@ -6,10 +6,14 @@ import type { WorkspaceId, WorkspaceSnapshot, WorkspaceView } from '@deepseek-ai
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import {
   FileTypeIcon,
+  IconCheckOutlineRegular,
   IconChevronRightOutlineRegular,
   IconFolderOpenOutlineRegular,
   IconNewChatOutlineRegular,
   IconRefreshOutlineRegular,
+  LinkIconRegular,
+  Tooltip,
+  classifyFileType,
   fileSizeText,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SidebarKey } from './locales.ts'
@@ -169,14 +173,21 @@ function StageRow({ stage, project, t }: {
   const state = project.state?.stages[stage.id]
   const outputCount = project.outputs.filter(file => file.stage?.id === stage.id).length
   const status = outputCount > 0 ? 'done' : state?.status ?? 'not_started'
+  const statusLabel = t(`status.${status}`)
   return (
     <li className={css.stageRow}>
-      <span className={css.stageIndex}>{stage.id.slice(0, 2)}</span>
+      <Tooltip label={statusLabel} side="right" portal openOnClick>
+        <button type="button" className={css.stageIndex} data-status={status}
+          aria-label={t('projects.stageStatus', { stage: t(`stage.${stage.id}` as SidebarKey), status: statusLabel })}>
+          {stage.id.slice(0, 2)}
+          {status === 'done' && <span className={css.stageMark} aria-hidden="true"><IconCheckOutlineRegular size={10} /></span>}
+          {status === 'in_progress' && <span className={css.stageDot} aria-hidden="true" />}
+        </button>
+      </Tooltip>
       <span className={css.stageCopy}>
         <strong>{t(`stage.${stage.id}` as SidebarKey)}</strong>
-        <span>{state?.note ?? t('projects.stageFiles', { n: outputCount })}</span>
+        <span>{t('projects.stageFiles', { n: outputCount })}</span>
       </span>
-      <span className={css.status} data-status={status}>{t(`status.${status}` as SidebarKey)}</span>
     </li>
   )
 }
@@ -186,24 +197,26 @@ function OutputRow({ file, project, open, t }: {
   readonly project: ProjectView
   readonly open: () => void
 } & PropsLocale<'sidebar'>) {
+  const markdown = classifyFileType(file.relativePath) === 'markdown'
   return (
-    <button
-      type="button"
-      className={css.outputRow}
-      aria-label={t('projects.openFile', { name: file.name, project: project.name })}
-      onClick={open}
-    >
-      <span className={css.fileIcon} aria-hidden="true"><FileTypeIcon path={file.relativePath} size={20} /></span>
-      <span className={css.outputCopy}>
-        <strong>{file.name}</strong>
-        <span>{file.relativePath}</span>
-      </span>
-      <span className={css.outputMeta}>
-        {file.stage === undefined ? '' : t(`stage.${file.stage.id}` as SidebarKey)}
-        {file.size === undefined ? '' : fileSizeText(file.size)}
-      </span>
-      <IconChevronRightOutlineRegular className={css.chevron} size={15} />
-    </button>
+    <Tooltip label={file.relativePath} portal>
+      <button
+        type="button"
+        className={css.outputRow}
+        aria-label={t('projects.openFile', { name: file.name, project: project.name })}
+        onClick={open}
+      >
+        <span className={markdown ? css.markdownIcon : css.fileIcon} aria-hidden="true">
+          {markdown ? <LinkIconRegular kind="document" size={22} /> : <FileTypeIcon path={file.relativePath} size={20} />}
+        </span>
+        <span className={css.outputCopy}>
+          <strong>{file.name}</strong>
+        </span>
+        <span className={css.outputMeta}>
+          {file.size === undefined ? '' : fileSizeText(file.size)}
+        </span>
+      </button>
+    </Tooltip>
   )
 }
 
@@ -212,7 +225,11 @@ function ProjectDetail({ project, sessionsCount, back, startWorkspaceSession, op
   readonly sessionsCount: number
   readonly back: () => void
 } & Pick<AipmPanelsInjected, 'startWorkspaceSession' | 'openProjectFile'> & PropsLocale<'sidebar'>) {
-  const recentOutputs = project.outputs.slice(0, 5)
+  const files = [...project.materials, ...project.outputs]
+  const activeStages = PROJECT_STAGES.filter((stage) => {
+    const status = project.state?.stages[stage.id]?.status
+    return status === 'in_progress' || status === 'done' || project.outputs.some(file => file.stage?.id === stage.id)
+  })
   const openFile = (file: ProjectFileView): void => {
     const sessionId = file.sessionId ?? project.readerSessionId
     if (sessionId === undefined) return
@@ -244,27 +261,70 @@ function ProjectDetail({ project, sessionsCount, back, startWorkspaceSession, op
       {project.issues.some(issue => issue.code === 'scan-failed') && (
         <div className={css.notice}>{t('projects.readFailed')}</div>
       )}
-      <div className={css.detailColumns}>
-        <section className={css.detailSection}>
-          <div className={css.sectionHeading}><h3>{t('projects.stages')}</h3></div>
+      {activeStages.length > 0 && (
+        <section className={css.progress} aria-label={t('projects.stages')}>
+          <div className={css.sectionHeading}>
+            <h3>{t('projects.stages')}</h3>
+            <span>{t('projects.activeStages', { n: activeStages.length })}</span>
+          </div>
           <ol className={css.stageList}>
-            {PROJECT_STAGES.map(stage => <StageRow key={stage.id} stage={stage} project={project} t={t} />)}
+            {activeStages.map(stage => <StageRow key={stage.id} stage={stage} project={project} t={t} />)}
           </ol>
         </section>
-        <section className={css.detailSection}>
-          <div className={css.sectionHeading}>
-            <h3>{t('projects.recentOutputs')}</h3>
-            <span>{t('projects.stageFiles', { n: project.outputs.length })}</span>
-          </div>
-          {recentOutputs.length === 0
-            ? <div className={css.compactEmpty}>{t('projects.noOutputs')}</div>
-            : <div className={css.outputList}>{recentOutputs.map(file => (
-              <OutputRow key={file.relativePath} file={file} project={project} open={() => { openFile(file) }} t={t} />
-            ))}</div>}
-        </section>
-      </div>
+      )}
+      <section className={css.documents} aria-label={t('projects.documents')}>
+        <div className={css.sectionHeading}>
+          <h3>{t('projects.documents')}</h3>
+          <span>{t('projects.stageFiles', { n: files.length })}</span>
+        </div>
+        {files.length === 0
+          ? <div className={css.compactEmpty}>{t('projects.noFiles')}</div>
+          : <ProjectDirectory files={files} project={project} openFile={openFile} t={t} />}
+      </section>
     </div>
   )
+}
+
+/** Directory groups use the existing read-only project scan and file-opening action. */
+function ProjectDirectory({ files, project, openFile, t, prefix = '' }: {
+  readonly files: readonly ProjectFileView[]
+  readonly project: ProjectView
+  readonly openFile: (file: ProjectFileView) => void
+  readonly prefix?: string
+} & PropsLocale<'sidebar'>) {
+  const folders = new Map<string, ProjectFileView[]>()
+  const leaves: ProjectFileView[] = []
+  for (const file of files) {
+    const remaining = file.relativePath.slice(prefix.length)
+    const separator = remaining.indexOf('/')
+    if (separator < 0) leaves.push(file)
+    else {
+      const folder = remaining.slice(0, separator)
+      const group = folders.get(folder) ?? []
+      group.push(file)
+      folders.set(folder, group)
+    }
+  }
+  return <>
+    {[...folders].sort(([a], [b]) => a.localeCompare(b)).map(([name, children]) => (
+      <details key={name} className={css.folder} open>
+        <summary>
+          <IconChevronRightOutlineRegular className={css.folderChevron} size={14} />
+          <span className={prefix === '' && PROJECT_STAGES.some(stage => stage.id === name) ? css.stageFolderIcon : css.folderIcon} aria-hidden="true">
+            <IconFolderOpenOutlineRegular size={18} />
+          </span>
+          <span>{name}</span>
+          <span className={css.folderCount}>{t('projects.stageFiles', { n: children.length })}</span>
+        </summary>
+        <div className={css.folderChildren}>
+          <ProjectDirectory files={children} project={project} openFile={openFile} t={t} prefix={`${prefix}${name}/`} />
+        </div>
+      </details>
+    ))}
+    {leaves.sort((a, b) => a.name.localeCompare(b.name)).map(file => (
+      <OutputRow key={file.relativePath} file={file} project={project} open={() => { openFile(file) }} t={t} />
+    ))}
+  </>
 }
 
 /** Project browser: cards enter a read-only project overview instead of creating a chat. */

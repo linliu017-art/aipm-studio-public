@@ -114,6 +114,7 @@ The hierarchy below is the shipped declaration tree. A child exists only while t
 
 ```text
 root
+├─ shell.header
 ├─ sidebar
 │  ├─ sidebar.brand.mark
 │  ├─ sidebar.brand.name

@@ -189,8 +189,8 @@ export type SidebarRightCloseHandler = (sessionId: SessionId, tab: TabRecord) =>
 /** The outward right-Sidebar face (`ctx.sidebarRight`). */
 export interface ISidebarRight {
   /**
-   * The Session on screen, or `undefined` while none is (a global panel fills
-   * the main column, or no Session is selected). It changes before React
+   * The Session on screen in Conversation or a project preview, or `undefined`
+   * for other global panels or when no Session is selected. It changes before React
    * renders the selection or panel change that causes it, so every component
    * rendered in that commit reads the arriving Session, and the commands act on
    * it from that commit's effects: its seat mints its store in the same render.

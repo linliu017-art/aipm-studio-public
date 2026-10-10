@@ -115,8 +115,6 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     setDirectoryBusy: controls.directoryBusy,
     requestSessionRename: controls.rename,
     dismissForkError: controls.dismissForkError,
-    wide: true,
-    expandSidebar: vi.fn(),
     useSessions: hook(sessionState([])),
     useSessionStatus: hook(noPendingInteraction),
     useSessionRetainInfo: () => undefined,
@@ -378,7 +376,6 @@ describe('WorkspaceBrowser', () => {
     const old = summary('old', 10)
     const blank = summary('blank', 1, { blank: true })
     const b = mount({
-      wide: false,
       useSessions: hook(sessionState([old])),
       useWorkspaces: hook(workspaceState([workspace('alpha', ['old', 'blank'])])),
     })
@@ -398,7 +395,7 @@ describe('WorkspaceBrowser', () => {
       expect(b.store.getSnapshot().sessionOrderByAccount.alpha).toEqual(['blank', 'old'])
     })
 
-    rerender(b, { wide: true })
+    rerender(b, {})
     expect(screen.getAllByRole('treeitem').slice(1).map(row => row.textContent)).toEqual([
       expect.stringContaining('blank'),
       expect.stringContaining('old'),
@@ -1790,63 +1787,6 @@ describe('WorkspaceBrowser', () => {
     } finally {
       vi.useRealTimers()
     }
-  })
-
-  it('rail state renders icon controls that request expansion', () => {
-    vi.useFakeTimers()
-    try {
-      const expandSidebar = vi.fn()
-      const b = mount({ wide: false, expandSidebar })
-      // No wide chrome in rail state.
-      expect(screen.queryByText('工作区')).toBeNull()
-      expect(screen.queryByPlaceholderText('搜索会话名称')).toBeNull()
-      fireEvent.click(screen.getByRole('button', { name: '搜索会话' }))
-      expect(expandSidebar).toHaveBeenCalledTimes(1)
-      // The wide flip mounts the input and focuses it after the slide.
-      rerender(b, { wide: true })
-      const input = screen.getByPlaceholderText('搜索会话名称')
-      act(() => { vi.advanceTimersByTime(300) })
-      expect(document.activeElement).toBe(input)
-      // Wide search button is decorative (tabIndex -1, no expand call).
-      fireEvent.click(screen.getByRole('button', { name: '搜索会话' }))
-      expect(expandSidebar).toHaveBeenCalledTimes(1)
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('keeps the rail-opened search expanded when the initiating click reaches document', () => {
-    vi.useFakeTimers()
-    try {
-      const b = mount({ wide: false })
-      fireEvent.click(screen.getByRole('button', { name: '搜索会话' }))
-      rerender(b, { wide: true })
-      // In the browser the rail click keeps bubbling to document after the
-      // wide flip mounted the outside-click listener, with the unmounted rail
-      // button as its target — outside searchRoot. It must not dismiss the
-      // search it just opened.
-      fireEvent.click(document.body)
-      expect(screen.getByRole('button', { name: '搜索会话' }).getAttribute('aria-expanded')).toBe('true')
-      act(() => { vi.advanceTimersByTime(300) })
-      expect(document.activeElement).toBe(screen.getByPlaceholderText('搜索会话名称'))
-      // The gesture has settled: outside clicks dismiss the search again.
-      fireEvent.click(document.body)
-      expect(screen.getByRole('button', { name: '搜索会话' }).getAttribute('aria-expanded')).toBe('false')
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('rail add-workspace raises the directory flow in place, with no menu and no expansion', () => {
-    const expandSidebar = vi.fn()
-    mount({ wide: false, expandSidebar, useWorkspaces: hook(workspaceState([workspace('alpha', [])])) })
-    fireEvent.click(screen.getByRole('button', { name: '添加工作区' }))
-    expect(expandSidebar).not.toHaveBeenCalled()
-    // Adding is the header's only action, so the gesture IS that action: no
-    // one-row popover, and existing workspaces stay in the tree below.
-    expect(screen.queryByRole('menu')).toBeNull()
-    expect(screen.queryByRole('menuitem', { name: 'alpha' })).toBeNull()
-    expect(screen.getByTestId('directory-flow')).toBeTruthy()
   })
 
   it('hides the add button when no directory-flow occupant is composed', () => {

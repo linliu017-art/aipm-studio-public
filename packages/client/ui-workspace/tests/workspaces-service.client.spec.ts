@@ -289,7 +289,7 @@ function bench(options: BenchOptions = {}) {
   if (options.conversation !== false) ctx.provide('conversation', { input: { requestDraftInitialization } })
   const layout = new LayoutController({
     selectPanel: vi.fn(), retainMainPanels: vi.fn(),
-    setSidebar: vi.fn(), toggleSidebar: vi.fn(), setViewportWidth: vi.fn(),
+    setSidebar: vi.fn(), setViewportWidth: vi.fn(),
     setRightbar: vi.fn(), setRightbarPosition: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn(),
   }, () => true, createSnapshotStore({ activePanelId: null }))
   const selectPanel = vi.spyOn(layout, 'selectPanel')
@@ -428,6 +428,13 @@ describe('UiWorkspaceService', () => {
     expect(b.selectPanel).toHaveBeenCalledWith(null)
     expect(b.sessions.retain).toHaveBeenCalledWith(sid('target'), { source: 'mainView' })
     expect(b.sessions.refreshProjections).not.toHaveBeenCalled()
+  })
+
+  it('selects the project reader Session without navigating away from its page', () => {
+    const b = bench()
+    b.uiWorkspace.openSession(sid('target'), { preservePanel: true })
+    expect(b.sessions.retain).toHaveBeenCalledWith(sid('target'), { source: 'mainView' })
+    expect(b.selectPanel).not.toHaveBeenCalled()
   })
 
   it('keeps the current panel when retaining the target fails', () => {

@@ -114,6 +114,7 @@ Renderer 还会根据声明的 store 创建 `useStore`，并根据声明的 loca
 
 ```text
 root
+├─ shell.header
 ├─ sidebar
 │  ├─ sidebar.brand.mark
 │  ├─ sidebar.brand.name

@@ -17,8 +17,6 @@ import type { PanelInfo } from './service.ts'
 import { AppFrame } from './AppFrame.tsx'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
-import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
-import { en, zh } from './shortcut-locales.ts'
 import { ThemePresenter } from './theme-presenter.ts'
 
 // Contract exports only (export-convergence rule: cross-package consumers
@@ -40,17 +38,14 @@ declare module '@deepseek-ai/cordis' {
 }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap {
-    /** Layout keyboard command labels. */
-    'shortcuts.layout': keyof typeof zh
-  }
-
   interface GlobalStandardProps {
     /** Subscribe to the selected main panel independently of parent renders. */
     usePanelInfo: UsePanelInfo
   }
 
   interface SlotMap {
+    /** Full-width navigation above the sidebar, main panel, and optional preview. */
+    'shell.header': { kind: 'single'; scope: 'root' }
     // The 'root' entry itself is the runtime's built-in slot (declared
     // there); these are the frame's children, declared by the same
     // register() call that contributes AppFrame. Session owners never pass
@@ -62,8 +57,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * the seats it declares disappear with it. To add something to the
      * sidebar, register into one of those inner seats instead.
      *
-     * The occupant receives the frame's live column state (collapsed, width)
-     * and is expected to render the compact control rail while collapsed.
+     * The occupant receives the frame's live column width.
      */
     'sidebar': { kind: 'single'; scope: 'root'; owner: SidebarOwnerProps }
     /**
@@ -103,20 +97,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * `id` is added beside the shipped entries instead of replacing them.
      */
     'shell.overlay': { kind: 'list'; scope: 'root' }
-    /**
-     * Window-chrome seat at the frame's top-left, over every main panel.
-     * Mounted only while the sidebar column is fully hidden (macOS desktop
-     * collapse; other platforms keep the rail), so the occupant can assume the
-     * frame edge is the window edge and the macOS traffic lights sit before it.
-     * OCCUPIED by ui-sidebar's reopen/New Session controls.
-     *
-     * While the seat is mounted the frame publishes
-     * `--dsh-frame-leading-clearance` (the inline inset the seat's band
-     * occupies, measured from the frame's left edge); a main panel whose
-     * content reaches the top-left corner pads by it so nothing lands under
-     * the lights or the controls.
-     */
-    'shell.leading': { kind: 'single'; scope: 'root' }
   }
 }
 
@@ -127,9 +107,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Sidebar owner share: live column state from the frame's concession solve. */
 export interface SidebarOwnerProps {
-  /** True when the sidebar is closed (the column renders the compact control rail). */
-  collapsed: boolean
-  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */
+  /** Rendered column width in px. */
   width: number
 }
 
@@ -143,7 +121,7 @@ export interface RightbarOwnerProps {
   viewportWidth: number
   /**
    * Whether a normal right panel can retain 300px beside a 400px center.
-   * Before a narrow opening, includes the space from collapsing the left sidebar.
+   * The fixed left sidebar remains part of this calculation.
    */
   canShow: boolean
 }
@@ -158,9 +136,6 @@ export const inject = ['slots', 'theme', 'locale', 'shortcuts']
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register('shortcuts.layout', { zh, en }), 'layout: command labels')
-  const t = ctx.locale.bind('shortcuts.layout')
-
   ctx.effect(() => {
     const handle = createLayoutStore()
     const instance = handle.create()
@@ -181,31 +156,18 @@ export function apply(ctx: ClientContext): void {
       name: 'root',
       locale: 'common',
       children: {
+        'shell.header': { kind: 'single', scope: 'root' },
         'sidebar': { kind: 'single', scope: 'root' },
         'main': { kind: 'keyed', scope: 'root' },
         'rightbar': { kind: 'single', scope: 'root' },
         'shell.bottom': { kind: 'single', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
-        'shell.leading': { kind: 'single', scope: 'root' },
       },
       store,
     }, AppFrame)
-    const disposeShortcut = ctx.shortcuts.register({
-      id: 'sidebar.left.toggle' as ShortcutCommandId, label: () => t('toggle'), aliases: ['sidebar', 'toggle left sidebar'],
-      defaults: {
-        'desktop:macos': { code: 'KeyB', modifiers: ['primary'] },
-        'desktop:windows': { code: 'KeyB', modifiers: ['primary'] },
-        'desktop:linux': { code: 'KeyB', modifiers: ['primary'] },
-        'web:macos': { code: 'KeyB', modifiers: ['primary', 'alt'] },
-        'web:windows': { code: 'KeyB', modifiers: ['primary', 'alt'] },
-      },
-      regions: ['page', 'editable'], modals: [],
-      resolve: () => ({ status: 'handled', run: () => { layout.toggleSidebar() } }),
-    })
     const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
     retainMainPanels()
     return () => {
-      disposeShortcut()
       layout.dispose()
       disposePanels()
       disposeRegistration()

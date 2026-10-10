@@ -16,12 +16,11 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the Session root standard-props merge.
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { SidebarPanelMetadata, SidebarRootInjected } from './contract/slots.ts'
-import { HeaderLeadingControls } from './HeaderLeadingControls.tsx'
 import {
   type AipmPanelsInjected, ProjectsPanel, ProjectsPanelIcon,
 } from './AipmPanels.tsx'
 import { readProjectView, type ProjectRemoteCarrier } from './project-reader.ts'
-import { SidebarRoot } from './SidebarRoot.tsx'
+import { ShellHeader, SidebarRoot } from './SidebarRoot.tsx'
 import { en, zh, type SidebarKey } from './locales.ts'
 
 export type {
@@ -47,7 +46,7 @@ interface WorkspaceNavigation {
     workspaceId?: Parameters<SidebarRootInjected['startSession']>[0],
     options?: Parameters<SidebarRootInjected['startSession']>[1],
   ): void
-  openSession(sessionId: SessionId): void
+  openSession(sessionId: SessionId, options?: { readonly preservePanel?: boolean }): void
 }
 
 /** Services required by the sidebar plugin. */
@@ -84,20 +83,24 @@ export function apply(ctx: ClientContext): void {
     // The shell's New Session button rides the Workspace UI's shared action
     // (automatic default Workspace, then current or recent Workspace).
     startSession: (workspaceId, options) => { workspaceNavigation.startSession(workspaceId, options) },
-    toggleSidebar: () => { ctx.layout.toggleSidebar() },
     selectPanel: (id) => {
       if (id === 'plugins' || id === 'schedules') ctx.get('productAnalytics')?.track('sidebar_menu_click', { menu_name: id === 'plugins' ? 'plugin' : 'cron' })
+      if ((id === PROJECTS_PANEL_ID || id === 'schedules') && ctx.sidebarRight.isExpanded()) ctx.sidebarRight.toggleExpanded()
       ctx.layout.selectPanel(id)
     },
     hooks: { panels, shortcuts: ctx.shortcuts.catalog },
   })
+  ctx.slots.inject('shell.header', () => ctx.slots.register({
+    name: 'shell.header',
+    locale: NS,
+    inject: injectProps,
+  }, ShellHeader))
   ctx.slots.inject('sidebar', () => ctx.slots.register({
     name: 'sidebar',
     locale: NS,
     children: {
       'sidebar.brand.mark': { kind: 'single', scope: 'root' },
       'sidebar.brand.name': { kind: 'single', scope: 'root' },
-      'sidebar.toggle.badge': { kind: 'single', scope: 'root' },
       'sidebar.panellist': { kind: 'list', scope: 'root' },
       'sidebar.workspaces': { kind: 'single', scope: 'root' },
       'sidebar.settings': { kind: 'single', scope: 'root' },
@@ -105,26 +108,16 @@ export function apply(ctx: ClientContext): void {
     },
     inject: injectProps,
   }, SidebarRoot))
-  // macOS desktop hides the collapsed sidebar entirely, so the open/New
-  // Session controls move into the frame's window-chrome seat beside the
-  // traffic lights; the occupant reuses the shell's injected actions, and
-  // the AppFrame mounts the seat only while the column is fully hidden.
-  ctx.slots.inject('shell.leading', () => ctx.slots.register({
-    name: 'shell.leading',
-    locale: NS,
-    inject: injectProps,
-  }, HeaderLeadingControls))
-
   const aipmPanelsInjected = (): AipmPanelsInjected => ({
     readProject: (workspace, sessionId, signal) => readProjectView(projectRemote.workspaceFiles, workspace, sessionId, signal),
     startWorkspaceSession: (workspaceId: WorkspaceId) => {
       workspaceNavigation.startSession(workspaceId)
     },
     openProjectFile: (sessionId, workspaceRoot, relativePath) => {
-      workspaceNavigation.openSession(sessionId)
+      workspaceNavigation.openSession(sessionId, { preservePanel: true })
       const open = (): void => {
         try {
-          ctx.sidebarRight.openResource(fileAddressFor(sessionId, workspaceRoot, relativePath), { position: 'center' })
+          ctx.sidebarRight.openResource(fileAddressFor(sessionId, workspaceRoot, relativePath), { position: 'right' })
         } catch (error) {
           console.warn('open Nini Flow project file rejected:', error)
         }

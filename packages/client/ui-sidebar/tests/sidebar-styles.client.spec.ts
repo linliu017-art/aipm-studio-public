@@ -26,32 +26,31 @@ function declarations(selector: string): Map<string, string> | undefined {
 }
 
 describe('SidebarRoot.module.css', () => {
+  it('keeps the top row for the page title and completely removes inactive history from layout', () => {
+    expect(declarations('.topNavigation')?.get('height')).toBe('56px')
+    expect(declarations('.topBrand')).toBeUndefined()
+    expect(declarations(":global([data-platform='darwin']) .topNavigation")?.get('padding-left')).toBe('82px')
+    expect(declarations('.detail[hidden]')?.get('display')).toBe('none')
+  })
   it('keeps the permanent rail compact and lets the detail column own its spacing', () => {
     const root = declarations('.root')
     expect(root?.get('--dsh-sidebar-inline-padding')).toBe('12px')
     expect(declarations('.rail')?.get('flex')).toBe('0 0 58px')
+    expect(declarations('.railBrand')?.get('width')).toBe('40px')
+    expect(declarations('.railBrand')?.get('height')).toBe('40px')
+    expect(declarations('.detailBrandRow')?.get('margin-bottom')).toBe('12px')
     expect(declarations('.detail')?.get('padding')).toBe('14px 12px 10px')
     expect(declarations('.regionArea')?.get('margin')).toBe(
       '8px calc(-1 * var(--dsh-sidebar-inline-padding)) 0 -4px',
     )
     expect(declarations('.regionArea')?.get('padding-left')).toBe('4px')
-    expect(declarations('.collapsed .regionArea')?.get('margin-left')).toBe('0')
-    expect(declarations('.collapsed .regionArea')?.get('padding-left')).toBe('0')
-    expect(declarations('.collapsed .regionArea')?.get('margin-right')).toBe('0')
   })
 
-  it('animates the permanent rail as one stable unit after collapse', () => {
-    expect(declarations('.railIn .rail')?.get('animation')).toBe(
-      'rail-in 150ms var(--ds-ease-in-out) backwards',
-    )
-    expect(css).toMatch(
-      /@keyframes rail-in\s*\{\s*from\s*\{\s*opacity: 0;\s*transform: translateX\(12px\);\s*}\s*}/,
-    )
-  })
-
-  it('hides only the detail drawer when the sidebar collapses', () => {
-    expect(declarations('.collapsed .detail')?.get('display')).toBe('none')
-    expect(declarations('.collapsed .rail')?.get('flex-basis')).toBe('56px')
+  it('contains no collapse or hover-preview presentation states', () => {
+    expect(css).not.toMatch(/\.collapsed\b/)
+    expect(css).not.toMatch(/\.peek(?:Closing)?\b/)
+    expect(css).not.toMatch(/\.railIn\b/)
+    expect(css).not.toMatch(/@keyframes\s+rail-in\b/)
   })
 
   it('uses the Nini Flow glass tokens for the primary actions', () => {

@@ -137,7 +137,8 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
     const sync = (): void => {
       const selected = views.source.getSnapshot().find(view => view.selected)
-      show(layout.panelInfo.getSnapshot().activePanelId === null ? selected?.sessionId : undefined)
+      const panel = layout.panelInfo.getSnapshot().activePanelId
+      show(panel === null || panel === 'aipm-projects' ? selected?.sessionId : undefined)
     }
     const unsubscribeViews = views.source.subscribe(sync)
     const unsubscribePanel = layout.panelInfo.subscribe(sync)

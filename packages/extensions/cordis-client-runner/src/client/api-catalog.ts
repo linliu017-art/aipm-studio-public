@@ -99,11 +99,6 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'a signal aborted by the next navigation or layout disposal; check it before committing UI state.',
       },
       {
-        signature: 'toggleSidebar(): void',
-        description: 'Toggle the sidebar panel (closed ⟷ contract default width).',
-        parameters: [],
-      },
-      {
         signature: 'openRightbar(track: boolean, fullscreen: boolean): void',
         description: 'Report the right panel\'s presentation without changing its expanded state.',
         parameters: [{ name: 'track', description: 'whether the normal panel width reserves a grid track, including beneath a fullscreen overlay.' }, { name: 'fullscreen', description: 'whether the panel covers the frame and hides its outer resize handle; independent of the underlying grid track.' }],
@@ -336,9 +331,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Workspace archive and directory operations consumed by Client UI domains.',
     methods: [
       {
-        signature: 'openSession(target: SessionTarget): void',
+        signature: 'openSession(target: SessionTarget, options?: { readonly preservePanel?: boolean }): void',
         description: 'Select a Session and show its Conversation as one UI navigation action.',
-        parameters: [{ name: 'target', description: 'known Session identity or durable direct-parent subagent address to display.' }],
+        parameters: [{ name: 'target', description: 'known Session identity or durable direct-parent subagent address to display.' }, { name: 'options', description: 'preservePanel selects the Session for a project preview without leaving its page.' }],
       },
       {
         signature: 'openWorkspace(workspaceId: WorkspaceId, beforeOpen?: (sessionId: SessionId) => void): Promise<void>',
@@ -362,7 +357,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void',
         description: 'Start a New Session flow and navigate to its Session; a creation the Host refuses is shown through the Workspace notice and leaves the selection as it was.',
-        parameters: [{ name: 'workspaceId', description: 'explicit target; absent inherits the current or most recent Workspace.' }, { name: 'options', description: 'initial content; existing text or attachments are preserved unless clearPreviousDraft is true.' }],
+        parameters: [{ name: 'workspaceId', description: 'explicit target; absent uses the automatic default Workspace, then inherits the current or most recent Workspace when that default is unavailable.' }, { name: 'options', description: 'initial content; existing text or attachments are preserved unless clearPreviousDraft is true.' }],
       },
       {
         signature: 'archiveSession(sessionId: SessionId, options?: { readonly stopActivity?: boolean }): Promise<void>',

@@ -58,6 +58,8 @@ kind: "package-reference"
 
 面板取会话区的底色与正文字号，而不是自成一层浮起的表面：它是页面的一列，不是压在页面上的卡片。
 
+项目页也允许显示所选读取 Session 的预览，并将项目页保留在中间；任务中心及其他全局面板隐藏该表面。通过一级菜单进入项目或任务中心时，会关闭先前打开的预览；明确打开项目文件时再显示。这是下文仅在 Conversation 中挂载策略的例外。
+
 root 作用域的 `rightbar` 入口通过独立的 `rightbar.session` 子树渲染选中的 Session，以及拥有已初始化 `keepMounted` 正文的后台 Session。每个 View 拥有自身的 Session reference。只有前台子树上报框架列宽；其他子树保持隐藏，不删除 tab 状态。
 
 <a id="state"></a>

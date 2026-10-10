@@ -57,11 +57,7 @@
   margin-bottom: 24px;
 }
 
-/* macOS hiddenInset titlebar: the Plugins page's head carries the frame's top
-   clearance above its own 28px inset, so both pages keep the same 76px total. */
-:global([data-platform='darwin']) .pageHeading {
-  padding-top: calc(28px + var(--dsh-frame-top-clearance, 0px));
-}
+/* The full-width shell navigation already clears the native window controls. */
 
 /* The first-level page title, on the Plugins page's own `pageTitle` step
    (20px/28px/500): this page and that page are sibling first-level entries, so

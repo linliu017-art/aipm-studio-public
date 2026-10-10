@@ -33,6 +33,7 @@ afterEach(async () => {
 })
 
 async function bench(collapsed = false) {
+  void collapsed
   const runtime = await SlotTestRuntime.create()
   runtimes.add(runtime)
   runtime.remote.provideNamespaces({ workspaceFiles: { list: vi.fn(), read: vi.fn() } })
@@ -41,7 +42,6 @@ async function bench(collapsed = false) {
   const layout = {
     panelInfo: runtime.panelInfo,
     beginNavigation: vi.fn(() => new AbortController().signal),
-    toggleSidebar: vi.fn(),
     setRightbarPosition: vi.fn(),
     selectPanel: vi.fn((activePanelId: MainPanelId | null) => { runtime.panelInfo.set({ activePanelId }) }),
     openRightbar: vi.fn(),
@@ -69,7 +69,7 @@ async function bench(collapsed = false) {
     const activePanelId = usePanelInfo(info => info.activePanelId)
     return (
       <>
-        <aside>{renderSlot('sidebar', { collapsed, width: collapsed ? 56 : 300 })}</aside>
+        <aside>{renderSlot('sidebar', { width: 300 })}</aside>
         <main>{renderSlot('main', {}, { entryKey: activePanelId ?? 'conversation' })}</main>
       </>
     )

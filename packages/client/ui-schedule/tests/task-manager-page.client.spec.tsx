@@ -3780,11 +3780,8 @@ describe('Mock detail metrics shared with the task list', () => {
     // The column's former top inset the row now carries, matching the Plugins head.
     expect(heading).toMatch(/padding-top:\s*28px;/)
     expect(heading).toMatch(/margin-bottom:\s*24px;/)
-    // The Plugins page's macOS head clearance above that same row inset, so the
-    // heading clears the hiddenInset titlebar and keeps the 76px total offset.
-    expect(stylesheet).toMatch(
-      /\[data-platform='darwin'\][^{]*\.pageHeading\s*\{[^}]*padding-top:\s*calc\(28px \+ var\(--dsh-frame-top-clearance, 0px\)\);/,
-    )
+    // The shell header already clears the titlebar on every platform.
+    expect(stylesheet).not.toMatch(/padding-top:\s*calc\(28px \+ var\(--dsh-frame-top-clearance/)
     // The column keeps no top inset of its own, on either platform.
     expect(stylesheet).not.toMatch(
       /\[data-platform='darwin'\][^{]*\.pageContent\s*\{/,

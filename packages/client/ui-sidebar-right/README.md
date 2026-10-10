@@ -58,6 +58,8 @@ While the panel is hidden, one button in the conversation header's corner seat (
 
 The panel takes the conversation's ground colour and content font sizes rather than a raised layer of its own: it is a column of the page, not a card over it.
 
+Projects also permits the selected reader Session's preview while retaining the project page in the center. Task center and other global panels hide the surface. Entering Projects or Task center through the rail closes a previously open preview; opening a project file explicitly reveals it again. This is the exception to the Conversation-only mounting policy described below.
+
 The root-scoped `rightbar` entry renders the selected Session and background Sessions with initialized `keepMounted` bodies through separate `rightbar.session` subtrees. Each View owns its Session reference. Only the foreground subtree reports a frame track; other subtrees stay hidden without deleting tab state.
 
 <a id="state"></a>

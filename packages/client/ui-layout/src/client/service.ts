@@ -4,7 +4,7 @@
  * the current-session selection lives with the runtime sessions service, and
  * the per-session active view dissolved into ui-conversation's session store
  * (its only consumer). What remains here is the contract other plugins'
- * apply worlds reach for panel transitions (main-panel selection and sidebar toggle,
+ * apply worlds reach for panel transitions (main-panel selection and
  * right-panel show/hide from ui-sidebar-right) — writes stay inside the
  * store's declared action set, shared with the root registration.
  */
@@ -42,9 +42,10 @@ export interface ILayout {
    * @returns a signal aborted by the next navigation or layout disposal; check it before committing UI state.
    */
   beginNavigation(): AbortSignal
-  /** Toggle the sidebar panel (closed ⟷ contract default width). */
-  toggleSidebar(): void
-  /** Put the right-surface content in its usual right column or swap it with the centre content. */
+  /**
+   * Put the right-surface content in its usual right column or swap it with the centre content.
+   * @param position - target docked column arrangement.
+   */
   setRightbarPosition(position: RightbarPosition): void
   /**
    * Report the right panel's presentation without changing its expanded state.
@@ -92,11 +93,6 @@ export class LayoutController implements ILayout {
   /** Invalidate pending navigations when the layout owner is unloaded. */
   dispose(): void {
     this.navigation.abort()
-  }
-
-  /** Toggle the sidebar panel (closed ⟷ contract default width). */
-  toggleSidebar(): void {
-    this.panels.toggleSidebar()
   }
 
   /** Select the docked column arrangement without changing whether the surface is open. */

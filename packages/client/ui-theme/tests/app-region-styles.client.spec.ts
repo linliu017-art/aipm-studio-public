@@ -74,15 +74,9 @@ const CHROME_ROWS: readonly ChromeRow[] = [
   },
   {
     file: SIDEBAR,
-    selector: '.topStrip',
+    selector: '.topNavigation',
     markup: 'client/ui-sidebar/src/client/SidebarRoot.tsx',
-    height: ['height', '52px'],
-  },
-  {
-    file: SIDEBAR,
-    selector: '.logoRow',
-    markup: 'client/ui-sidebar/src/client/SidebarRoot.tsx',
-    height: ['height', '60px'],
+    height: ['height', '56px'],
   },
   {
     file: CONVERSATION,

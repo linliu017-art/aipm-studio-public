@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-/** The chip title: the file type's sheet, then the name the registry captured. */
+/** The chip title: a file glyph, then the name the registry captured. */
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -12,11 +12,13 @@ function props(title: string): PropsRuntime<'sidebar.right.pane.tab.title'> {
 }
 
 describe('TextTitle', () => {
-  it('draws the type sheet before the title text, sized to the chip line', () => {
+  it('draws an unfilled Markdown document before the title text, sized to the chip line', () => {
     const { container } = render(<TextTitle {...props('README.md')} />)
     const svg = container.querySelector('svg')
     expect(svg?.getAttribute('width')).toBe('16')
     expect(svg?.getAttribute('aria-hidden')).toBe('true')
+    expect(svg?.getAttribute('fill')).toBe('none')
+    expect(svg?.querySelector('path')?.getAttribute('stroke')).toBe('currentColor')
     expect(container.textContent).toBe('README.md')
   })
 

@@ -1,5 +1,5 @@
 ---
-description: "Sidebar shell plugin for the dsh web client: brand row, New Session action, collapse control, scroll-aware region seat, and bottom-pinned Settings seat."
+description: "Fixed sidebar shell plugin for the dsh web client: brand row, New Session action, navigation rail, workspace region, and Settings seat."
 kind: "package-reference"
 ---
 
@@ -11,7 +11,7 @@ Desktop product events use the optional [product analytics service](../product-a
 
 ## Summary
 
-The dsh web client sidebar lets users recognize the active build, start a new session, collapse navigation to a 56px rail, browse Workspaces and Sessions, and open Settings. It preserves a bottom-pinned Settings entry and hides idle scrollbars without moving browser rows. New Session uses an explicitly selected Workspace, then the automatic default Workspace, then the current or most recently active Workspace; if none exists, it opens a blank New Session page. Deployments can replace the brand mark or name while retaining the navigation controls and rail geometry.
+The dsh web client has full-width top navigation and a permanent left rail below it. The conversation history pane appears on Agent chat only, not Projects or Task center. Brand registrations render in the top navigation; quick actions and session browsing retain their existing behavior.
 
 ## Table of Contents
 
@@ -27,33 +27,29 @@ The dsh web client sidebar lets users recognize the active build, start a new se
 <a id="use-this-package"></a>
 ## Use this package
 
-The sidebar is the navigation shell: users see the brand, start new sessions, collapse the rail, and reach Settings. Feature plugins fill its seats — ui-workspace fills `sidebar.workspaces`, ui-settings registers the trigger row and settings panel at `sidebar.settings`.
+The sidebar is the fixed navigation shell: users see the brand, start new sessions, browse history, and reach Settings. Feature plugins fill its seats — ui-workspace fills `sidebar.workspaces`, ui-settings registers the trigger row and settings panel at `sidebar.settings`.
 
 ### Brand and New Session
 
-The expanded brand row renders `sidebar.brand.mark` and `sidebar.brand.name` as independent single slots; the collapsed rail renders the same mark slot. On Web and Windows desktop, clicking the expanded brand starts a new session; hovering or focusing it shows no tooltip. Without occupants, the shell uses the fish mark and a localized local-build label. A complete build stacks a code badge below the label as `version[-commit][-dirty]`, using `DSH_CLIENT_VERSION`, the optional 7-character `DSH_CLIENT_COMMIT_HASH`, and `DSH_CLIENT_GIT_DIRTY=true`; missing version metadata omits the badge. New Session targets the explicit Workspace used by a scoped action, otherwise the automatic default Workspace, otherwise the current or most recently active Workspace; when none exists it clears into the blank New Session page. The expanded New Session button displays the effective binding as trailing grey text on hover or keyboard focus. While the shortcut is visible, the centered icon and label fade before it when space is narrow; CSS reserves the shortcut’s width without measuring the button. Icon-only controls retain tooltips with platform-formatted keycaps, including the resident macOS header control when the sidebar is hidden. All controls expose `aria-keyshortcuts`.
+The sidebar renders `sidebar.brand.mark` at the top of the permanent navigation rail and `sidebar.brand.name` above the Agent heading in the conversation detail pane. Both are independent single slots owned by `sidebar`; the full-width top row shows only the selected page title. On Web and Windows desktop, clicking the brand starts a new session; hovering or focusing it shows no tooltip. Without occupants, the shell uses the fish mark and a localized local-build label. A complete build stacks a code badge below the label as `version[-commit][-dirty]`, using `DSH_CLIENT_VERSION`, the optional 7-character `DSH_CLIENT_COMMIT_HASH`, and `DSH_CLIENT_GIT_DIRTY=true`; missing version metadata omits the badge. New Session targets the explicit Workspace used by a scoped action, otherwise the automatic default Workspace, otherwise the current or most recently active Workspace; when none exists it clears into the blank New Session page. The New Session button displays the effective binding as trailing grey text on hover or keyboard focus. While the shortcut is visible, the centered icon and label fade before it when space is narrow; CSS reserves the shortcut’s width without measuring the button. Icon-only controls retain tooltips with platform-formatted keycaps. All controls expose `aria-keyshortcuts`.
 
 ### Global panel entries
 
 Plugins add an icon component to the root-scoped `sidebar.panellist` list with an `id`, optional `order`, and a string or locale-aware `label`. The same id addresses the component registered in the layout's root-scoped `main` keyed slot; selecting a missing main entry throws without changing the current selection. The label supplies plain visible text, the accessible name, and the collapsed tooltip. Each row reads its own selected state through `usePanelInfo`; moving DOM focus to search or a directory picker does not change the displayed panel or its selected row. With no registrations, neither the list nor spacing for it is rendered. The shipped composition registers the Projects panel; project deliverables are displayed within project details rather than in a separate global panel.
 
-### Collapse behavior
+### Fixed-column behavior
 
-The sidebar and conversation-header toggles show the effective shortcut from the command catalog in their hover and keyboard-focus tooltips and `aria-keyshortcuts`. An unbound command shows only the action label.
+The left sidebar has no collapse command, toggle button, hover preview, or responsive auto-collapse. `sidebar.left.toggle`, `sidebar.toggle.badge`, and the `shell.leading` reopen seat are intentionally absent.
 
-The top expand button hosts the optional, non-interactive `sidebar.toggle.badge` slot while collapsed. Its occupant supplies status and tooltip content without adding another action or changing the button's navigation behavior.
-
-The expanded brand row exposes an explicit collapse button, while the top rail button pins the column open again. During a live collapse, the expanded content fades out at its current width, the upper controls share one fade and leftward translation into the 56px rail, and the layout's column slide ends the motion. A page that starts collapsed renders the rail statically, and reduced-motion mode disables both transitions. Hovering the collapsed rail or moving keyboard focus into it temporarily previews the full feature pane over the main area without changing the grid width; leaving or blurring restores the rail. The bottom-pinned `sidebar.settings` control shares the fade timing but has no horizontal translation.
-
-On Windows Electron, `html[data-windows-titlebar]` fixes the sidebar toggle in the caption's top-left corner in both states, aligned with New Session's left edge only when expanded. The expanded brand sits below the caption and above New Session, with 8px of extra space above that button. Collapsing hides the brand and sidebar content and places New Session between the sidebar toggle and the Desktop-owned menus. The sidebar sets the root `--dsh-windows-menu-start` to 84px when collapsed; the Desktop preload uses it to position its menu after New Session and defaults to 48px when expanded. Caption icon buttons use centered 16px glyphs in 28px circular controls and exclude themselves from the window drag region. The sidebar toggle and New Session bubbles open below the caption, where the Desktop-owned menu text cannot cover them; an occupying `sidebar.toggle.badge` chooses its own bubble side.
+On Windows Electron, `html[data-windows-titlebar]` reserves the caption strip above the fixed sidebar. The brand and New Session action remain in the detail pane, while caption controls exclude themselves from the window drag region.
 
 ### macOS desktop
 
-Under `html[data-platform='darwin']` (set only by the desktop preload), the expanded column starts below a 48px top strip that clears the hiddenInset traffic lights. The brand wordmark is not a New Session shortcut there; the dedicated New Session button keeps that action. Collapsing retains the 56px navigation rail and allows the complete feature pane to appear as a hover preview; the button beside the expanded brand collapses it and the rail's top button pins it open. The package still registers `HeaderLeadingControls` into the frame's `shell.leading` window-chrome seat for host forms that do not retain a rail. The [Desktop reference](../../../apps/desktop/README.md) owns window integration.
+Under `html[data-platform='darwin']`, the full-width top navigation clears the hiddenInset traffic lights horizontally. The rail and content start below that row. The [Desktop reference](../../../apps/desktop/README.md) owns window integration.
 
 ### Scrollbars
 
-Scrollbars in the column are a pointer affordance: the shell rebinds the scrollbar indirection to `transparent` whenever the pointer is outside the column and keeps the thumb drawn for 2s after the pointer leaves, so a list nobody is pointing at carries no bar. The reservation that keeps rows from moving belongs to the scrolling region (ui-workspace), so revealing a thumb never reflows.
+The fixed column uses the normal theme scrollbar tokens. Gutter reservation belongs to the scrolling region (ui-workspace), so scrollbar painting does not change row geometry.
 
 -----
 
@@ -65,7 +61,9 @@ Scrollbars in the column are a pointer affordance: the shell rebinds the scrollb
 
 The shell is pure composition: `SidebarRootComponentProps` composes the layout owner share, the global `useSessions` and `useWorkspaces` hooks, the declared brand, the `sidebar.workspaces` and `sidebar.settings` child slots, and injected navigation callbacks. Panel entries and their optional titles use the same composition path. Panel metadata is derived from list registrations and locale changes; selection belongs to the layout store.
 
-The Nini Flow Projects panel reads `.aipm/project.json` through an existing Session and recursively lists project files. Root listing uses the Workspace Files API's canonical `.` path while discovered files keep clean Workspace-relative paths for stage classification and opening. A deliverable inherits the producing Session recorded for its stage when that Session belongs to the Workspace; opening it selects that conversation, places the file in the center work area, and keeps the conversation in the right column, with the reader Session used only when stage metadata has no usable association. Project deliverables stay inside each project's detail view; the shell does not register a separate cross-project deliverables panel.
+The Projects panel reads `.aipm/project.json` through an existing Session and recursively scans project files. A single document tree combines materials and outputs, with folders initially expanded and no separate Overview or Directory tabs. Markdown rows use unfilled document glyphs; stage folders use a faint accent background. Opening a file selects its producing or reader Session without leaving the project page and opens the optional right preview. Closing the preview releases its column.
+
+Only stages with files or an in-progress/done state appear as compact cards above the document tree. Each card shows its stage number, name, and file count. Blue in-progress and green output/done numbers retain dot/check marks and localized hover, click, and keyboard-focus hints. Cards wrap within the available content width, including when an open preview narrows the page.
 
 ### Slot discipline
 
@@ -82,7 +80,7 @@ These pages cover the surfaces that fill the shell's seats and the composition m
 
 - [ui-workspace](../ui-workspace/README.md) — the Workspace and Session browser rendered into `sidebar.workspaces`.
 - [ui-settings](../ui-settings/README.md) — the settings domain base registering the trigger row at `sidebar.settings`.
-- [ui-layout](../ui-layout/README.md) — the layout owner whose rail and column state the collapse uses.
+- [ui-layout](../ui-layout/README.md) — the layout owner that supplies the fixed column width.
 - [ui-theme](../ui-theme/README.md) — the scrollbar token indirection the shell rebinds.
 - [Slot system standard](../../../.agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.md) — the composition model behind the seats.
 

@@ -15,17 +15,15 @@ import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
-    /** Non-interactive notification inside the collapsed sidebar expand button. */
-    'sidebar.toggle.badge': { kind: 'single'; scope: 'root'; owner: Record<never, never> }
     /**
-     * Brand mark rendered in the expanded brand row and collapsed rail.
+     * Brand mark rendered at the top of the permanent navigation rail.
      * Declared by this package's `sidebar` entry; deployments may replace
      * the shell's fish fallback without replacing the surrounding controls.
      */
     'sidebar.brand.mark': { kind: 'single'; scope: 'root'; owner: SidebarBrandMarkOwnerProps }
     /**
-     * Brand name rendered beside the expanded mark. Declared by this
-     * package's `sidebar` entry; the shell supplies a generic text fallback.
+     * Brand name rendered above the Agent heading in the conversation detail pane.
+     * Declared by this package's `sidebar` entry; the shell supplies a generic text fallback.
      */
     'sidebar.brand.name': { kind: 'single'; scope: 'root'; owner: SidebarBrandNameOwnerProps }
     /**
@@ -88,25 +86,19 @@ export interface SidebarPanelMetadata {
  * Owner share of the browser hole — the only facts crossing the shell/region
  * boundary. Business data and actions arrive through the region's own inject.
  */
-export interface SidebarSectionOwnerProps {
-  /** Shell fold-state output: wide renders the full browser, rail the icon column. */
-  wide: boolean
-  /** Rail icons request expansion; the browser rides the wide flip for focus. */
-  expandSidebar: () => void
-}
+export type SidebarSectionOwnerProps = Record<never, never>
 
 /**
- * Owner share of the sidebar settings seat: the column display state the
- * occupant's trigger row must render against (wide row vs rail icon).
+ * Owner share of the sidebar settings seat in the permanent compact rail.
  */
 export interface SidebarSettingsOwnerProps {
-  /** Whether the sidebar renders wide content (false = 56px rail). */
+  /** False because this seat is rendered in the permanent compact rail. */
   wide: boolean
 }
 
 /** Owner share of an action rendered beside Settings at the sidebar foot. */
 export interface SidebarFooterActionOwnerProps {
-  /** Whether the sidebar renders wide content (false = 56px rail). */
+  /** False because this seat is rendered in the permanent compact rail. */
   wide: boolean
 }
 
@@ -124,8 +116,6 @@ export type SidebarRootInjected = {
     workspaceId?: WorkspaceId,
     options?: { readonly prompt?: string; readonly clearPreviousDraft?: boolean },
   ) => void
-  /** Toggle the sidebar column through the layout service. */
-  toggleSidebar: () => void
   /** Select the global panel addressed by a sidebar row. */
   selectPanel: (id: MainPanelId | null) => void
   /** Private reactive sources bound to framework selector hooks. */
@@ -142,10 +132,14 @@ export type SidebarRootComponentProps =
   & PropsRenderSlots<
     | 'sidebar.brand.mark'
     | 'sidebar.brand.name'
-    | 'sidebar.toggle.badge'
     | 'sidebar.panellist'
     | 'sidebar.workspaces'
     | 'sidebar.settings'
     | 'sidebar.footer.action'
   >
   & InjectFace<SidebarRootInjected> & PropsLocale<'sidebar'>
+
+/** Top navigation reflects the selected page without duplicating sidebar branding. */
+export type ShellHeaderComponentProps =
+  PropsRuntime<'shell.header'>
+  & Pick<InjectFace<SidebarRootInjected>, 'usePanels'> & PropsLocale<'sidebar'>

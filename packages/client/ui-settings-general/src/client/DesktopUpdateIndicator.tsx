@@ -1,9 +1,8 @@
 /** Optional Electron status presentation; the native shell owns actions and Web owns visible copy. */
 import { IconDownloadOutlineRegular, IconLoadingOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './DesktopUpdateIndicator.module.css'
 import type { DesktopUpdateFailureKind, DesktopUpdatePresentation, DesktopUpdateView } from '../types.ts'
-import type { SettingsRootInjected } from './shell-contract.ts'
 
 type SettingsTranslate = PropsLocale<'settings'>['t']
 
@@ -76,25 +75,5 @@ export function DesktopUpdateIndicator({ wide, hidden, t, view, onOpen }: {
       </span>
       <span>{label}</span>
     </button>
-  </Tooltip>
-}
-
-type BadgeProps = PropsRuntime<'sidebar.toggle.badge'> & PropsLocale<'settings'>
-  & Pick<InjectFace<SettingsRootInjected>, 'useDesktopUpdate' | 'useConnectionState'>
-
-/**
- * @param props - Framework-bound carrier and connection state.
- * @returns A non-interactive brand-blue notification on the sidebar expand button.
- */
-export function DesktopUpdateBadge({ useDesktopUpdate, useConnectionState, t }: BadgeProps) {
-  const { presentation: state, failed } = useDesktopUpdate(value => value)
-  const connection = useConnectionState(value => value)
-  if (((connection === 'disconnected' || connection === 'connecting') && state?.phase !== 'installing')
-    || (!failed && (state === undefined || state.phase === 'idle'))) return null
-  const retryLabel = t('desktop.update.retry')
-  const copy = state === undefined ? { label: retryLabel, detail: retryLabel } : updateCopy(state, t)
-  const label = failed ? retryLabel : copy.label
-  return <Tooltip label={failed ? label : copy.detail} side="right">
-    <span role="img" aria-label={label} className={css.badge} />
   </Tooltip>
 }

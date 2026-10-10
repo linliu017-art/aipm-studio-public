@@ -3,43 +3,43 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-sidebar/README.md
 /:
-  en: 7884381c2c554eca
-  zh: e6d7199a9bb2f0f8
+  en: 364af96f73ccf5e8
+  zh: a703c9f2b7f26451
 /deepseek-ai-dsh-client-ui-sidebar:
   en: e357f49fb1d1710e
   zh: 2e61922b104f77eb
 /deepseek-ai-dsh-client-ui-sidebar/summary:
-  en: af17f03561e5372b
-  zh: 91a1b9f6c7a51025
+  en: a25fe3320cf603fe
+  zh: 1e90c7abef21efff
 /deepseek-ai-dsh-client-ui-sidebar/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
 /deepseek-ai-dsh-client-ui-sidebar/use-this-package:
-  en: a970f0547496634f
-  zh: 36ef9a85b26e19f1
+  en: 405b4bb52066754b
+  zh: 7f066382f86ed021
 /deepseek-ai-dsh-client-ui-sidebar/use-this-package/brand-and-new-session:
-  en: 098f85b9287d3147
-  zh: b921c128ac37d2cd
+  en: dbf0cf1aa1d7a9f1
+  zh: 912c4f02fd7130c3
 /deepseek-ai-dsh-client-ui-sidebar/use-this-package/global-panel-entries:
-  en: 5d3300d3506254c5
-  zh: 541ae1ee1e10b921
-/deepseek-ai-dsh-client-ui-sidebar/use-this-package/collapse-behavior:
-  en: 8996c9b65c8eb635
-  zh: 9c7ce08b90f3c1f5
+  en: 9c8c0c395d7cf696
+  zh: 063f8fa903aefefd
+/deepseek-ai-dsh-client-ui-sidebar/use-this-package/fixed-column-behavior:
+  en: 89bd1bbca0953c1c
+  zh: fda2bf58726fb816
 /deepseek-ai-dsh-client-ui-sidebar/use-this-package/macos-desktop:
-  en: 28e3639ed58492e0
-  zh: 4896acd767287c8a
+  en: 2ae6d1201b7dd4d8
+  zh: 09f96633ee6d3f08
 /deepseek-ai-dsh-client-ui-sidebar/use-this-package/scrollbars:
-  en: d053b1ed0f4fd293
-  zh: ff25a56541f57530
+  en: 9883b54809d7d99f
+  zh: 69c747a4de7eb486
 /deepseek-ai-dsh-client-ui-sidebar/understand-the-implementation:
-  en: 676cd4c309b4110d
-  zh: 25d1bd0b2c7db645
+  en: a7a6983ee4a89e1e
+  zh: fc9939037ebcb60e
 /deepseek-ai-dsh-client-ui-sidebar/understand-the-implementation/slot-discipline:
   en: 6eefc5c45abe8a8f
   zh: 20b651e48a0ea903
 /deepseek-ai-dsh-client-ui-sidebar/further-exploration:
-  en: 5083bbf74e47bb67
+  en: 73a34453cfe728e8
   zh: 0236e569178756a2
 /deepseek-ai-dsh-client-ui-sidebar/model-experience:
   en: 3120df665299c634

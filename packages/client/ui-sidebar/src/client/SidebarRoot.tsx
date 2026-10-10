@@ -1,5 +1,5 @@
 /** Nini Flow's navigation rail, Agent launcher, quick-action drawer, and history seat. */
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import {
   FishLogo,
@@ -11,7 +11,6 @@ import {
   IconInspectOutlineRegular,
   IconListPenOutlineRegular,
   IconNewChatOutlineRegular,
-  IconPanelLeftOutlineRegular,
   IconSearchOutlineRegular,
   IconSparkleRegular,
   isDarwinDesktop,
@@ -19,16 +18,9 @@ import {
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type {
-  SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps,
-} from './contract/slots.ts'
+import type { ShellHeaderComponentProps, SidebarPanelMetadata, SidebarRootComponentProps, SidebarRootInjected } from './contract/slots.ts'
 import type { SidebarKey } from './locales.ts'
 import css from './SidebarRoot.module.css'
-
-const COLLAPSE_SETTLE_MS = 150
-const HOVER_CLOSE_MS = 160
-const SCROLLBAR_LINGER_MS = 2000
-const DEFAULT_EXPANDED_WIDTH = 280
 
 function localBuildVersion(): string | undefined {
   const version = process.env.DSH_CLIENT_VERSION
@@ -110,12 +102,28 @@ const QUICK_ACTIONS: readonly QuickAction[] = [
   },
 ] as const
 
-/** Render the two-level product navigation shell. */
+/** Full-width page title, above every content column. */
+export function ShellHeader({
+  usePanels,
+  usePanelInfo,
+  t,
+}: ShellHeaderComponentProps) {
+  const panels = usePanels(snapshot => snapshot)
+  const activePanelId = usePanelInfo(info => info.activePanelId)
+
+  return (
+    <header className={css.topNavigation} data-window-drag>
+      <span className={css.topPageTitle}>
+        {panels.find(panel => panel.id === activePanelId)?.label ?? t('agent.title')}
+      </span>
+    </header>
+  )
+}
+
+/** Render the permanent rail and the conversation-only history pane. */
 export function SidebarRoot({
-  collapsed,
   width,
   startSession,
-  toggleSidebar,
   selectPanel,
   usePanels,
   useShortcuts,
@@ -125,117 +133,13 @@ export function SidebarRoot({
 }: SidebarRootComponentProps) {
   const panels = usePanels(snapshot => snapshot)
   const activePanelId = usePanelInfo(info => info.activePanelId)
-  const shortcut = useShortcuts(rows => rows.find(row => row.id === 'sidebar.left.toggle'))
   const newShortcut = useShortcuts(rows => rows.find(row => row.id === 'session.new'))
   const [quickOpen, setQuickOpen] = useState(false)
-  const [settled, setSettled] = useState(collapsed)
-  const [hovered, setHovered] = useState(false)
-  const [peekSuppressed, setPeekSuppressed] = useState(false)
-  const [focusInside, setFocusInside] = useState(false)
-  useEffect(() => {
-    if (!collapsed) { setSettled(false); return }
-    const timer = window.setTimeout(() => { setSettled(true) }, COLLAPSE_SETTLE_MS)
-    return () => { window.clearTimeout(timer) }
-  }, [collapsed])
-  const windowsTitlebar = document.documentElement.hasAttribute('data-windows-titlebar')
-  const wide = windowsTitlebar ? !collapsed : !collapsed || !settled
-  const peeking = !windowsTitlebar && collapsed && settled && !peekSuppressed && (hovered || focusInside)
-  const detailVisible = wide || peeking
-  const lastWideWidth = useRef(width)
-  if (!collapsed) lastWideWidth.current = width
-  const everWide = useRef(!collapsed)
-  if (!collapsed) everWide.current = true
-
-  const column = useRef<HTMLDivElement>(null)
-  const [pointerInside, setPointerInside] = useState(false)
-  const hoverCloseTimer = useRef<number | undefined>(undefined)
-  const lingerTimer = useRef<number | undefined>(undefined)
-  const pointInsideColumn = (clientX: number, clientY: number): boolean => {
-    const rect = column.current?.getBoundingClientRect()
-    if (rect === undefined) return false
-    return clientX >= rect.left && clientX <= rect.right
-      && clientY >= rect.top && clientY <= rect.bottom
-  }
-  const armLinger = (): void => {
-    if (lingerTimer.current !== undefined) return
-    lingerTimer.current = window.setTimeout(() => {
-      lingerTimer.current = undefined
-      setPointerInside(false)
-    }, SCROLLBAR_LINGER_MS)
-  }
-  const cancelLinger = (): void => {
-    window.clearTimeout(lingerTimer.current)
-    lingerTimer.current = undefined
-  }
-  const cancelHoverClose = (): void => {
-    window.clearTimeout(hoverCloseTimer.current)
-    hoverCloseTimer.current = undefined
-  }
-  const armHoverClose = (): void => {
-    if (hoverCloseTimer.current !== undefined) return
-    hoverCloseTimer.current = window.setTimeout(() => {
-      hoverCloseTimer.current = undefined
-      setHovered(false)
-      setPeekSuppressed(false)
-    }, HOVER_CLOSE_MS)
-  }
-  useEffect(() => {
-    if (!pointerInside) return
-    const onMove = (event: PointerEvent): void => {
-      const inside = pointInsideColumn(event.clientX, event.clientY)
-      if (inside) {
-        cancelLinger()
-        cancelHoverClose()
-        setHovered(true)
-      } else {
-        armLinger()
-        armHoverClose()
-      }
-    }
-    document.addEventListener('pointermove', onMove)
-    return () => {
-      document.removeEventListener('pointermove', onMove)
-      cancelLinger()
-      cancelHoverClose()
-    }
-  }, [pointerInside])
-
+  const railOnly = activePanelId === 'aipm-projects' || activePanelId === 'schedules'
   const buildVersion = localBuildVersion()
   const darwinDesktop = isDarwinDesktop()
-  const toggleLabel = collapsed ? t('toggle.open') : t('toggle.collapse')
-  const requestToggle = (): void => {
-    if (collapsed) {
-      setPeekSuppressed(false)
-    } else {
-      /* A click that explicitly collapses the panel wins over the pointer
-         still resting on it. Hover preview is re-enabled only after the
-         pointer genuinely leaves and enters the rail again. */
-      cancelHoverClose()
-      setHovered(false)
-      setPeekSuppressed(true)
-    }
-    toggleSidebar()
-  }
-  const toggle = (
-    <Tooltip label={toggleLabel} shortcutKeys={shortcut?.keys} delayMs={500} side="right">
-      <button
-        type="button"
-        className={css.brandToggle}
-        aria-label={toggleLabel}
-        aria-keyshortcuts={shortcut?.aria}
-        onClick={() => { requestToggle() }}
-      >
-        <span className={css.brandMark} aria-hidden="true">
-          {renderSlot('sidebar.brand.mark', { size: 40 }, { fallback: <FishLogo size={40} /> })}
-        </span>
-        <IconPanelLeftOutlineRegular className={css.collapseGlyph} size={17} />
-        {renderSlot('sidebar.toggle.badge', {})}
-      </button>
-    </Tooltip>
-  )
-
   const identity = (
-    <span className={css.brandIdentity} aria-hidden="true">
+    <span className={css.brandIdentity}>
       <span className={css.brandName}>
         {renderSlot('sidebar.brand.name', {}, {
           fallback: buildVersion === undefined
@@ -252,49 +156,12 @@ export function SidebarRoot({
   )
 
   return (
-    <div
-      ref={column}
-      className={clsx(
-        css.root,
-        !detailVisible && css.collapsed,
-        !detailVisible && everWide.current && css.railIn,
-        peeking && css.peek,
-        collapsed && wide && css.fading,
-        !pointerInside && css.quietBars,
-      )}
-      style={detailVisible ? { width: collapsed ? Math.max(lastWideWidth.current, DEFAULT_EXPANDED_WIDTH) : width } : undefined}
-      onPointerEnter={() => {
-        cancelLinger()
-        cancelHoverClose()
-        setPointerInside(true)
-        setHovered(true)
-      }}
-      onPointerLeave={(event) => {
-        /* Expanding the preview changes this node from the 56px rail width to
-           the full drawer width. Browsers can emit pointerleave while that
-           geometry is being replaced, even though the physical pointer never
-           left the resulting drawer. Do not use that synthetic boundary event
-           to close the preview: the document-level pointermove above compares
-           the pointer against the settled rectangle and owns dismissal. */
-        if (pointInsideColumn(event.clientX, event.clientY)) cancelHoverClose()
-        armLinger()
-      }}
-      onFocusCapture={() => { setFocusInside(true) }}
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setFocusInside(false)
-      }}
-    >
-      {darwinDesktop && <div className={css.topStrip} data-window-drag />}
+    <div className={css.root} style={{ width }}>
       <div className={css.shellBody}>
         <aside className={css.rail} aria-label={t('panels.label')}>
-          {collapsed ? toggle : (
-            <span className={css.brandToggle} aria-hidden="true">
-              <span className={css.brandMark}>
-                {renderSlot('sidebar.brand.mark', { size: 40 }, { fallback: <FishLogo size={40} /> })}
-              </span>
-              {renderSlot('sidebar.toggle.badge', {})}
-            </span>
-          )}
+          <div className={css.railBrand} aria-hidden="true">
+            {renderSlot('sidebar.brand.mark', { size: 30 }, { fallback: <FishLogo size={30} /> })}
+          </div>
           <Tooltip label={t('agent.open')} delayMs={500} side="right">
             <button
               type="button"
@@ -329,36 +196,18 @@ export function SidebarRoot({
           </div>
         </aside>
 
-        <section className={clsx(css.detail, css.wide)} aria-hidden={!detailVisible}>
+        <section className={css.detail} hidden={railOnly}>
           <header className={css.detailHeader}>
             <div className={css.detailBrandRow}>
-              {darwinDesktop
-                ? <span className={css.brand}>{identity}</span>
-                : (
-                  <button
-                    type="button"
-                    className={css.brand}
-                    aria-label={t('session.new.label')}
-                    aria-keyshortcuts={newShortcut?.aria}
-                    onClick={() => { startSession() }}
-                  >
-                    {identity}
-                  </button>
-                )}
-              <Tooltip label={toggleLabel} shortcutKeys={shortcut?.keys} delayMs={500} side="bottom">
-                <button
-                  type="button"
-                  className={css.detailToggle}
-                  aria-label={toggleLabel}
-                  aria-keyshortcuts={shortcut?.aria}
-                  onClick={(event) => {
-                    event.currentTarget.blur()
-                    requestToggle()
-                  }}
-                >
-                  <IconPanelLeftOutlineRegular size={17} />
-                </button>
-              </Tooltip>
+              {darwinDesktop ? <span className={css.brand}>{identity}</span> : <button
+                type="button"
+                className={css.brand}
+                aria-label={t('session.new.label')}
+                aria-keyshortcuts={newShortcut?.aria}
+                onClick={() => { startSession() }}
+              >
+                {identity}
+              </button>}
             </div>
             <strong>{t('agent.title')}</strong>
             <span>{t('agent.description')}</span>
@@ -419,10 +268,7 @@ export function SidebarRoot({
           )}
 
           <div className={css.regionArea}>
-            {renderSlot('sidebar.workspaces', {
-              wide: true,
-              expandSidebar: () => { if (collapsed) toggleSidebar() },
-            } satisfies SidebarSectionOwnerProps)}
+            {renderSlot('sidebar.workspaces', {})}
           </div>
         </section>
       </div>

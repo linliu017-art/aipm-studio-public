@@ -8,7 +8,6 @@ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SidebarRootInjected } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
-import { HeaderLeadingControls } from '../src/client/HeaderLeadingControls.tsx'
 import { apply as hostApply } from '../src/index.ts'
 
 const owners = new Set<Fiber>()
@@ -21,7 +20,7 @@ afterEach(async () => {
 })
 
 function SidebarFrame({ renderSlot }: PropsRenderSlots<'sidebar'>) {
-  return renderSlot('sidebar', { collapsed: false, width: 300 })
+  return renderSlot('sidebar', { width: 300 })
 }
 
 async function bench(declare = true) {
@@ -32,13 +31,13 @@ async function bench(declare = true) {
   await owner.await()
   if (ctx === undefined) throw new Error('the sidebar fixture owner did not activate')
   await ctx.plugin(SlotRegistry).await()
-  const layout = { toggleSidebar: vi.fn(), selectPanel: vi.fn() }
+  const layout = { selectPanel: vi.fn() }
   const uiWorkspace = {
     startSession: vi.fn(),
     openWorkspace: vi.fn(() => Promise.resolve()),
     openSession: vi.fn(),
   }
-  const sidebarRight = { openResource: vi.fn() }
+  const sidebarRight = { openResource: vi.fn(), isExpanded: vi.fn(() => false), toggleExpanded: vi.fn() }
   ctx.provide('shortcuts', { catalog: createSnapshotStore([]) } as never)
   ctx.provide('layout', layout)
   ctx.provide('uiWorkspace', uiWorkspace as never)
@@ -51,8 +50,8 @@ async function bench(declare = true) {
     slots.register(
       { name: 'root', children: {
         'sidebar': { kind: 'single', scope: 'root' },
+        'shell.header': { kind: 'single', scope: 'root' },
         'main': { kind: 'keyed', scope: 'root' },
-        'shell.leading': { kind: 'single', scope: 'root' },
       } },
       SidebarFrame,
     )
@@ -76,6 +75,7 @@ describe('ui-sidebar apply', () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     expect(b.slots.entries('sidebar')).toHaveLength(1)
+    expect(b.slots.entries('shell.header')).toHaveLength(1)
     expect(b.slots.spec('sidebar.brand.mark')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('sidebar.brand.name')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('sidebar.workspaces')).toEqual({ kind: 'single', scope: 'root' })
@@ -84,14 +84,8 @@ describe('ui-sidebar apply', () => {
     expect(b.slots.spec('sidebar.panellist')).toEqual({ kind: 'list', scope: 'root' })
     // Copy rides the standard locale seat, not the inject face.
     expect(b.slots.entries('sidebar')[0]!.locale).toBe('sidebar')
-    // The window-chrome occupant reuses the shell's inject face and locale.
-    const leading = b.slots.entries('shell.leading')
-    expect(leading).toHaveLength(1)
-    expect(leading[0]!.component).toBe(HeaderLeadingControls)
-    expect(leading[0]!.locale).toBe('sidebar')
-    expect(leading[0]!.inject).toBe(b.slots.entries('sidebar')[0]!.inject)
     const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
-    expect(Object.keys(injected)).toEqual(['startSession', 'toggleSidebar', 'selectPanel', 'hooks'])
+    expect(Object.keys(injected)).toEqual(['startSession', 'selectPanel', 'hooks'])
     expect(injected.hooks.panels.getSnapshot().map(panel => panel.id)).toEqual([
       'aipm-projects',
     ])
@@ -107,15 +101,13 @@ describe('ui-sidebar apply', () => {
     expect(b.uiWorkspace.startSession).toHaveBeenLastCalledWith(undefined, {
       prompt: '调研任务', clearPreviousDraft: true,
     })
-    injected.toggleSidebar()
-    expect(b.layout.toggleSidebar).toHaveBeenCalledOnce()
     const panelId = 'custom-panel' as MainPanelId
     injected.selectPanel(panelId)
     expect(b.layout.selectPanel).toHaveBeenCalledExactlyOnceWith(panelId)
     expectTypeOf<Parameters<SidebarRootInjected['selectPanel']>[0]>().toEqualTypeOf<MainPanelId | null>()
   })
 
-  it('opens a project deliverable in the centre beside its producing conversation', async () => {
+  it('opens a project deliverable on the right without leaving its project page', async () => {
     const b = await bench()
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const project = b.slots.entries('main').find(entry => entry.options.key === 'aipm-projects')
@@ -124,10 +116,10 @@ describe('ui-sidebar apply', () => {
     injected.openProjectFile('session-a' as never, '/workspace' as never, '01-立项/report.md')
     await Promise.resolve()
 
-    expect(b.uiWorkspace.openSession).toHaveBeenCalledWith('session-a')
+    expect(b.uiWorkspace.openSession).toHaveBeenCalledWith('session-a', { preservePanel: true })
     expect(b.sidebarRight.openResource).toHaveBeenCalledWith(
       expect.stringContaining('01-%E7%AB%8B%E9%A1%B9/report.md'),
-      { position: 'center' },
+      { position: 'right' },
     )
   })
 
@@ -190,7 +182,6 @@ describe('ui-sidebar apply', () => {
     await fiber.await()
     await fiber.dispose()
     expect(b.slots.entries('sidebar')).toHaveLength(0)
-    expect(b.slots.entries('shell.leading')).toHaveLength(0)
     expect(b.slots.spec('sidebar.brand.mark')).toBeUndefined()
     expect(b.slots.spec('sidebar.brand.name')).toBeUndefined()
     expect(b.slots.spec('sidebar.workspaces')).toBeUndefined()
