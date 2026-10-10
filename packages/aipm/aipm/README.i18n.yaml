@@ -1,0 +1,67 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/aipm/aipm/README.md
+/:
+  en: bb14bd89f722f6af
+  zh: d65e0849bbb29790
+/deepseek-ai-dsh-aipm:
+  en: 027e66af205c008b
+  zh: a9326a839db9dc40
+/deepseek-ai-dsh-aipm/summary:
+  en: 18367b81838df763
+  zh: adad8486aa6b5163
+/deepseek-ai-dsh-aipm/table-of-contents:
+  en: b563e4ec4727d0de
+  zh: 01a4d63a13edbe20
+/deepseek-ai-dsh-aipm/use-this-package:
+  en: 533602f33403b3ef
+  zh: 4cfcdd081206a879
+/deepseek-ai-dsh-aipm/use-this-package/project-state:
+  en: ff04a89e257fd63b
+  zh: d6c6f11bbfba21dc
+/deepseek-ai-dsh-aipm/use-this-package/composition:
+  en: 5e2e2ac0763df84a
+  zh: 034260b689671934
+/deepseek-ai-dsh-aipm/understand-the-implementation:
+  en: ef479ae740a09b7a
+  zh: 13978dc80867ba79
+/deepseek-ai-dsh-aipm/further-exploration:
+  en: 4d39af3dfae7df94
+  zh: 34580bfc3ce76e6e
+/deepseek-ai-dsh-aipm/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-aipm/model-experience/preset-system-instructions:
+  en: 0c8392fbf61fe108
+  zh: 6016e5f66f114372
+/deepseek-ai-dsh-aipm/model-experience/preset-system-instructions/what-the-model-sees:
+  en: 330c1ef8a990e47e
+  zh: 6d9ca1be6bdac34c
+/deepseek-ai-dsh-aipm/model-experience/preset-system-instructions/what-the-model-sees/preset-opening-paragraph:
+  en: 2914d17dcb52965f
+  zh: b6aee89c2b26cce0
+/deepseek-ai-dsh-aipm/model-experience/preset-system-instructions/token-effect:
+  en: e37505f67f5a8497
+  zh: 447a7120dfb72f4e
+/deepseek-ai-dsh-aipm/model-experience/preset-system-instructions/kv-cache-effect:
+  en: 07064dd7796e4635
+  zh: cdc8393f89478a35
+/deepseek-ai-dsh-aipm/model-experience/stage-tool-input-and-result:
+  en: a9e4fd19fd19de7b
+  zh: f0ec86f388b745bc
+/deepseek-ai-dsh-aipm/model-experience/stage-tool-input-and-result/what-the-model-sees:
+  en: 043bf9e29c3304ac
+  zh: df68235721aaecdb
+/deepseek-ai-dsh-aipm/model-experience/stage-tool-input-and-result/token-effect:
+  en: 26c8ddc48aad4b38
+  zh: ca22424c769f25fe
+/deepseek-ai-dsh-aipm/model-experience/stage-tool-input-and-result/kv-cache-effect:
+  en: 964e314e296b1b60
+  zh: 94d9dd058b43e7a4
+/deepseek-ai-dsh-aipm/known-limitations-and-deferred-work:
+  en: 157c36dacae72877
+  zh: d5b8025792a6fffc
+/deepseek-ai-dsh-aipm/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6
