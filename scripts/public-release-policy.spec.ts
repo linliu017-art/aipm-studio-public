@@ -24,7 +24,11 @@ it('skips every inherited job in this repository and other forks', () => {
     for (const [jobId, job] of Object.entries(workflow.jobs)) {
       expect(job.if, `${name}/${jobId}`).toMatch(/^\$\{\{ github\.repository == 'deepseek-ai\/deepseek-harness' && \(/)
       const expression = job.if!.trim().slice(3, -2).replace(/\b\w+(?:\.\w+)*\.\*\.\w+/g, '[]')
-      for (const repository of ['linliu017-art/aipm-studio', 'another-owner/aipm-studio']) {
+      for (const repository of [
+        'linliu017-art/aipm-studio-public',
+        'linliu017-art/aipm-studio',
+        'another-owner/aipm-studio',
+      ]) {
         expect(runInNewContext(expression, { github: { repository } }, { timeout: 1000 }), `${name}/${jobId}`).toBe(false)
       }
     }

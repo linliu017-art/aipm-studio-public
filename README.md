@@ -19,8 +19,8 @@ This project is experimental. Review generated decisions and documents, and back
 Use Node.js 24 or newer with development headers, the platform native compiler, and the pnpm version declared in `package.json`. Model use requires your own provider credentials. Run the following commands from a terminal:
 
 ```sh
-git clone --branch aipm https://github.com/linliu017-art/aipm-studio.git
-cd aipm-studio
+git clone --branch aipm https://github.com/linliu017-art/aipm-studio-public.git
+cd aipm-studio-public
 pnpm install --frozen-lockfile
 pnpm run build
 pnpm dsh web --no-open
@@ -40,9 +40,9 @@ The agent can read files and run commands with the permissions you grant it. Kee
 
 ## Contributing and support
 
-Use [this repository's issues](https://github.com/linliu017-art/aipm-studio/issues) for this derivative's bugs and feature requests. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and checks. The upstream documentation remains useful for the underlying framework, but its product defaults may differ from this checkout.
+Use [this repository's issues](https://github.com/linliu017-art/aipm-studio-public/issues) for this derivative's bugs and feature requests. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and checks. The upstream documentation remains useful for the underlying framework, but its product defaults may differ from this checkout.
 
-GitHub Actions remain disabled at repository level while the public-release preparation is reviewed. Upstream infrastructure workflows are restricted to their original repository; the AIPM-specific validation workflow uses hosted runners and read-only permissions.
+Upstream infrastructure workflows are restricted to their original repository; the AIPM-specific validation workflow uses hosted runners and read-only permissions.
 
 ## License and attribution
 

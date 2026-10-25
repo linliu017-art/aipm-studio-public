@@ -19,8 +19,8 @@ AIPM Studio 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek
 使用带开发头文件的 Node.js 24 或更新版本、平台原生编译器，以及 `package.json` 声明的 pnpm 版本。模型调用需要你自己的提供方凭据。请在终端依次运行：
 
 ```sh
-git clone --branch aipm https://github.com/linliu017-art/aipm-studio.git
-cd aipm-studio
+git clone --branch aipm https://github.com/linliu017-art/aipm-studio-public.git
+cd aipm-studio-public
 pnpm install --frozen-lockfile
 pnpm run build
 pnpm dsh web --no-open
@@ -40,9 +40,9 @@ pnpm dsh web --no-open
 
 ## 参与贡献与反馈
 
-此衍生项目的缺陷和功能建议请提交到[本仓库 Issues](https://github.com/linliu017-art/aipm-studio/issues)。开发与检查方法见 [CONTRIBUTING.zh.md](CONTRIBUTING.zh.md)。上游文档仍可用于理解底层框架，但其中的产品默认行为可能与本仓库不同。
+此衍生项目的缺陷和功能建议请提交到[本仓库 Issues](https://github.com/linliu017-art/aipm-studio-public/issues)。开发与检查方法见 [CONTRIBUTING.zh.md](CONTRIBUTING.zh.md)。上游文档仍可用于理解底层框架，但其中的产品默认行为可能与本仓库不同。
 
-公开准备工作审阅期间，仓库级 GitHub Actions 保持关闭。上游基础设施工作流只允许在其原仓库执行；AIPM 专用验证工作流使用 GitHub 托管运行器和只读权限。
+上游基础设施工作流只允许在其原仓库执行；AIPM 专用验证工作流使用 GitHub 托管运行器和只读权限。
 
 ## 许可证与归属
 
