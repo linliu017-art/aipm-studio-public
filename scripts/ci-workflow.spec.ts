@@ -998,8 +998,8 @@ describe('Weighted approval workflow', () => {
     expect(job).toMatchObject({
       if: "(github.event_name != 'pull_request_target' || github.event.pull_request.state == 'open') && "
         + "(github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') && "
-        + "(github.event_name != 'issue_comment' || (github.event.issue.pull_request && github.event.issue.state == 'open' &&\n"
-        + "  (contains(github.event.comment.body, '/delegate') || contains(github.event.changes.body.from, '/delegate'))))",
+        + "(github.event_name != 'issue_comment' || (github.event.issue.pull_request && github.event.issue.state == 'open' && "
+        + "(contains(github.event.comment.body, '/delegate') || contains(github.event.changes.body.from, '/delegate'))))",
       name: 'weighted approval publisher',
       'runs-on': 'ubuntu-latest',
       'timeout-minutes': 5,
@@ -1260,6 +1260,19 @@ describe('Git hooks', () => {
 function loadWorkflow(path: string): Record<string, unknown> {
   const workflow: unknown = yaml.load(readFileSync(resolve(root, path), 'utf8'))
   if (!isRecord(workflow)) throw new TypeError(`${path} must define a workflow`)
+  if (path.startsWith('.github/workflows/')) {
+    if (!isRecord(workflow.jobs)) throw new TypeError(`${path} must define jobs`)
+    for (const job of Object.values(workflow.jobs)) {
+      if (!isRecord(job) || typeof job.if !== 'string') throw new TypeError(`${path} lacks a repository gate`)
+      const condition = /^\$\{\{ github\.repository == 'deepseek-ai\/deepseek-harness' && \(([\s\S]*)\) \}\}$/.exec(job.if)
+      if (condition === null) throw new TypeError(`${path} lacks a repository gate`)
+      if (condition[1] === 'true') delete job.if
+      else if (condition[1] === 'false') job.if = false
+      else if (condition[1] !== undefined) job.if = condition[1]
+      else throw new Error('Repository gate has no upstream condition')
+      if (typeof job.if === 'string' && (job.if.includes('cancelled()') || job.if.includes('always()'))) job.if = '${{ ' + job.if + ' }}'
+    }
+  }
   return workflow
 }
 

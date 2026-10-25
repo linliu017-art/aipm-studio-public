@@ -192,12 +192,12 @@ describe('Desktop local packaging configuration', () => {
   })
 
   it('accepts local macOS packaging without release policy, update, signing, or notarization credentials', () => {
-    expect(() => validateDesktopPackageEnvironment({
-      DSH_DESKTOP_APP_ID: 'com.linliu.aipm-studio',
-    }, MACOS, { local: true })).not.toThrow()
-    expect(() => validateDesktopPackageEnvironment({
-      DSH_DESKTOP_APP_ID: 'com.linliu.aipm-studio',
-    }, WINDOWS, { local: true })).toThrow(/local packaging requires macOS/u)
+    expect(() => {
+      validateDesktopPackageEnvironment({ DSH_DESKTOP_APP_ID: 'com.linliu.aipm-studio' }, MACOS, { local: true })
+    }).not.toThrow()
+    expect(() => {
+      validateDesktopPackageEnvironment({ DSH_DESKTOP_APP_ID: 'com.linliu.aipm-studio' }, WINDOWS, { local: true })
+    }).toThrow(/local packaging requires macOS/u)
   })
 })
 

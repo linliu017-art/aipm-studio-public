@@ -2,22 +2,14 @@
 
 English | [中文](CONTRIBUTING.zh.md)
 
-Thank you for your interest in contributing to DeepSeek Harness!
+AIPM Studio is maintained independently from DeepSeek Harness. Report this application's bugs and feature requests in [this repository](https://github.com/linliu017-art/aipm-studio/issues). Small, focused pull requests are welcome.
 
-We deeply believe in the power of open source communities, and that belief has shaped this project from the very beginning.
+## Development
 
-DeepSeek Harness is still at an early stage and under active development. We are sorry that we cannot accept external pull requests at the moment. However, contributing code to this repository is far from the only way to help. There are many other ways to get involved:
+Follow the [source setup](README.md), then read [AGENTS.md](AGENTS.md) and the [development guide](docs/development.md). Keep changes limited to the requested behavior and retain upstream copyright and third-party notices. Use a GitHub noreply address for commits if you do not want a personal email in public history.
 
-- Identify and report issues or bugs in GitHub Discussions:
-  - Upvote discussions that you would like to bring to the team's attention. We are a very small team and may not be able to reply to every post, but we monitor them and consider them when allocating resources.
-- Contribute to the ecosystem:
-  - Create a plugin that excites you and share it with others:
-    - Associate your GitHub project with the `dsh-plugin` topic to help others discover your plugin.
-  - Write blog posts and how-to guides about DeepSeek Harness.
-  - Answer questions and help other members of the community.
+## Checks
 
-DeepSeek Harness is designed to be deeply customizable. We do not believe that packages in the official repository are inherently more important than packages created by the community. You may consider this repository an idea, an official showcase, and a source of inspiration, but not a mandate from us.
+Run focused tests for changed behavior and the documentation checks required by the repository. Follow [the pre-push workflow](.agents/skills/dsh-pre-push-checks/SKILL.md); include the exact commands and results in the pull request. Do not submit API keys, credential stores, signing certificates, session logs, or private project materials.
 
-We have already seen exciting projects emerge from the community, and we hope to see the ecosystem continue to grow in its own directions.
-
-Into the unknown.
+The AIPM validation workflow uses hosted runners and read-only credentials. Inherited upstream infrastructure workflows are restricted to their original repository. Repository Actions remain disabled until the maintainer enables the reviewed validation workflow. See [SECURITY.md](docs/user/security.md) for vulnerability reporting.

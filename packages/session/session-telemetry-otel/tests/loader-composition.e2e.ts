@@ -162,7 +162,7 @@ describe('session-telemetry-otel through the production headless profile', () =>
     expect(output.logContent).not.toContain('feedback/record')
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)
 
-  it('keeps disabled feedback local and prints the stable warning', async () => {
+  it.each(['DEFAULT', 'DISABLED'])('keeps feedback local and prints the stable warning in %s mode', async (mode) => {
     let output!: FixtureOutput
     const { stdout } = await runLoaderSmoke({
       label: 'session-telemetry-otel disabled loader smoke',
@@ -171,7 +171,7 @@ describe('session-telemetry-otel through the production headless profile', () =>
       libBinScript: driver,
       configPath,
       tsconfigPath: repoTsconfig,
-      env: { DSH_TELEMETRY_E2E_MODE: 'DISABLED' },
+      env: { DSH_TELEMETRY_E2E_MODE: mode },
       inspect: async (cwd) => { output = await readFixtureOutput(cwd) },
     })
 

@@ -28,7 +28,17 @@ interface Workflow {
 }
 
 function workflow(name: string): Workflow {
-  return load(readFileSync(resolve(root, '.github/workflows', name), 'utf8')) as Workflow
+  const result = load(readFileSync(resolve(root, '.github/workflows', name), 'utf8')) as Workflow
+  for (const job of Object.values(result.jobs)) {
+    const gate = /^\$\{\{ github\.repository == 'deepseek-ai\/deepseek-harness' && \(([\s\S]*)\) \}\}$/.exec(String(job.if))
+    if (gate === null) throw new Error(`${name} lacks a repository gate`)
+    if (gate[1] === 'true') delete job.if
+    else if (gate[1] === 'false') job.if = false
+    else if (gate[1] !== undefined) job.if = gate[1]
+    else throw new Error('Repository gate has no upstream condition')
+    if (typeof job.if === 'string' && (job.if.includes('cancelled()') || job.if.includes('always()'))) job.if = '${{ ' + job.if + ' }}'
+  }
+  return result
 }
 
 function commands(job: Job): string[] {

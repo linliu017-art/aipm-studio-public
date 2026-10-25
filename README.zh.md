@@ -1,96 +1,49 @@
-# DeepSeek Harness
+# AIPM Studio
 
 [English](README.md) | 中文
 
-DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的开源 agent harness（智能体框架）。
+AIPM Studio 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 构建的个人 AI 产品经理工作台，应用内目前显示为 **Nini Flow**。这是由 [linliu017-art](https://github.com/linliu017-art) 维护的独立衍生项目，与 DeepSeek 没有官方隶属或背书关系。
 
-它构建于**一切皆插件**的架构之上，由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512)。
+## 已有能力
 
-文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
+- 把产品项目整理为九个独立工作区域，记录阶段进度、输入材料和产出文档。
+- 结合项目已有资料完成用户指定的一项产出，然后等待下一条指令。
+- 使用内置的立项技能和通用写作技能。其余八个阶段目前采用通用任务方法，尚未接入各阶段的专属技能。
 
-## 开发者预览
+本项目处于实验阶段。请人工审阅生成的决策与文档，并在让智能体修改重要项目文件前做好备份。
 
-DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
+<a id="run"></a><a id="run-from-source"></a>
 
-运行本项目前，请阅读[安全说明](SAFETY.zh.md)。
+## 从本仓库运行
 
-<a id="run"></a>
-
-## 运行
-
-### 通过 `npm` 运行
-
-安装 `Node.js`，然后运行：
+使用带开发头文件的 Node.js 24 或更新版本、平台原生编译器，以及 `package.json` 声明的 pnpm 版本。模型调用需要你自己的提供方凭据。请在终端依次运行：
 
 ```sh
-npx @deepseek-ai/dsh web
-```
-
-该命令默认会在 `http://127.0.0.1:3080` 启动 Web UI，本机启动时还会用默认浏览器打开页面。通过 SSH 启动时只打印宿主机 URL，因为本地转发地址由 SSH 客户端或编辑器持有。传入 `--no-open` 可仅运行服务器而不打开浏览器。详见 [Web UI 指南](docs/user/guide/index.zh.md)。
-
-<a id="run-from-source"></a>
-
-### 从源码运行
-
-如需从仓库源码运行：
-
-```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
-pnpm install
+git clone --branch aipm https://github.com/linliu017-art/aipm-studio.git
+cd aipm-studio
+pnpm install --frozen-lockfile
 pnpm run build
-pnpm dsh web
+pnpm dsh web --no-open
 ```
 
-`pnpm run build` 会准备仓库产物。`pnpm dsh web` 会直接使用这些已构建产物，不会重新构建。
+打开最后一条命令打印的本地地址，并将地址中的 token 当作凭据保管。在 **设置 → 模型** 中配置模型。安装上游 `@deepseek-ai/dsh` npm 包不会安装这个定制应用。
 
-## 社区与支持
+## 桌面端
 
-- 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
-- 为你的插件仓库添加 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，便于被发现。
-- 欢迎加入 DeepSeek Harness 企微群！扫描下方二维码填写入群问卷，小助手会定期发送入群邀请。
+构建本仓库后，可用 `pnpm run dev:desktop` 运行 Electron 应用。本机 macOS 打包命令及签名限制见[桌面端指南](apps/desktop/README.zh.md)。`studio:install` 创建的是依赖当前源码目录的启动器，不能作为便携安装包分发。本仓库目前不发布生产安装包。
 
-<table>
-  <thead>
-    <tr>
-      <th align="center">入群问卷</th>
-      <th align="center">微信公众号</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><a href="https://trtgsjkv6r.feishu.cn/share/base/form/shrcnIt5twSVdLGD52KJBckGCgg"><img src="https://cdn.deepseek.com/harness/readme/community-wecom-survey.png" alt="DeepSeek Harness 入群问卷二维码" width="180" height="180"></a></td>
-      <td align="center"><img src="https://cdn.deepseek.com/harness/readme/community-wechat-official-account.png" alt="DeepSeek Harness 团队微信公众号二维码" width="180" height="180"></td>
-    </tr>
-  </tbody>
-</table>
+## 隐私与安全
 
-## 参与贡献
+随附默认配置关闭额外会话日志上传、反馈遥测和桌面使用统计。已有 profile 覆盖配置可能保留旧选择。各项独立开关、发送目标和迁移步骤见[隐私说明](docs/user/privacy.zh.md)，报告漏洞前请阅读[安全说明](docs/user/security.zh.md)。模型调用和已启用的网页工具仍会向所选服务发送完成任务所需的输入。
 
-参见 [CONTRIBUTING.md](CONTRIBUTING.zh.md)。
+智能体会按你授予的权限读取文件和执行命令。请勿把凭据与保密材料提交进仓库，运行应用前请阅读继承的[运行安全提示](SAFETY.zh.md)。
 
-## 开发
+## 参与贡献与反馈
 
-请先阅读[开发指南](docs/development.zh.md)与[架构文档](docs/architecture.zh.md)。
+此衍生项目的缺陷和功能建议请提交到[本仓库 Issues](https://github.com/linliu017-art/aipm-studio/issues)。开发与检查方法见 [CONTRIBUTING.zh.md](CONTRIBUTING.zh.md)。上游文档仍可用于理解底层框架，但其中的产品默认行为可能与本仓库不同。
 
-`pnpm run dev:web` 会在一个终端里完成构建、启动，并在源码修改时重建 client bundle；`make help` 列出 Web 与 Desktop 对应的 Make target。完整表格见开发指南的「应用命令」一节。
+公开准备工作审阅期间，仓库级 GitHub Actions 保持关闭。上游基础设施工作流只允许在其原仓库执行；AIPM 专用验证工作流使用 GitHub 托管运行器和只读权限。
 
-面向 agent：请遵循 [AGENTS.md](AGENTS.md)。
+## 许可证与归属
 
-## 引用
-
-```bibtex
-@misc{deepseek-harness2026,
-  title={DeepSeek Harness: Everything is a Plugin},
-  author={DeepSeek-AI},
-  year={2026},
-  publisher={GitHub},
-  howpublished={\url{https://github.com/deepseek-ai/deepseek-harness}},
-}
-```
-
-## 许可证
-
-[MIT](LICENSE)
-
-第三方依赖及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+本项目保留上游 [MIT 许可证](LICENSE)、DeepSeek 版权与[第三方声明](THIRD_PARTY_NOTICES.md)。内置 human-writing 技能也带有独立 MIT 许可证。除文件另有声明外，新增的 AIPM 代码、提示词、阶段方法和模板均按仓库许可证分发。

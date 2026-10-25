@@ -649,6 +649,7 @@ async function main(): Promise<void> {
     // A confirmation on a hidden window would go unseen, so it waits for the next show; the mandatory
     // flow keeps its own taskbar and Dock attention instead.
     if (!isMandatory()) await windowShown()
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- before-quit can set this flag while windowShown is pending.
     if (quitting) return state
     return updates.install(version)
   }

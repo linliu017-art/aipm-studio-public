@@ -69,6 +69,7 @@ describe('dsh-sdk-minimal bundle', () => {
       includeRuntimeContext: false,
       personaPrefix: { __jsExpr: "process.env.DSH_SYSTEM_PROMPT ?? 'You are a helpful software engineer assistant.'" },
     })
+    expect(rows.find(row => row.id === 'session-log-deepseek')?.config).toEqual({ enabled: false })
     expect(rows.find(row => row.id === 'agent-loop')?.config).toEqual({ agents: [] })
     expect(rows.find(row => row.id === 'terminal-bash')).toMatchObject({
       disabled: { __jsExpr: "process.platform === 'win32'" },

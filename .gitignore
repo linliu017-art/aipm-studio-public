@@ -46,3 +46,17 @@ worktrees/
 .agents/worktrees/
 .typert-*/
 native/system/test/bin/
+
+# Local credentials and product state must not become public repository content.
+.env.*
+!.env.example
+!**/.env.*.example
+.credentials.yaml
+.credentials.*
+.aipm/
+.aipm-studio/
+.dsh/
+*.p12
+*.pfx
+id_rsa
+id_ed25519
