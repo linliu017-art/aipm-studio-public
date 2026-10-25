@@ -15,6 +15,26 @@ packages:
   - python/sdk-runtime
 
 overrides:
+  # Reviewed security floors for shipped and bundled dependencies.
+  'dompurify@>=3.0.0 <3.4.17': '3.4.17'
+  'zod@>=4.0.0 <4.6.6': '4.6.6'
+  'undici@>=8.0.0 <8.12.2': '8.12.2'
+  'body-parser@>=2.0.0 <2.4.0': '2.4.0'
+  '@modelcontextprotocol/sdk@>=1.0.0 <1.32.0': '1.32.0'
+  'follow-redirects@>=1.0.0 <1.16.1': '1.16.1'
+  'sharp@>=0.0.0 <0.35.5': '0.35.5'
+  '@vue/server-renderer@>=3.0.0 <3.5.42': '3.5.42'
+  'vue@>=3.0.0 <3.5.42': '3.5.42'
+  'fast-uri@>=3.0.0 <3.1.7': '3.1.7'
+  'js-yaml@>=4.0.0 <4.3.2': '4.3.2'
+  'browserslist@>=4.0.0 <4.28.7': '4.28.7'
+  'ip-address@>=10.0.0 <10.3.1': '10.3.1'
+  'undici@>=6.0.0 <6.29.1': '6.29.1'
+  'undici@>=7.0.0 <7.30.1': '7.30.1'
+  'brace-expansion@>=1.0.0 <1.1.20': '1.1.20'
+  'brace-expansion@>=2.0.0 <2.1.6': '2.1.6'
+  'brace-expansion@>=5.0.0 <5.0.11': '5.0.11'
+  'vite@>=6.0.0 <6.4.4': '6.4.4'
   'extract-zip>yauzl': '3.4.0'
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
