@@ -8,7 +8,7 @@ Export the current HTML design as a print-friendly HTML file optimized for PDF e
 
 ## Steps
 
-1. **Read the current HTML design file** on every PDF request, including current tweak values. Always rebuild the print copy from this fresh read; never reuse an earlier print copy or merely refresh its provenance stamp. If the harness provides a source version token, record it for the print copy.
+1. **Read the current HTML design file** on every PDF request, including current tweak values. Always rebuild the print copy from this fresh read; never reuse an earlier print copy or merely refresh its source-version stamp. If the harness provides a source version token, record it for the print copy.
 
 2. **Create a print-ready HTML file**. The print file path is the source path with `-print` inserted before the extension — same directory, same basename. If the source is `slides/deck.html`, write `slides/deck-print.html`; if the source is `web/index.html`, write `web/index-print.html`. **Do NOT** use the deck title or project name as the filename, and **do NOT** write to the project root if the source is in a subdirectory — any change in directory depth breaks every relative URL (`@font-face` `src: url(...)`, `<img src>`, `<link href>`, CSS `background: url(...)`) and the print tab shows missing images and system-font fallbacks.
 

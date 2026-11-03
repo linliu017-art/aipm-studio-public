@@ -64,6 +64,15 @@ describe('concrete terminology policy', () => {
     )).toEqual([{ file: '.agents/notes/implemented/process/current.md', line: 1 }])
   })
 
+  it('preserves pinned skill import reports while scanning maintained instructions and runtime assets', () => {
+    const skill = 'packages/aipm/aipm/skills/baoyu-design/'
+    expect(findConcreteTermViolations(`${skill}references/upstream-sync/${blockedTerm}.json`, blockedTerm)).toEqual([])
+    for (const suffix of ['system-prompt.md', 'starter-components/data-overlay.js', 'references/upstream-sync-extra/current.md']) {
+      const file = skill + suffix
+      expect(findConcreteTermViolations(file, blockedTerm)).toEqual([{ file, line: 1 }])
+    }
+  })
+
   it('preserves historical identifiers only in alpha and RC release schema snapshots', () => {
     for (const channel of ['alpha', 'rc']) {
       expect(findConcreteTermViolations(

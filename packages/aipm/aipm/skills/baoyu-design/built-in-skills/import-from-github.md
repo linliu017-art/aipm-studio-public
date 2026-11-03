@@ -1,6 +1,6 @@
 ---
 name: "import-from-github"
-description: "Import from GitHub\nUse a GitHub repo as a design source — browse the real tree on demand, sparse-import only the paths you need into a scratch dir outside the project, and record provenance. For remote github.com URLs; a repo already on disk is read directly."
+description: "Import from GitHub\nUse a GitHub repo as a design source — browse the real tree on demand, sparse-import only the paths you need into a scratch dir outside the project, and record source URLs and revisions. For remote github.com URLs; a repo already on disk is read directly."
 ---
 # Import from GitHub
 
@@ -30,7 +30,7 @@ git -C <scratch> sparse-checkout set <path_prefix>
 
 Then `cp` just the files you actually use (text, images, fonts) into the project. Never import the whole tree, and never clone inside a design-system folder — the compiler scans the entire project tree and would bundle the clone.
 
-## Provenance and auth
+## Source records and authentication
 
 - Record the repo URLs you used in the project's / design system's `readme.md`, and suggest the reader explore those repos further.
 - If a repo is private or unreachable, check `gh auth status` — then **stop and ask the user** to run `gh auth login`, fix access, or supply a local clone path. Don't build half-blind.

@@ -8,7 +8,11 @@ import { historicalSchemaRegion } from './historical-schema-region.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const blockedTerm = 'prove' + 'nance'
-const excludedPrefixes = ['vendor/', '.agents/notes/archived/'] as const
+const excludedPrefixes = [
+  'vendor/', '.agents/notes/archived/',
+  // Immutable import audit reports retain upstream filenames and identifiers.
+  'packages/aipm/aipm/skills/baoyu-design/references/upstream-sync/',
+] as const
 
 /** One blocked term occurrence in a tracked path or text line. */
 export interface ConcreteTermViolation {
@@ -34,7 +38,7 @@ function containsBlockedTerm(value: string): boolean {
  * Find the blocked term in one maintained tracked file.
  * @param file - repository-relative tracked path.
  * @param source - text contents or symlink target.
- * @returns violations outside vendored sources, frozen Agent Notes, historical schemas and their checked generated regions.
+ * @returns violations outside vendored sources, frozen notes/import reports, historical schemas and their generated regions.
  */
 export function findConcreteTermViolations(file: string, source: string): ConcreteTermViolation[] {
   if (isExcluded(file)) return []

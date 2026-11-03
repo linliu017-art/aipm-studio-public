@@ -690,7 +690,7 @@
     // hover-to-isolate: hovering a subject fades every other callout
     '.dv-co,.dv-colead{transition:opacity .12s ease-out}' +
     '.dv-layer[data-iso] .dv-co:not([data-hot]),.dv-layer[data-iso] .dv-colead:not([data-hot]){opacity:0}' +
-    // meta subtitle — the data's own provenance (range · volume · about),
+    // meta subtitle — the data's own source and coverage (range · volume · about),
     // under the sentence row; renders only with controls on, and only when
     // the view carries meta
     '.dv-meta{display:none;font:400 11.5px/1.4 var(--font-ui,-apple-system,sans-serif);color:var(--text-tertiary,color-mix(in srgb,currentColor 55%,transparent));margin:-8px 0 14px}' +
@@ -1406,7 +1406,7 @@
       this._finding.textContent = (S && S.finding) ? String(S.finding) : '';
     }
 
-    // The trust subtitle: the data's own provenance under the sentence
+    // The trust subtitle: the data's own source and coverage under the sentence
     // row — the date range the data covers, the volume the query
     // returned, and 'about': a short agent-written plain-words
     // description of the exact data cut shown (a phrase, not a table
@@ -1446,7 +1446,7 @@
       this._meta.innerHTML = bits.join(' · ');
       // Which elements actually rendered — the legend keys its drops on
       // these, element for element, so partial meta never suppresses
-      // provenance that nothing replaced.
+      // source and coverage that nothing replaced.
       this._metaBits = { range: !!range, about: !!about };
     }
 
@@ -1483,7 +1483,7 @@
       // the same thing twice costs trust — but each legend drop is keyed
       // to the SUBTITLE ELEMENT that replaces it (basis text yields to
       // the about phrase, asOf yields to the date range), so partial meta
-      // never suppresses provenance nothing replaced. The missing-basis
+      // never suppresses source and coverage nothing replaced. The missing-basis
       // WARNING is never gated at all: no date range or row count states
       // a denominator.
       var on = (this.getAttribute('controls') || 'off') === 'on';

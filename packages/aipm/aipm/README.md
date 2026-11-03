@@ -75,6 +75,8 @@ Agent Workshop uses the current conversation model with the native `aipm_worksho
 
 Workshop impact and handoff tasks require an explicit project and selected current document versions. `aipm_delivery get` records their hashes before returning analysis text or archive metadata. `impact` validates exact document quotations and optional read-only code evidence, then saves a separate advisory report; supported code claims require implementation evidence. `package` assembles only selected original files, a version/hash checklist and coding-AI instructions into a downloadable ZIP. Missing PRD or plan is noted rather than generated. Both tasks reject changed inputs and preserve original documents. The optional nullable delivery configuration sets document count, per-file/model-input/report byte limits and compressed/uncompressed archive bounds; omitting it disables these tools.
 
+Pinned upstream skill-import audit records retain their source filenames and identifiers; maintained instructions and runtime assets follow repository terminology.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 

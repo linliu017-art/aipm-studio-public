@@ -58,7 +58,7 @@ Then use your harness's Ask tool to confirm with the user: which pages/frames ma
    ```bash
    node <skill>/agents/import-figma.mjs design-system <file.fig> designs/<slug> --name "Display Name" [--pages <a,b>]
    ```
-   This writes the authoring convention: `components/<Name>.jsx` + `.d.ts` (every variant set + symbol, dependency-closed), `tokens/fig-tokens.css` + `tokens/fig-typography.css` (when the file has variables/styles; unclassifiable tokens are marked `/* @kind other */`), `assets/` + `fig-assets.css`, `styles.css` (@imports), and a stub `README.md` with provenance + design metadata.
+   This writes the authoring convention: `components/<Name>.jsx` + `.d.ts` (every variant set + symbol, dependency-closed), `tokens/fig-tokens.css` + `tokens/fig-typography.css` (when the file has variables/styles; unclassifiable tokens are marked `/* @kind other */`), `assets/` + `fig-assets.css`, `styles.css` (@imports), and a stub `README.md` with source records + design metadata.
 2. Continue with [design-system-authoring-guide.md](design-system-authoring-guide.md) — the emitted folder is **raw material, not a finished system**. The curation pass:
    - regroup `components/<group>/` semantically (forms / feedback / display / navigation / overlay, …) — the compiler walks the whole tree, so grouped layouts compile as-is; give each component a `.prompt.md` and each group a `@dsCard`-tagged `.card.html` plus a shared `<group>.css`;
    - **rewrite** the decoded inline-style JSX into clean class-based, token-backed components — the decoded values (colors, spacing, radii, states) are the ground truth, but the implementation is re-authored to the system's conventions, not transplanted;
