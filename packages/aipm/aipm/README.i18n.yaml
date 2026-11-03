@@ -15,17 +15,20 @@
   en: b563e4ec4727d0de
   zh: 01a4d63a13edbe20
 /deepseek-ai-dsh-aipm/use-this-package:
-  en: 533602f33403b3ef
-  zh: 4cfcdd081206a879
+  en: 7bda4166ae8e9d8c
+  zh: 496927ec9a36a946
 /deepseek-ai-dsh-aipm/use-this-package/project-state:
-  en: ff04a89e257fd63b
-  zh: d6c6f11bbfba21dc
+  en: c975c3e8dbfa6da5
+  zh: bdecad7bccf9415c
 /deepseek-ai-dsh-aipm/use-this-package/composition:
-  en: 5e2e2ac0763df84a
-  zh: 034260b689671934
+  en: 9b44cc5d280f71a3
+  zh: 94452ab0cb8e8574
+/deepseek-ai-dsh-aipm/use-this-package/bundled-skills:
+  en: b9d118f72e2d0eeb
+  zh: 336aad9b6745d5b9
 /deepseek-ai-dsh-aipm/understand-the-implementation:
-  en: ef479ae740a09b7a
-  zh: 13978dc80867ba79
+  en: ff0f83167583afc0
+  zh: 7bec98f18e06319d
 /deepseek-ai-dsh-aipm/further-exploration:
   en: 4d39af3dfae7df94
   zh: 34580bfc3ce76e6e
@@ -57,11 +60,11 @@
   en: 26c8ddc48aad4b38
   zh: ca22424c769f25fe
 /deepseek-ai-dsh-aipm/model-experience/stage-tool-input-and-result/kv-cache-effect:
-  en: 964e314e296b1b60
-  zh: 94d9dd058b43e7a4
+  en: ebe8d5c1dc2533b4
+  zh: b2bbe5194a2458be
 /deepseek-ai-dsh-aipm/known-limitations-and-deferred-work:
-  en: 157c36dacae72877
-  zh: d5b8025792a6fffc
+  en: a0bb07af4d7bac30
+  zh: 242642e33c6a80fa
 /deepseek-ai-dsh-aipm/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 8ec3e73528ddb1a6

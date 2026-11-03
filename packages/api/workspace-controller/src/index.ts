@@ -1,9 +1,11 @@
 /** Host Workspace Remote owner: explicit commands and reconnect-safe state. */
 
+import { dirname, join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { WorkspaceCommands } from './commands.ts'
+import { prepareIdeaDirectory } from './idea-workspace.ts'
 import { DirectoryPickerController } from './directory-picker.ts'
 import { WorkspaceFeed, workspaceView } from './feed.ts'
 import { defaultWorkspaceDirectory, validateDocumentsDirectory } from './default-directory.ts'
@@ -24,6 +26,7 @@ import type {
   WorkspaceUnarchiveSessionRequest,
   WorkspaceUnpinSessionRequest,
   WorkspaceValue,
+  IdeaDirectoryValue,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -33,6 +36,8 @@ export { DirectoryPickerController } from './directory-picker.ts'
 export interface Config {
   /** Override the system Documents directory with a fully qualified path. */
   documentsDirectory?: string
+  /** Fully qualified parent for isolated ideas; defaults to a sibling of the default Workspace. */
+  ideasDirectory?: string
   /** Maximum duration of the operating system's Documents lookup. */
   documentsLookupTimeoutMs?: number
 }
@@ -53,6 +58,7 @@ export class WorkspaceController extends TypertRemoteService {
 
   static Config: z<Config, ResolvedConfig> = z.object({
     documentsDirectory: z.string(),
+    ideasDirectory: z.string(),
     documentsLookupTimeoutMs: z.natural().min(1).default(10_000),
   })
 
@@ -68,6 +74,7 @@ export class WorkspaceController extends TypertRemoteService {
     super(ctx, 'workspaceController', { namespace: 'workspace' })
     this.config = WorkspaceController.Config(config)
     if (this.config.documentsDirectory !== undefined) validateDocumentsDirectory(this.config.documentsDirectory)
+    if (this.config.ideasDirectory !== undefined) validateDocumentsDirectory(this.config.ideasDirectory)
     this.commands = new WorkspaceCommands(ctx)
     this.feed = new WorkspaceFeed(ctx)
     // This package is the Loader entry for both Remote owners it hosts: the
@@ -88,12 +95,24 @@ export class WorkspaceController extends TypertRemoteService {
   }
 
   /**
-   * Initialize or reuse the default Workspace during first-use startup. The
-   * directory name is fixed, so the Host never renames or relocates an
-   * existing default; its initial title is that same name, which browser
-   * consumers label in the reader's language.
-   * @param signal - caller lifetime; cancels native directory lookup.
-   * @returns the durable Workspace, or undefined when first-use initialization is ineligible; creates no Session or message.
+   * Prepare an unregistered idea directory outside existing project trees.
+   * @param signal - caller lifetime and directory-lookup cancellation.
+   * @returns an empty directory path; no Workspace, Session or project files are created.
+   */
+  @Remote('createIdea')
+  async createIdea(signal: AbortSignal): Promise<IdeaDirectoryValue> {
+    const root = this.config.ideasDirectory ?? join(dirname(await defaultWorkspaceDirectory(
+      this.config.documentsDirectory,
+      AbortSignal.any([signal, AbortSignal.timeout(this.config.documentsLookupTimeoutMs)]),
+    )), 'ideas')
+    signal.throwIfAborted()
+    return prepareIdeaDirectory(this.ctx, root)
+  }
+
+  /**
+   * Initialize or reuse the first-use Workspace without creating a Session.
+   * @param signal - caller lifetime and directory-lookup cancellation.
+   * @returns the default Workspace when initialization is eligible.
    */
   @Remote('initializeDefault')
   async initializeDefault(signal: AbortSignal): Promise<WorkspaceValue | undefined> {
@@ -114,6 +133,16 @@ export class WorkspaceController extends TypertRemoteService {
   @Remote('rename')
   rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
     return this.commands.rename(request)
+  }
+
+  /**
+   * Change a saved project's name and its Workspace title without moving its directory.
+   * @param request - registered project identity and non-blank title.
+   * @returns Workspace after project metadata and title have been saved.
+   */
+  @Remote('renameProject')
+  renameProject(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
+    return this.commands.renameProject(request)
   }
 
   /**

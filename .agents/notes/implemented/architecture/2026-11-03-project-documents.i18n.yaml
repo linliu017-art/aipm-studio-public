@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-03-project-documents.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-03-project-documents.md
+/agent-note-independent-project-document-histories:
+  en: 09bc6fe403ea904c
+  zh: cc0784bdbe29c299
+/agent-note-independent-project-document-histories/problem:
+  en: d5f2e982ee1a446c
+  zh: 3cced8f6f0d639a2
+/agent-note-independent-project-document-histories/decision:
+  en: aca23c60e6f83b32
+  zh: 8227fd8766a65bc8
+/agent-note-independent-project-document-histories/consequences:
+  en: f1942dfadb3d9608
+  zh: 1616f240a3a6287e
+/agent-note-independent-project-document-histories/verification:
+  en: 2f09038d9edde00e
+  zh: a3fa72b52a67ec43
+/agent-note-independent-project-document-histories/alternatives-considered:
+  en: b83758d461166003
+  zh: 18c57292b17cfc91

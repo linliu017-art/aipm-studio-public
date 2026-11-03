@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-03-aipm-project-isolation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-03-aipm-project-isolation.md
+/agent-note-aipm-project-isolation:
+  en: ce9209b410cb105b
+  zh: b54f7ab745180d16
+/agent-note-aipm-project-isolation/problem:
+  en: 672b9a31fb6afdc6
+  zh: c4ef20c8f403b63c
+/agent-note-aipm-project-isolation/decision:
+  en: 3ce6bf1ac769f30c
+  zh: ab90bccc23f1168f
+/agent-note-aipm-project-isolation/consequences:
+  en: 3b4a1dc0cfa7adfb
+  zh: b9c4761d1acf39b6
+/agent-note-aipm-project-isolation/verification:
+  en: 905603c772cf3f43
+  zh: 314e9e85c9de1f4e
+/agent-note-aipm-project-isolation/alternatives-considered:
+  en: 32cbd2103d4fd4c8
+  zh: 96fdfbef0b723561

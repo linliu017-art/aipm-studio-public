@@ -42,6 +42,7 @@ describe('AIPM unified project view', () => {
     await initProject(root, { name: '轻颜相机', summary: 'AI 美颜产品' }, new Date('2026-10-03T00:00:00.000Z'))
     await mkdir(join(root, '资料'), { recursive: true })
     await writeFile(join(root, '资料', '用户访谈.md'), 'material')
+    await mkdir(join(root, '01-立项'), { recursive: true })
     await writeFile(join(root, '01-立项', '竞品分析.md'), 'output')
     await mkdir(join(root, '.git'), { recursive: true })
     await writeFile(join(root, '.git', 'config'), 'internal')

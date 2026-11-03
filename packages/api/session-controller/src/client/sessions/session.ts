@@ -12,6 +12,7 @@ import { SessionEventStream } from '../transport.ts'
 import type { SessionJournalChange } from '../transport.ts'
 import type {
   PromptContentPart,
+  WorkshopTaskOptions,
   QueueAction,
   SessionAddress,
   SessionAssistantStreamBaseline,
@@ -249,6 +250,7 @@ export class Session implements SessionFace {
    * @param mode - queue appends after the current turn; steer interrupts it.
    * @param signal - optional caller cancellation for the complete admission round-trip.
    * @param requestId - identity from {@link beginSubmission}; a failed identified prompt retires its echo.
+   * @param workshop - optional Host-owned Workshop setup for a root Session.
    * @returns the prompt result (also mirrored into promptError on failure).
    */
   async prompt(
@@ -256,6 +258,7 @@ export class Session implements SessionFace {
     mode: 'queue' | 'steer',
     signal?: AbortSignal,
     requestId?: SessionRequestId,
+    workshop?: WorkshopTaskOptions,
   ): Promise<RemoteResult<{ accepted: true }>> {
     this.promptError = null
     this.lastAgentError = null
@@ -274,7 +277,13 @@ export class Session implements SessionFace {
         mode,
         content,
         clientTimeZone,
+        ...(workshop === undefined ? {} : { workshop }),
       }, signal)
+    } else if (workshop !== undefined) {
+      result = {
+        ok: false,
+        error: new RemoteError('session/agent-busy', 'Workshop setup requires a root Session.', { reason: 'ROOT_SESSION_REQUIRED' }),
+      }
     } else if (content.some(part => part.type === 'file')) {
       result = {
         ok: false,

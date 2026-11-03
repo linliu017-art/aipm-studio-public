@@ -180,6 +180,73 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-agent-tool-presentation -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-aipm -->
+<a id="deepseek-aidsh-aipm"></a>
+
+## `@deepseek-ai/dsh-aipm`
+
+- `inject`: `tools`
+- `source`: [`packages/aipm/aipm/src/index.ts:27`](../packages/aipm/aipm/src/index.ts)
+
+```ts config-catalog
+/** Explicit bounds for automatic and manual technical-plan review. */
+export interface Config {
+  /** Required model-review input, output and time limits. */
+  review: ReviewConfig
+  /** Optional repository analysis policy; omission disables these source-reading tools. */
+  inspection?: InspectionConfig | null
+  /** Optional selected-document analysis and archive limits. */
+  delivery?: DeliveryConfig | null
+}
+
+/** Deployment-owned bounds for one independent review call. */
+export interface ReviewConfig {
+  /** Maximum UTF-8 bytes in the complete system prompt and JSON-framed documents. */
+  maxInputBytes: number
+  /** Provider output-token ceiling for one tool-free review. */
+  maxOutputTokens: number
+  /** End-to-end review stream deadline in milliseconds. */
+  timeoutMs: number
+}
+
+/** Explicit bounds shared by inventory, source excerpts and rendered reports. */
+export interface InspectionConfig {
+  /** Maximum files in one source inventory. */
+  maxFiles: number
+  /** Maximum visited directory entries, including skipped files. */
+  maxEntries: number
+  /** Maximum source directory depth. */
+  maxDepth: number
+  /** Maximum bytes in one source file. */
+  maxFileBytes: number
+  /** Maximum lines returned by one read. */
+  maxReadLines: number
+  /** Maximum bytes in the full JSON inventory. */
+  maxIndexBytes: number
+  /** Maximum bytes in all retained evidence records for a task. */
+  maxEvidenceBytes: number
+  /** Maximum bytes in a complete report. */
+  maxReportBytes: number
+}
+
+/** Deployment limits for selected inputs and published artifacts. */
+export interface DeliveryConfig {
+  /** Maximum explicitly selected documents. */
+  maxFiles: number
+  /** Maximum bytes per selected document. */
+  maxFileBytes: number
+  /** Maximum serialized model-visible input. */
+  maxInputBytes: number
+  /** Maximum bytes in an impact report. */
+  maxReportBytes: number
+  /** Maximum bytes in the final ZIP. */
+  maxArchiveBytes: number
+  /** Maximum uncompressed bytes, including handoff instructions. */
+  maxArchiveInputBytes: number
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-aipm -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-api-gateway -->
 <a id="deepseek-aidsh-api-gateway"></a>
 
@@ -224,7 +291,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-api-session-controller`
 
 - `inject`: `agentDefaultModel` · `agents` · `attachments` · `fileUploads` · `fs` · `llm` · `sessions` · `sessionProjections` · `sessionQuery` · `typert` · `workspaceRegistry`
-- `source`: [`packages/api/session-controller/src/index.ts:79`](../packages/api/session-controller/src/index.ts)
+- `source`: [`packages/api/session-controller/src/index.ts:81`](../packages/api/session-controller/src/index.ts)
 
 ```ts config-catalog
 /** Session Controller deployment policy. */
@@ -305,13 +372,15 @@ export interface Config {
 ## `@deepseek-ai/dsh-api-workspace-controller`
 
 - `inject`: `typert` · `workspaceRegistry`
-- `source`: [`packages/api/workspace-controller/src/index.ts:33`](../packages/api/workspace-controller/src/index.ts)
+- `source`: [`packages/api/workspace-controller/src/index.ts:36`](../packages/api/workspace-controller/src/index.ts)
 
 ```ts config-catalog
 /** First-use directory policy for the Host account. */
 export interface Config {
   /** Override the system Documents directory with a fully qualified path. */
   documentsDirectory?: string
+  /** Fully qualified parent for isolated ideas; defaults to a sibling of the default Workspace. */
+  ideasDirectory?: string
   /** Maximum duration of the operating system's Documents lookup. */
   documentsLookupTimeoutMs?: number
 }
@@ -674,6 +743,22 @@ export interface Config {
 export type ThemePreference = typeof THEME_PREFERENCES[number]
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-ui-workspace -->
+<a id="deepseek-aidsh-client-ui-workspace"></a>
+
+## `@deepseek-ai/dsh-client-ui-workspace`
+
+- `source`: [`packages/client/ui-workspace/src/start-config.ts:5`](../packages/client/ui-workspace/src/start-config.ts)
+
+```ts config-catalog
+/** Navigation options after schema defaults. */
+export interface Config {
+  /** Start an independent idea instead of inheriting the default or recent Workspace. */
+  isolatedIdeas: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-workspace -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-compaction-basic -->
 <a id="deepseek-aidsh-compaction-basic"></a>
@@ -4349,7 +4434,6 @@ export interface Config {
 | --- | --- | --- |
 | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
 | `@deepseek-ai/dsh-agent` | — | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
-| `@deepseek-ai/dsh-aipm` | `tools` | [`packages/aipm/aipm/src/index.ts`](../packages/aipm/aipm/src/index.ts) |
 | `@deepseek-ai/dsh-api-account-controller` | `deepseekAccount` · `agents` | [`packages/api/account-controller/src/index.ts`](../packages/api/account-controller/src/index.ts) |
 | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
 | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
@@ -4403,7 +4487,6 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-trajectory` | — | [`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-user-questions` | — | [`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workflow-run` | — | [`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts) |
-| `@deepseek-ai/dsh-client-ui-workspace` | — | [`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts) |
 | `@deepseek-ai/dsh-command-compact` | `commands` · `compaction` | [`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts) |
 | `@deepseek-ai/dsh-command-feedback` | `commands` | [`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts) |
 | `@deepseek-ai/dsh-command-goal` | `commands` · `goals` | [`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts) |

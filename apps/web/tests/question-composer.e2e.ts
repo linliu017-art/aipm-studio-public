@@ -530,8 +530,10 @@ describe('web e2e: resident question composer round trip', () => {
     // The same cap the inline shape stops at — the assertion a border-box cap fails.
     expect(await capMetrics(field)).toEqual({ textLines: CAP_LINES, scrolls: true })
 
-    // Settle the wait so teardown is not racing a pending question.
-    await composer.getByRole('button', { name: 'Skip' }).click()
+    // An intentionally blank text answer submits the same empty item as Skip.
+    await field.fill('   ')
+    expect(await composer.getByRole('button', { name: 'Submit', exact: true }).isEnabled()).toBe(true)
+    await composer.getByRole('button', { name: 'Submit', exact: true }).click()
     expect(await asked).toEqual({ answers: [{ id: 'free', selected: [] }] })
     await expect.poll(() => page.locator('[data-question-key]').count(), { timeout: 10_000 }).toBe(0)
   }, 60_000)

@@ -52,6 +52,8 @@ import { PinSessionMenuItem, PinSessionRowButton } from './session-actions/PinSe
 import { RenameSessionMenuItem, SessionRenameDialog } from './session-actions/RenameSession.tsx'
 import { RowActionToast } from './session-actions/RowActionToast.tsx'
 import { WorkspacePicker } from './WorkspacePicker.tsx'
+import { ProjectContext } from './ProjectContext.tsx'
+import { Config, START_CONFIG_GLOBAL } from '../start-config.ts'
 import { en, zh, type WorkspaceKey } from './locales.ts'
 
 export type { StartSessionOptions, UiWorkspace } from './navigation.ts'
@@ -94,7 +96,7 @@ const NS = 'workspace'
  * declaration through `slots.inject()` instead of assuming order.
  */
 export const inject = [
-  'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'layout', 'shortcuts',
+  'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'remote.workspace', 'layout', 'shortcuts',
 ]
 
 /**
@@ -104,6 +106,8 @@ export const inject = [
  * @param ctx - client root context.
  */
 export function apply(ctx: Context): void {
+  const page = globalThis as Partial<Record<typeof START_CONFIG_GLOBAL, unknown>>
+  const configured = Config(page[START_CONFIG_GLOBAL] ?? {})
   const sessions = ctx.get('sessions') as ISessions
   const workspaces = ctx.get('workspaces') as IWorkspaces
   // One viewing-store instance, created here as ui-layout does for its layout
@@ -117,6 +121,11 @@ export function apply(ctx: Context): void {
   const notify = (toast: RowToast): void => { rowToast.set({ ...toast, seq: ++toastSeq }) }
   const uiWorkspace = new UiWorkspaceService(
     ctx, ctx.remote.directoryPicker, workspaces, sessions, viewInstance.actions, notify,
+    configured.isolatedIdeas ? async () => {
+      const result = await ctx.remote.workspace.createIdea()
+      if (!result.ok) throw new Error(result.error.message)
+      return result.value.path
+    } : undefined,
   )
   ctx.slots.provideRoot({ hooks: { workspaces: workspaces.list } })
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workspace: dictionaries')
@@ -229,8 +238,7 @@ export function apply(ctx: Context): void {
     showArchived: () => { viewInstance.actions.setArchivedFilter('show') },
   })
   const browserInjected = (): WorkspaceBrowserInjected => ({
-    // Explicit group actions keep their target; unscoped New Session inherits
-    // the current Session Workspace before the recent-Workspace fallback.
+    // Explicit group actions keep their target; isolated starts remain ungrouped.
     startSession: (workspaceId) => { uiWorkspace.startSession(workspaceId) },
     open: openSession,
     searchSessions,
@@ -253,8 +261,15 @@ export function apply(ctx: Context): void {
   })
   const pickerInjected = (): WorkspacePickerInjected => ({
     createWorkspace: input => workspaces.create(input),
+    ...configured.isolatedIdeas ? { onNewIdea: () => { uiWorkspace.startSession() } } : {},
     hooks: { directoryFlow: pickerFlowSource },
   })
+  if (configured.isolatedIdeas) {
+    ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
+      name: 'conversation.session.header.actions', id: 'workspace.project-context', order: 0, locale: NS,
+      inject: () => ({ startNewIdea: () => { uiWorkspace.startSession() } }),
+    }, ProjectContext))
+  }
   // Each registration declares its owned children in the same call; slot
   // injection follows both the owner and declaration HMR lifetimes.
   ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register(

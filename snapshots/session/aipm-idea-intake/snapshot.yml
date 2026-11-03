@@ -1,0 +1,10 @@
+version: 1
+scenario: aipm-idea-intake
+profile: headless
+composition: aipm-idea-intake
+recording: authored
+header:
+  class: aipm-idea-intake
+  pin: true
+workspace:
+  setup: aipm-interview-skill

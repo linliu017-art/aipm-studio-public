@@ -108,13 +108,13 @@ export interface SidebarFooterActionOwnerProps {
  */
 export type SidebarRootInjected = {
   /**
-   * Start a New Session: with a workspace, reuse-or-create its blank session
-   * and open it; without one, use the automatic default Workspace, then inherit
+   * Start a New Session: with a workspace, create a fresh session
+   * and open it; without one, start independently when configured, otherwise use the default, then inherit
    * the current or recent Workspace, or clear into the New Session pure view when none exist.
    */
   startSession: (
     workspaceId?: WorkspaceId,
-    options?: { readonly prompt?: string; readonly clearPreviousDraft?: boolean },
+    options?: { readonly prompt?: string; readonly clearPreviousDraft?: boolean; readonly newSession?: boolean },
   ) => void
   /** Select the global panel addressed by a sidebar row. */
   selectPanel: (id: MainPanelId | null) => void

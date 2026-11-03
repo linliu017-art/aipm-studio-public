@@ -22,6 +22,21 @@
     },
     {
       "path": "../../workspace/workspace"
+    },
+    {
+      "path": "../../util/atomic-write"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../api/session-controller/tsconfig.host.json"
+    },
+    {
+      "path": "../../session/session-projection"
     }
   ]
 }

@@ -53,6 +53,7 @@ async function bench(collapsed = false) {
       ctx.provide('shortcuts', { catalog: createSnapshotStore([]) } as never)
       ctx.provide('layout', layout)
       ctx.provide('uiWorkspace', { startSession: vi.fn(), openSession: vi.fn() } as never)
+      ctx.provide('remote.workspace', { renameProject: vi.fn() } as never)
       ctx.provide('sidebarRight', { openResource: vi.fn() } as never)
       ctx.provide('locale', locale)
       ctx.effect(() => locale.register('common', { zh: commonZh, en: commonEn }), 'panel test: common locale')
@@ -127,14 +128,14 @@ describe('sidebar global panels', () => {
   it('adds late registrations, removes each plugin contribution, and leaves no empty panel-list DOM', async () => {
     const { runtime, locale, view } = await bench()
     expect(runtime.slots.entries('sidebar.panellist').map(entry => entry.options.id)).toEqual([
-      'aipm-projects',
+      'aipm-workshop', 'aipm-projects',
     ])
     expect(view.getByRole('navigation', { name: 'Global panels' })).toBeTruthy()
     expect(view.getByText('Conversation content')).toBeTruthy()
 
     const { alpha, beta } = await mountPanels(runtime, locale)
     const navigation = await view.findByRole('navigation', { name: 'Global panels' })
-    expect(within(navigation).getAllByRole('button')).toHaveLength(3)
+    expect(within(navigation).getAllByRole('button')).toHaveLength(4)
     fireEvent.click(within(navigation).getByRole('button', { name: 'Alpha panel' }))
     expect(view.getByRole('heading', { name: 'Alpha content' })).toBeTruthy()
 
@@ -144,7 +145,7 @@ describe('sidebar global panels', () => {
       expect(view.queryByRole('heading', { name: 'Alpha content' })).toBeNull()
     })
     expect(runtime.slots.entries('main').map(entry => entry.options.key)).toEqual([
-      'conversation', 'aipm-projects', BETA,
+      'conversation', 'aipm-workshop', 'aipm-projects', BETA,
     ])
     fireEvent.click(within(navigation).getByRole('button', { name: 'Beta panel' }))
     expect(view.getByRole('heading', { name: 'Beta content' })).toBeTruthy()
@@ -153,10 +154,10 @@ describe('sidebar global panels', () => {
     await waitFor(() => { expect(view.queryByRole('button', { name: 'Beta panel' })).toBeNull() })
     expect(view.queryByRole('heading', { name: 'Beta content' })).toBeNull()
     expect(runtime.slots.entries('sidebar.panellist').map(entry => entry.options.id)).toEqual([
-      'aipm-projects',
+      'aipm-workshop', 'aipm-projects',
     ])
     expect(runtime.slots.entries('main').map(entry => entry.options.key)).toEqual([
-      'conversation', 'aipm-projects',
+      'conversation', 'aipm-workshop', 'aipm-projects',
     ])
   })
 
@@ -166,7 +167,7 @@ describe('sidebar global panels', () => {
     const navigation = await view.findByRole('navigation', { name: 'Global panels' })
     const rows = within(navigation).getAllByRole('button')
     expect(rows.map(row => row.getAttribute('aria-label'))).toEqual([
-      'Projects', 'Beta panel', 'Alpha panel',
+      'Agent Workshop', 'Projects', 'Beta panel', 'Alpha panel',
     ])
     for (const [id, label] of [[BETA, 'Beta panel'], [ALPHA, 'Alpha panel']] as const) {
       const row = within(navigation).getByRole('button', { name: label })
@@ -191,7 +192,7 @@ describe('sidebar global panels', () => {
     await mountPanels(runtime, locale, 20)
     const navigation = await view.findByRole('navigation', { name: 'Global panels' })
     expect(within(navigation).getAllByRole('button').map(row => row.getAttribute('aria-label'))).toEqual([
-      'Projects', 'Alpha panel', 'Beta panel',
+      'Agent Workshop', 'Projects', 'Alpha panel', 'Beta panel',
     ])
   })
 
@@ -245,7 +246,7 @@ describe('sidebar global panels', () => {
     await mountPanel(runtime, { id: BETA, heading: 'Beta content' })
     const navigation = await view.findByRole('navigation', { name: 'Global panels' })
     expect(within(navigation).getAllByRole('button').map(row => row.getAttribute('aria-label'))).toEqual([
-      'Projects', BETA, 'Alpha panel',
+      'Agent Workshop', 'Projects', BETA, 'Alpha panel',
     ])
     fireEvent.click(within(navigation).getByRole('button', { name: BETA }))
     expect(view.getByRole('heading', { name: 'Beta content' })).toBeTruthy()

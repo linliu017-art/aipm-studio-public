@@ -70,6 +70,10 @@ Client 的首次 `follow`、重连首屏与 `loadOlder()` 至少请求 50 条以
 
 本控制器通过 `ctx.plugin` 组合 `ArchivedSessionGate`：在 Agent 注册表、Session store 与 Workspace 注册表就绪后加载，随控制器一起释放。它的 `agent/pre-step` 监听器会拒绝为已归档会话或其子代理子孙——从 Session header 的血缘字段读出，从不包括 fork——提出的步骤，因此迟到的唤醒投递会让该回合以 `blocked` 收口而不发出模型请求；取消归档即为整条血缘解除门禁。已归档会话仍在跑的工作由各自的 owner 通过 Workspace 注册表的归档准入（[接缝](../../workspace/workspace/README.zh.md)）报告与停止：运行中的回合由 [Agent 注册表](../../core/agent/README.zh.md)负责，所属任务由[任务注册表接缝](../../jobs/jobs/README.zh.md)负责，子代理子孙由 [Subagent](../../subagent/subagent/README.zh.md) runtime 负责，提醒由 [Schedule](../../schedule/schedule/README.zh.md) 插件负责；本控制器自己不报告任何内容。
 
+`session.prompt` 可接收可选的 `workshop` 流程与产出选项。Host 加载目标 Agent 可见且允许用户调用的 `agent-workshop` 技能，将其标准正文及所选流程作为已记录的 `skill-invocation` 上下文注入；用户内容保持原样。技能不可用时拒绝接收任务，普通提示词不变；现有请求身份去重同时覆盖这次设置。 审稿模式要求 reviewTarget 指定准确文档 id 和正数版本；Host 将选中目标记入用户文字之外的上下文，只要求审稿报告，不重写方案。 反推和差距模式在接收前校验并规范化显式源码目录，要求其不包含结果目录，接收后记录 workshop/inspection-start。仅 Host 的 workshopInspection 投影保存目标、有界扫描和读取证据，重复请求标识不会替换源码范围。
+
+影响分析和开发交接在提示受理后通过 workshop/delivery-start 记录选中文档标识与版本，不混入用户原话。仅宿主可见的 workshopDelivery 投影保留选择及 workshop/delivery-snapshot 哈希，下一条用户请求会清除。影响分析的可选源码沿用只读分析范围。空选择、重复文档和无效版本会在注入流程前拒绝；相同请求标识不会重复记录。
+
 <a id="client-references"></a>
 ## Client 引用
 

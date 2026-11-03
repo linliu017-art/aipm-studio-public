@@ -6,6 +6,10 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'idea.new': '聊一个新想法',
+  'idea.title': '新想法 · {id}',
+  'project.current': '当前工作区：{name}',
+  'project.unassigned': '未归属项目',
   'defaultWorkspace.failed': '无法创建默认工作区，请通过“选择工作区”选择文件夹',
   'draft.workspaceRequired': '请先选择工作区',
   'draft.initializationFailed': '暂时无法填入草稿，请稍后重试',
@@ -127,6 +131,10 @@ export type WorkspaceKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
+  'idea.new': 'Explore a new idea',
+  'idea.title': 'New idea · {id}',
+  'project.current': 'Current workspace: {name}',
+  'project.unassigned': 'No project selected',
   'defaultWorkspace.failed': 'Unable to create default workspace. Use Choose workspace to select a folder.',
   'draft.workspaceRequired': 'Choose a workspace first.',
   'draft.initializationFailed': 'Could not fill the draft. Please try again shortly.',

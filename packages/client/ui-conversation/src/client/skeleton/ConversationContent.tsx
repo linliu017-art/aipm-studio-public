@@ -23,7 +23,7 @@ export function ConversationContent(props: ConversationContentProps) {
   const {
     sessionId, phase, hero, useSession, useSessions, useSessionStatus,
     useWorkspaces, useInput, useComposerBlock, renderSlot, renderSlotChain,
-    selectWorkspace, t, useFactorySlot,
+    selectWorkspace, allowUngrouped = false, t, useFactorySlot,
   } = props
   const session = useSession(snapshot => snapshot)
   const Views = useFactorySlot('views', ConversationSessionView)
@@ -104,7 +104,8 @@ export function ConversationContent(props: ConversationContentProps) {
           ? undefined
           : workspaceLabel(cwd)))
   const chipTitle = storedChipTitle === undefined
-    ? undefined
+    ? (allowUngrouped && sessionId !== undefined && cwd !== undefined && cwd !== ''
+      ? t('hero.unassignedWorkspace') : undefined)
     : workspaceDisplayTitle(storedChipTitle, t('workspace.defaultName'))
 
   const heroWorkspaceRow = (

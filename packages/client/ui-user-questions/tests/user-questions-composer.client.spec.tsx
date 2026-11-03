@@ -305,6 +305,64 @@ describe('QuestionComposer', () => {
     expect(view.container.querySelectorAll('li')).toHaveLength(2)
   })
 
+  it.each(['', '   \n  '])('submits an empty free-text answer without inventing content (%j)', (value) => {
+    const { carrier, answer } = wait([{ id: 'constraints', question: '有没有必须遵守的约束？没有可以留空。' }])
+    render(<QuestionComposer matched={carrier} {...kit} />)
+    fireEvent.change(screen.getByPlaceholderText('输入你的答案'), { target: { value } })
+    const submit = screen.getByRole<HTMLButtonElement>('button', { name: '提交' })
+    expect(submit.disabled).toBe(false)
+    fireEvent.click(submit)
+    expect(answer).toHaveBeenCalledExactlyOnceWith(answerBatch([{ id: 'constraints', selected: [] }]))
+  })
+
+  it('preserves earlier answers when the last free-text question is submitted blank', () => {
+    const { carrier, answer } = wait([
+      { id: 'goal', question: '希望解决什么问题？' },
+      { id: 'constraints', question: '约束可以留空。' },
+    ])
+    render(<QuestionComposer matched={carrier} {...kit} />)
+    fireEvent.change(screen.getByPlaceholderText('输入你的答案'), { target: { value: '减少漏记收入' } })
+    fireEvent.click(screen.getByText('下一题'))
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    expect(answer).toHaveBeenCalledExactlyOnceWith(answerBatch([
+      { id: 'goal', selected: [], custom: '减少漏记收入' },
+      { id: 'constraints', selected: [] },
+    ]))
+  })
+
+  it('continues past an empty text question with Enter and restores the acknowledged blank after remount', () => {
+    const { carrier, answer } = wait([
+      { id: 'notes', question: '补充信息，可以留空。' },
+      { id: 'mode', question: '选择本轮产出', options: [{ label: 'PRD' }] },
+    ])
+    const view = render(<QuestionComposer matched={carrier} {...kit} />)
+    fireEvent.keyDown(screen.getByPlaceholderText('输入你的答案'), { key: 'Enter', isComposing: true })
+    expect(screen.getByText('1 / 2')).toBeTruthy()
+    fireEvent.keyDown(screen.getByPlaceholderText('输入你的答案'), { key: 'Enter' })
+    expect(screen.getByText('2 / 2')).toBeTruthy()
+    view.unmount()
+    render(<QuestionComposer matched={carrier} {...kit} />)
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: '提交' }).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('radio', { name: 'PRD' }))
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    expect(answer).toHaveBeenCalledExactlyOnceWith(answerBatch([
+      { id: 'notes', selected: [] }, { id: 'mode', selected: ['PRD'] },
+    ]))
+  })
+
+  it('does not silently submit earlier untouched questions when the last text answer is blank', () => {
+    const { carrier, answer } = wait([
+      { id: 'goal', question: '希望解决什么问题？' },
+      { id: 'constraints', question: '约束可以留空。' },
+    ])
+    render(<QuestionComposer matched={carrier} {...kit} />)
+    fireEvent.click(screen.getByLabelText('下一题'))
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    expect(screen.getByText('1 / 2')).toBeTruthy()
+    expect(screen.getByText('请先完成这道问题。')).toBeTruthy()
+    expect(answer).not.toHaveBeenCalled()
+  })
+
   it('skips individual questions without discarding earlier answers', () => {
     const { carrier, answer } = wait()
     render(<QuestionComposer matched={carrier} {...kit} />)
@@ -353,9 +411,7 @@ describe('QuestionComposer', () => {
     const emptyCustom = screen.getByPlaceholderText('输入你的答案')
     fireEvent.keyDown(emptyCustom, { key: 'Enter', shiftKey: true })
     expect(screen.getByText('2 / 3')).toBeTruthy()
-    fireEvent.keyDown(emptyCustom, { key: 'Enter' })
-    expect(screen.getByText('请选择一个选项或填写自定义答案。')).toBeTruthy()
-
+    // Pager navigation alone does not acknowledge an unanswered question.
     fireEvent.click(screen.getByLabelText('下一题'))
     fireEvent.click(screen.getByRole('checkbox', { name: '产品判断' }))
     fireEvent.click(screen.getByRole('button', { name: '提交' }))

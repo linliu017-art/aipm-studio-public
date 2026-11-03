@@ -10,6 +10,21 @@ type Entry = {
 }
 
 describe('AIPM bundle', () => {
+  it('keeps conversation preferences out of project requirements and interview replies', () => {
+    const patches = yaml.load(readFileSync(
+      fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8',
+    ), { schema: entryListSchema }) as Array<{ insert?: Entry[] }>
+    const preset = patches.flatMap(row => row.insert ?? []).find(row => row.id === 'preset-aipm')
+    const plugins = (preset?.config as { plugins: Entry[] }).plugins
+    const persona = plugins.find(row => row.id === 'persona')?.config as { prefix: string }
+    expect(persona.prefix).toContain('先区分产品信息和交流要求')
+    expect(persona.prefix).toContain('普通对话不逐字段复述目录、名称和概述')
+    expect(persona.prefix).toContain('普通需求澄清不要先扫描整个项目')
+    expect(persona.prefix).toContain('不输出内部分析模板、置信度百分比')
+    expect(persona.prefix).toContain('以下交付要求只在实际完成产物时使用')
+    expect(persona.prefix).toContain('不要编造用户经历、行为数据、放弃率或行业结论')
+  })
+
   it('loads packaged skills through the trusted bundled skill root', () => {
     const patch = yaml.load(
       readFileSync(fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8'),

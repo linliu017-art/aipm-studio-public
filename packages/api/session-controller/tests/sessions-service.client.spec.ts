@@ -1029,6 +1029,18 @@ describe('blank mirror', () => {
     expect(b.svc.binding(sid('s1'))?.session.getSnapshot().blank).toBe(false)
   })
 
+  it('forwards Workshop selections separately from the visible task text', async ({ bench }) => {
+    const b = bench()
+    await feedList(b, [{ id: 's1', blank: true, cwd: '/w/a' }])
+    using reference = b.svc.retain(sid('s1'), { source: 'controllerOperation' })
+    await reference.ready
+    await reference.binding.session.prompt([{ type: 'text', text: 'My idea' }], 'queue', undefined, undefined,
+      { mode: 'idea', output: 'prd' })
+    expect(b.mock.remote.session.prompt.mock.calls.at(-1)?.[0]).toMatchObject({
+      content: [{ type: 'text', text: 'My idea' }], workshop: { mode: 'idea', output: 'prd' },
+    })
+  })
+
   it('flips blank=false on prompt ACCEPTANCE, not on the attempt', async ({ bench }) => {
     const b = bench()
     await feedList(b, [{ id: 's1', blank: true, cwd: '/w/a' }])

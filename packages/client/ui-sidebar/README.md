@@ -11,7 +11,7 @@ Desktop product events use the optional [product analytics service](../product-a
 
 ## Summary
 
-The dsh web client has full-width top navigation and a permanent left rail below it. The conversation history pane appears on Agent chat only, not Projects or Task center. Brand registrations render in the top navigation; quick actions and session browsing retain their existing behavior.
+The dsh web client has full-width top navigation and a permanent left rail below it. The conversation history pane appears on Agent chat only, not Agent Workshop, Projects or Task center. Brand registrations render in the top navigation; quick actions and session browsing retain their existing behavior.
 
 ## Table of Contents
 
@@ -33,9 +33,15 @@ The sidebar is the fixed navigation shell: users see the brand, start new sessio
 
 The sidebar renders `sidebar.brand.mark` at the top of the permanent navigation rail and `sidebar.brand.name` above the Agent heading in the conversation detail pane. Both are independent single slots owned by `sidebar`; the full-width top row shows only the selected page title. On Web and Windows desktop, clicking the brand starts a new session; hovering or focusing it shows no tooltip. Without occupants, the shell uses the fish mark and a localized local-build label. A complete build stacks a code badge below the label as `version[-commit][-dirty]`, using `DSH_CLIENT_VERSION`, the optional 7-character `DSH_CLIENT_COMMIT_HASH`, and `DSH_CLIENT_GIT_DIRTY=true`; missing version metadata omits the badge. New Session targets the explicit Workspace used by a scoped action, otherwise the automatic default Workspace, otherwise the current or most recently active Workspace; when none exists it clears into the blank New Session page. The New Session button displays the effective binding as trailing grey text on hover or keyboard focus. While the shortcut is visible, the centered icon and label fade before it when space is narrow; CSS reserves the shortcut’s width without measuring the button. Icon-only controls retain tooltips with platform-formatted keycaps. All controls expose `aria-keyshortcuts`.
 
+Agent Workshop offers idea, existing-material and iteration entry modes with PRD, technical-plan or combined output. Opening the page, switching modes and refreshing only read projects. Start submits the user task and structured workflow choices into a fresh Session. The Host loads the actual Workshop skill; the chat shows only the user task. Navigation waits for acceptance and failure preserves the form. Other unsent drafts remain intact, and materials can be added in the conversation. Ideas inherit no project; material and iteration modes use explicitly selected projects, and iteration lists only projects with Workshop outputs. Saving registers a new project.
+
+Project details offer a pencil control beside the name. Save trims the name and updates project metadata and the Workspace title together; project cards and selectors follow the saved title. Blank names are refused, Escape or Cancel discards edits, and a failed save retains the input for retry. Renaming changes no directory or existing document.
+
+New Session opens a fresh composer, including the project detail action. Earlier drafts stay in their original conversations. Quick actions seed only a short, localized task opening, without pasting workflow rules or clearing another conversation draft.
+
 ### Global panel entries
 
-Plugins add an icon component to the root-scoped `sidebar.panellist` list with an `id`, optional `order`, and a string or locale-aware `label`. The same id addresses the component registered in the layout's root-scoped `main` keyed slot; selecting a missing main entry throws without changing the current selection. The label supplies plain visible text, the accessible name, and the collapsed tooltip. Each row reads its own selected state through `usePanelInfo`; moving DOM focus to search or a directory picker does not change the displayed panel or its selected row. With no registrations, neither the list nor spacing for it is rendered. The shipped composition registers the Projects panel; project deliverables are displayed within project details rather than in a separate global panel.
+Plugins add an icon component to the root-scoped `sidebar.panellist` list with an `id`, optional `order`, and a string or locale-aware `label`. The same id addresses the component registered in the layout's root-scoped `main` keyed slot; selecting a missing main entry throws without changing the current selection. The label supplies plain visible text, the accessible name, and the collapsed tooltip. Each row reads its own selected state through `usePanelInfo`; moving DOM focus to search or a directory picker does not change the displayed panel or its selected row. With no registrations, neither the list nor spacing for it is rendered. The shipped composition registers Agent Workshop and Projects panels; project deliverables are displayed within project details rather than in a separate global panel.
 
 ### Fixed-column behavior
 
@@ -53,6 +59,14 @@ The fixed column uses the normal theme scrollbar tokens. Gutter reservation belo
 
 -----
 
+Technical-plan document rows offer Review plan, which starts a fresh project-scoped review task directly. Host instructions request only the independent report and preserve the source plan; workflow instructions stay outside the composer.
+
+Reverse-PRD and gap-analysis entries accept an absolute code folder, optional source-relative requirements file for gaps, and an optional existing report project. Leaving the report project blank creates an independent analysis project only when saving. The source is never used as the report destination. Focus notes are optional and no PRD/plan output selector appears for these modes.
+
+Change impact and development handoff modes require a saved project and checked document versions. PRDs and plans are checked initially; users can adjust the selection. Impact requires change notes and accepts an optional code folder; handoff notes are optional. Neither mode offers a PRD/plan generation selector. Structured selections go to the Host while human chat text stays concise. Managed handoff ZIP rows offer Download handoff through the existing bounded Session byte service; incomplete reads retain the row and offer retry.
+
+The page header and task area align to the content area’s left padding on wide windows. Workshop uses compact task navigation grouped into Create documents, Review and iterate, and Development handoff beside the active task form. The form identifies the selected task and its deliverable; optional report destinations, baselines, focus notes, evidence folders and handoff notes sit in a collapsible section with a filled indicator. Required inputs remain visible. Narrow containers stack navigation above the form; phone widths use a grouped task selector to keep the input near the top. Changing navigation performs no launch, and each task retains its own draft while this page remains open, including reselecting the active task. Text, source folders and notes do not carry into unrelated tasks.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
@@ -61,9 +75,11 @@ The fixed column uses the normal theme scrollbar tokens. Gutter reservation belo
 
 The shell is pure composition: `SidebarRootComponentProps` composes the layout owner share, the global `useSessions` and `useWorkspaces` hooks, the declared brand, the `sidebar.workspaces` and `sidebar.settings` child slots, and injected navigation callbacks. Panel entries and their optional titles use the same composition path. Panel metadata is derived from list registrations and locale changes; selection belongs to the layout store.
 
-The Projects panel reads `.aipm/project.json` through an existing Session and recursively scans project files. A single document tree combines materials and outputs, with folders initially expanded and no separate Overview or Directory tabs. Markdown rows use unfilled document glyphs; stage folders use a faint accent background. Opening a file selects its producing or reader Session without leaving the project page and opens the optional right preview. Closing the preview releases its column.
+The Projects panel reads project metadata and a bounded file scan through an existing Session. It displays logical documents grouped by type, with a current revision and collapsed history, rather than physical stage, source or version folders. The internal document catalog deduplicates retained original files; legacy Workshop V folders are recognized as history of the exact same document path, while ordinary PRDs remain independent. Internal JSON stays hidden. Opening current or historical files uses the existing right preview without leaving the project page; an authorized producing Session is available through the history action. Document counts include each logical document once.
 
-Only stages with files or an in-progress/done state appear as compact cards above the document tree. Each card shows its stage number, name, and file count. Blue in-progress and green output/done numbers retain dot/check marks and localized hover, click, and keyboard-focus hints. Cards wrap within the available content width, including when an open preview narrows the page.
+The project catalog includes only Workspaces with project metadata. Draft conversations and ordinary Workspaces without that metadata do not create project cards; their conversations and files remain intact. Invalid existing project metadata keeps its project visible with the read issue.
+
+Only progress explicitly recorded as in-progress or done appears above the document list. Cards show stage names and status with dot/check hints; they show no directory numbers or physical file counts. Progress and document types are independent. Cards wrap when the preview narrows the page.
 
 ### Slot discipline
 

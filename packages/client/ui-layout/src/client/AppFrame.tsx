@@ -129,7 +129,8 @@ export function AppFrame({
   const layoutInfo = useStore(state => state.layoutInfo)
   const frameRef = useRef<HTMLDivElement | null>(null)
   const viewport = layoutInfo.viewportWidth
-  const railOnly = usePanelInfo(info => info.activePanelId === 'aipm-projects' || info.activePanelId === 'schedules')
+  const railOnly = usePanelInfo(info => info.activePanelId === 'aipm-projects'
+    || info.activePanelId === 'aipm-workshop' || info.activePanelId === 'schedules')
 
   // Track the frame's own box (not the window): rAF-throttled ResizeObserver.
   useLayoutEffect(() => {

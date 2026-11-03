@@ -78,6 +78,11 @@ export interface WorkspaceRenameRequest {
   readonly title: string
 }
 
+/** Isolated conversation directory without Workspace registration. */
+export interface IdeaDirectoryValue {
+  readonly path: string
+}
+
 /** Workspace mutation returning the complete changed row. */
 export interface WorkspaceValue {
   readonly workspace: WorkspaceView

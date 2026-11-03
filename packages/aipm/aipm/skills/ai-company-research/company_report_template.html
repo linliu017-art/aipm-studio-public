@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-design-system="company-research-v2">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{对方主体}} · {{调研目的}}</title>
+<link rel="icon" href="data:,">
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@13/dist/markdown-it.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-container@4/dist/markdown-it-container.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root{
+  color-scheme:light;
+  --color-white:#ffffff;
+  --color-gray-50:#fafafa;
+  --color-gray-100:#f8f8f8;
+  --color-gray-150:#f0f0f0;
+  --color-gray-200:#eeeeee;
+  --color-gray-300:#d1d5db;
+  --color-gray-450:#767676;
+  --color-gray-600:#666666;
+  --color-gray-700:#171717;
+  --color-gray-900:#1a1d2e;
+  --color-black-soft:#191919;
+  --color-red-50:#fff5f4;
+  --color-red-700:#b42318;
+  --color-amber-50:#fffbeb;
+  --color-amber-800:#854d0e;
+  --report-bg:var(--color-white);
+  --report-surface:var(--color-gray-100);
+  --report-ink:var(--color-gray-700);
+  --report-ink-strong:var(--color-black-soft);
+  --report-ink-muted:var(--color-gray-600);
+  --report-ink-subtle:var(--color-gray-450);
+  --report-border:var(--color-gray-200);
+  --report-divider:var(--color-gray-150);
+  --report-border-strong:var(--color-gray-300);
+  --report-accent:var(--color-black-soft);
+  --report-risk:var(--color-red-700);
+  --report-risk-soft:var(--color-red-50);
+  --report-attention:var(--color-amber-800);
+  --report-attention-soft:var(--color-amber-50);
+  --radius-6:6px;
+  --radius-8:8px;
+  --radius-12:12px;
+  --radius-16:16px;
+  --radius-pill:9999px;
+  --font-app:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB',system-ui,'Segoe UI','Microsoft YaHei',sans-serif;
+  --font-mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;background:var(--report-bg)}
+body{margin:0;min-height:100vh;background:var(--report-bg);color:var(--report-ink);font-family:var(--font-app);font-size:16px;line-height:1.68;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+button,a{font:inherit}
+a{color:var(--report-accent);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{opacity:.75}
+button:focus-visible,a:focus-visible{outline:2px solid var(--report-accent);outline-offset:2px}
+.skip-link{position:fixed;left:16px;top:12px;z-index:1000;padding:10px 14px;border:1px solid var(--report-border-strong);border-radius:var(--radius-6);background:var(--report-bg);color:var(--report-ink-strong);transform:translateY(-160%)}
+.skip-link:focus{transform:translateY(0)}
+.report-layout{display:grid;grid-template-columns:232px minmax(0,900px);gap:48px;max-width:1244px;margin:0 auto;padding:32px 32px 96px}
+.report-nav{position:sticky;top:24px;align-self:start;max-height:calc(100vh - 48px);overflow-y:auto;border:1px solid var(--report-border);border-radius:var(--radius-12);padding:20px 14px;background:var(--report-bg)}
+.report-nav-brand{padding:0 10px 16px;border-bottom:1px solid var(--report-divider)}
+.report-nav-kicker{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--report-ink-strong)}
+.report-nav-meta{margin-top:6px;font-size:12px;color:var(--report-ink-subtle)}
+.bm-toc-title{padding:20px 10px 8px;font-size:12px;font-weight:500;color:var(--report-ink-muted)}
+.bm-toc .group-t{display:block;margin-top:16px;padding:0 10px 6px;font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--report-ink-strong)}
+.bm-toc .group-t:first-child{margin-top:4px}
+.bm-toc a{display:flex;align-items:flex-start;gap:8px;min-height:36px;padding:8px 10px;border-radius:var(--radius-6);color:var(--report-ink-muted);font-size:14px;line-height:1.4;text-decoration:none}
+.bm-toc a:hover{background:var(--report-surface);color:var(--report-ink-strong);opacity:1}
+.bm-toc a.active{background:var(--report-surface);color:var(--report-ink-strong);font-weight:500}
+.bm-toc a .ord{width:22px;flex:0 0 22px;font-family:var(--font-mono);font-size:12px;color:var(--report-ink-subtle)}
+.bm-toc a.sub{min-height:30px;padding:5px 10px 5px 40px;font-size:12px;color:var(--report-ink-subtle)}
+.report-main{min-width:0}
+.report-cover{padding:24px 0 32px;border-bottom:1px solid var(--report-divider)}
+.report-kicker{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--report-ink-muted)}
+.report-title{max-width:780px;margin:16px 0 10px;color:var(--report-ink-strong);font-size:32px;font-weight:600;line-height:1.1;letter-spacing:-.02em}
+.report-subtitle{margin:0;color:var(--report-ink-muted);font-size:14px;line-height:1.5}
+.report-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.report-tag{display:inline-flex;align-items:center;min-height:28px;padding:4px 8px;border-radius:var(--radius-6);background:var(--report-surface);color:var(--report-ink-muted);font-size:12px;line-height:1.2}
+.metric-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:28px;border:1px solid var(--report-border);border-radius:var(--radius-12);overflow:hidden}
+.metric-card{min-width:0;padding:18px;border-right:1px solid var(--report-divider);background:var(--report-bg)}
+.metric-card:last-child{border-right:0}
+.metric-label{font-size:12px;color:var(--report-ink-subtle)}
+.metric-value{margin-top:7px;color:var(--report-ink-strong);font-size:20px;font-weight:500;line-height:1.3;overflow-wrap:anywhere}
+.metric-note{margin-top:4px;color:var(--report-ink-muted);font-size:12px;line-height:1.45}
+.view-nav-wrap{padding:32px 0 8px}
+.view-nav-heading{margin:0 0 6px;color:var(--report-ink-strong);font-size:20px;font-weight:500;line-height:1.3}
+.view-nav-intro{max-width:720px;margin:0 0 16px;color:var(--report-ink-muted);font-size:14px}
+.view-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.view-card{display:block;min-height:132px;padding:20px;border:1px solid var(--report-border);border-radius:var(--radius-12);background:var(--report-bg);color:inherit;text-decoration:none;transition:border-color 120ms ease,background 120ms ease}
+.view-card:hover{border-color:var(--report-border-strong);background:var(--report-surface);opacity:1}
+.view-index,.view-title,.view-desc{display:block}
+.view-index{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--report-ink-subtle)}
+.view-title{margin-top:16px;color:var(--report-ink-strong);font-size:20px;font-weight:500;line-height:1.3}
+.view-desc{margin-top:6px;color:var(--report-ink-muted);font-size:14px;line-height:1.55}
+.mobile-report-nav{display:none}
+.report-toolbar{position:sticky;top:0;z-index:20;display:flex;justify-content:flex-end;gap:8px;padding:12px 0;border-bottom:1px solid var(--report-divider);background:var(--report-bg)}
+.toolbar-btn{min-height:44px;padding:9px 14px;border:1px solid var(--report-border);border-radius:var(--radius-pill);background:var(--report-bg);color:var(--report-ink-muted);font-size:13px;cursor:pointer;transition:border-color 120ms ease,background 120ms ease,color 120ms ease}
+.toolbar-btn:hover{border-color:var(--report-border-strong);background:var(--report-surface);color:var(--report-ink-strong)}
+#content>h1{display:none}
+.bm-ch{scroll-margin-top:72px;padding:40px 0;border-top:1px solid var(--report-divider)}
+.bm-ch:first-of-type{border-top:0}
+.bm-ch-heading{margin:0}
+.bm-ch-hd{display:grid;width:100%;min-height:44px;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin:0 0 22px;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.bm-ch-hd:hover .bm-ch-t{opacity:.75}
+.bm-ch-num{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--report-ink-subtle)}
+.bm-ch-t{color:var(--report-ink-strong);font-size:24px;font-weight:500;line-height:1.25;letter-spacing:-.01em;transition:opacity 120ms ease}
+.bm-ch-toggle{color:var(--report-ink-subtle);font-family:var(--font-mono);font-size:14px;transition:transform 120ms ease}
+.bm-ch.collapsed .bm-ch-toggle{transform:rotate(-90deg)}
+.bm-ch.collapsed .bm-ch-body{display:none}
+.bm-ch-body{min-width:0}
+.bm-ch h3{max-width:780px;margin:32px 0 12px;color:var(--report-ink-strong);font-size:20px;font-weight:500;line-height:1.35;scroll-margin-top:72px}
+.bm-ch h4{max-width:780px;margin:24px 0 10px;color:var(--report-ink-strong);font-size:16px;font-weight:500;line-height:1.45}
+.bm-ch p{max-width:780px;margin:10px 0;color:var(--report-ink);font-size:16px;line-height:1.72}
+.bm-ch ul,.bm-ch ol{max-width:780px;margin:12px 0;padding-left:24px;color:var(--report-ink);font-size:16px;line-height:1.72}
+.bm-ch li{margin:6px 0}
+.bm-ch strong{color:var(--report-ink-strong);font-weight:500}
+.bm-ch code{padding:2px 6px;border-radius:4px;background:var(--report-surface);color:var(--report-ink-strong);font-family:var(--font-mono);font-size:13px}
+.bm-ch pre{max-width:780px;margin:16px 0;padding:18px;border:1px solid var(--report-border);border-radius:var(--radius-8);overflow-x:auto;background:var(--report-surface);font-size:13px;line-height:1.65}
+.bm-ch pre code{padding:0;background:transparent}
+.bm-ch blockquote{max-width:780px;margin:16px 0;padding:14px 18px;border-left:2px solid var(--report-accent);background:var(--report-surface);color:var(--report-ink-muted);font-size:14px;line-height:1.65}
+.table-scroll{width:100%;margin:16px 0;overflow-x:auto;border:1px solid var(--report-border);border-radius:var(--radius-8);-webkit-overflow-scrolling:touch}
+.bm-ch table{width:100%;min-width:640px;border-collapse:separate;border-spacing:0;background:var(--report-bg);font-size:14px}
+.bm-ch th{padding:12px 14px;border-bottom:1px solid var(--report-border);background:var(--report-surface);color:var(--report-ink-strong);font-size:13px;font-weight:500;text-align:left;vertical-align:bottom}
+.bm-ch td{padding:12px 14px;border-bottom:1px solid var(--report-divider);color:var(--report-ink);line-height:1.58;vertical-align:top}
+.bm-ch tr:last-child td{border-bottom:0}
+.bm-ch tbody tr:hover td{background:var(--report-surface)}
+.bm-ch hr{max-width:780px;margin:40px 0;border:0;border-top:1px solid var(--report-divider)}
+.bm-ch a{overflow-wrap:anywhere}
+.bm-alert,.ch-summary,.bm-callout{max-width:780px;margin:16px 0;padding:16px 18px;border-left:2px solid var(--report-accent);border-radius:0 var(--radius-8) var(--radius-8) 0;background:var(--report-surface);color:var(--report-ink);font-size:14px;line-height:1.68}
+.bm-alert b,.ch-summary b,.bm-callout b{color:var(--report-ink-strong);font-weight:500}
+.bm-callout.pink,.danger-banner{border:1px solid color-mix(in srgb,var(--report-risk) 25%,var(--report-bg));border-left:3px solid var(--report-risk);background:var(--report-risk-soft);color:var(--report-risk)}
+.bm-callout.cream{border-left-color:var(--report-attention);background:var(--report-attention-soft);color:var(--report-attention)}
+.danger-banner{max-width:780px;margin:16px 0;padding:16px 18px;border-radius:var(--radius-8);font-size:14px;line-height:1.68}
+.danger-banner b{font-weight:500}
+.quad{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:780px;margin:18px 0}
+.quad-cell,.role-card{padding:18px;border:1px solid var(--report-border);border-radius:var(--radius-8);background:var(--report-bg);color:var(--report-ink);font-size:14px}
+.quad-cell .qh,.role-card .rh{margin-bottom:10px;color:var(--report-ink-strong);font-size:14px;font-weight:500}
+.role-tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:780px;margin:18px 0}
+.role-card ul{margin:0;padding-left:20px;font-size:14px}
+.role-card .ev{margin-top:12px;padding-top:12px;border-top:1px solid var(--report-divider);color:var(--report-ink-muted);font-size:12px}
+.score-list{max-width:780px;margin:18px 0;padding:18px;border:1px solid var(--report-border);border-radius:var(--radius-8);background:var(--report-bg)}
+.score-row{display:grid;grid-template-columns:140px 60px 1fr 100px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--report-divider);font-size:13px}
+.score-row:last-of-type{border-bottom:0}
+.score-row .sr-name{color:var(--report-ink-strong);font-weight:500}
+.score-row .sr-weight,.score-row .sr-note{color:var(--report-ink-subtle);font-family:var(--font-mono);font-size:12px}
+.score-track{height:6px;overflow:hidden;border-radius:var(--radius-pill);background:var(--report-divider)}
+.score-fill{height:100%;border-radius:var(--radius-pill);background:var(--report-accent)}
+.score-total{margin-top:12px;padding-top:12px;border-top:1px solid var(--report-border);color:var(--report-ink-strong);font-size:14px;font-weight:500;text-align:right}
+.bm-q{max-width:780px;margin:12px 0;padding:16px 18px;border:1px solid var(--report-border);border-radius:var(--radius-8);background:var(--report-bg)}
+.bm-q.fire{border-left:3px solid var(--report-risk)}
+.bm-q.diamond{border-color:var(--report-border-strong)}
+.bm-q-num{margin-bottom:6px;color:var(--report-ink-subtle);font-family:var(--font-mono);font-size:12px}
+.bm-q-t{position:relative;width:100%;min-height:36px;padding:0 28px 0 0;border:0;background:transparent;color:var(--report-ink-strong);font-size:14px;font-weight:500;line-height:1.5;text-align:left;cursor:pointer}
+.bm-q-t::after{content:'›';position:absolute;right:4px;top:50%;font-family:var(--font-mono);font-size:18px;color:var(--report-ink-subtle);transform:translateY(-50%) rotate(90deg);transition:transform 120ms ease}
+.bm-q.collapsed .bm-q-t::after{transform:translateY(-50%)}
+.bm-q.collapsed dl{display:none}
+.bm-q dl{margin:12px 0 0;font-size:14px}
+.bm-q dt{margin-top:12px;color:var(--report-ink-strong);font-size:12px;font-weight:500}
+.bm-q dd{margin:4px 0 0;color:var(--report-ink);line-height:1.65}
+.cnf,.est,.wrn,.evidence-tag{display:inline-flex;align-items:center;min-height:22px;margin:0 3px;padding:2px 7px;border-radius:var(--radius-6);background:var(--report-surface);color:var(--report-ink-muted);font-size:12px;font-weight:400;line-height:1.2}
+.est{background:var(--report-attention-soft);color:var(--report-attention)}
+.wrn{background:var(--report-risk-soft);color:var(--report-risk)}
+.src{max-width:780px;margin:8px 0;color:var(--report-ink-subtle);font-size:12px;line-height:1.55}
+.mermaid{max-width:780px;margin:18px 0;padding:18px;border:1px solid var(--report-border);border-radius:var(--radius-8);overflow-x:auto;background:var(--report-bg);text-align:center}
+.mermaid svg{max-width:100%;height:auto}
+footer{margin-top:48px;padding-top:24px;border-top:1px solid var(--report-divider);color:var(--report-ink-subtle);font-size:12px;text-align:left}
+.vtag{display:block;margin-top:4px;font-family:var(--font-mono);font-size:12px}
+@media(max-width:1023px){
+  .report-layout{grid-template-columns:minmax(0,900px);max-width:964px;padding:24px 32px 80px}
+  .report-nav{display:none}
+  .metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .metric-card:nth-child(2){border-right:0}
+  .metric-card:nth-child(-n+2){border-bottom:1px solid var(--report-divider)}
+  .mobile-report-nav{position:sticky;top:0;z-index:30;display:flex;gap:8px;margin:0 -4px;padding:10px 4px;overflow-x:auto;border-bottom:1px solid var(--report-divider);background:var(--report-bg);scrollbar-width:none}
+  .mobile-report-nav::-webkit-scrollbar{display:none}
+  .mobile-report-nav a{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:1px solid var(--report-border);border-radius:var(--radius-pill);color:var(--report-ink-muted);font-size:13px;white-space:nowrap;text-decoration:none}
+  .mobile-report-nav a:hover{background:var(--report-surface);color:var(--report-ink-strong);opacity:1}
+  .report-toolbar{position:static}
+}
+@media(max-width:720px){
+  html,body{overflow-x:hidden}
+  .report-layout{padding:16px 20px 64px}
+  .report-cover{padding-top:18px}
+  .report-title{font-size:30px}
+  .view-nav{grid-template-columns:1fr}
+  .role-tri{grid-template-columns:1fr}
+  .score-row{grid-template-columns:1fr;gap:4px}
+  .bm-ch{padding:32px 0;scroll-margin-top:68px}
+  .bm-ch-t{font-size:22px}
+  .bm-ch h3{font-size:20px}
+  .table-scroll{max-width:calc(100vw - 40px)}
+}
+@media(max-width:479px){
+  .report-layout{padding:12px 16px 56px}
+  .report-title{font-size:28px}
+  .metric-strip{grid-template-columns:1fr}
+  .metric-card{border-right:0;border-bottom:1px solid var(--report-divider)}
+  .metric-card:last-child{border-bottom:0}
+  .report-toolbar{justify-content:flex-start;overflow-x:auto}
+  .toolbar-btn{flex:0 0 auto}
+  .quad{grid-template-columns:1fr}
+  .table-scroll{max-width:calc(100vw - 32px)}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
+@media print{
+  @page{size:A4;margin:16mm}
+  body{font-size:11pt;color:var(--report-ink);background:var(--report-bg)}
+  .skip-link,.report-nav,.mobile-report-nav,.report-toolbar,.view-nav-wrap{display:none!important}
+  .report-layout{display:block;max-width:none;padding:0}
+  .report-cover{padding-top:0}
+  .bm-ch{break-inside:auto;padding:24px 0;scroll-margin:0}
+  .bm-ch-body,.bm-ch.collapsed .bm-ch-body{display:block!important}
+  .bm-ch-toggle{display:none}
+  .table-scroll{overflow:visible;border-color:var(--report-border)}
+  .bm-ch table{min-width:0;font-size:9pt}
+  .bm-ch tr{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#report-content">跳到报告正文</a>
+
+<div class="report-layout">
+  <aside class="report-nav bm-toc" aria-label="报告目录">
+    <div class="report-nav-brand">
+      <div class="report-nav-kicker">COMPANY RESEARCH</div>
+      <div class="report-nav-meta" id="nav-meta">公开信息报告</div>
+    </div>
+    <div class="bm-toc-title">报告目录</div>
+    <nav id="toc-content"></nav>
+  </aside>
+
+  <main class="report-main" id="report-content" tabindex="-1">
+    <header id="hero-area"></header>
+
+    <nav class="mobile-report-nav" id="mobile-report-nav" aria-label="移动端报告导航"></nav>
+
+    <section class="view-nav-wrap" aria-labelledby="view-nav-title">
+      <h2 class="view-nav-heading" id="view-nav-title">从两个视角理解这家公司</h2>
+      <p class="view-nav-intro">业务报告解释公司如何创造和获取价值；技术报告解释产品承诺靠什么实现，以及证据能支持到什么程度。</p>
+      <nav class="view-nav" id="view-nav" data-view-nav aria-label="业务与技术阅读入口">
+        <a class="view-card" data-view-link="business" href="#business-report">
+          <span class="view-index">VIEW 01</span>
+          <span class="view-title">业务报告</span>
+          <span class="view-desc" id="business-view-desc">产品、客户、商业模式、竞争与增长约束</span>
+        </a>
+        <a class="view-card" data-view-link="technology" href="#technology-report">
+          <span class="view-index">VIEW 02</span>
+          <span class="view-title">技术报告</span>
+          <span class="view-desc" id="technology-view-desc">能力、研发证据、成熟度、自研边界与依赖</span>
+        </a>
+      </nav>
+    </section>
+
+    <div class="report-toolbar" aria-label="报告操作">
+      <button class="toolbar-btn" type="button" id="expand-all">展开全部</button>
+      <button class="toolbar-btn" type="button" id="collapse-all">收起全部</button>
+      <button class="toolbar-btn" type="button" id="print-report">打印报告</button>
+    </div>
+
+    <article id="content"></article>
+
+    <footer>
+      <div id="footer-title">公司公开信息调研报告</div>
+      <div class="vtag" id="footer-meta">来源与信息边界见正文</div>
+    </footer>
+  </main>
+</div>
+
+<!-- md 源 base64 -->
+<script id="md-source" type="text/plain">__MD_BASE64_PLACEHOLDER__</script>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  var mermaidSources=[];
+  var mermaidRenderRun=0;
+  async function renderAllMermaid(){
+    if(!window.mermaid||!mermaidSources.length)return;
+    var run=++mermaidRenderRun;
+    mermaid.initialize({
+      startOnLoad:false,
+      theme:'neutral',
+      securityLevel:'strict',
+      flowchart:{useMaxWidth:true,htmlLabels:false}
+    });
+    var blocks=Array.prototype.slice.call(document.querySelectorAll('.mermaid'));
+    for(var i=0;i<blocks.length;i++){
+      if(run!==mermaidRenderRun)return;
+      var block=blocks[i];
+      block.dataset.renderStatus='rendering';
+      try{
+        await mermaid.parse(mermaidSources[i]);
+        var result=await mermaid.render('client-map-mermaid-'+run+'-'+i,mermaidSources[i]);
+        if(run!==mermaidRenderRun)return;
+        block.innerHTML=result.svg;
+        block.dataset.renderStatus='ok';
+        block.removeAttribute('data-processed');
+        if(result.bindFunctions)result.bindFunctions(block);
+      }catch(error){
+        block.dataset.renderStatus='error';
+        var message=document.createElement('p');
+        message.textContent='图表 '+(i+1)+' 渲染失败，以下保留原始源码：'+(error&&error.message?error.message:error);
+        var source=document.createElement('pre');source.textContent=mermaidSources[i];
+        block.textContent='';block.appendChild(message);block.appendChild(source);
+        console.error('[Mermaid '+(i+1)+']',error);
+      }
+    }
+    root.dataset.mermaidReady=String(document.querySelectorAll('.mermaid[data-render-status="ok"]').length);
+  }
+
+  // ===== 解码 md =====
+  var b64=document.getElementById('md-source').textContent.trim();
+  var mdText='';
+  try{mdText=decodeURIComponent(escape(atob(b64)));}catch(e){mdText='# 加载失败\n'+e.message;}
+  mdText=mdText.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
+
+  // CDN 不可达时保留完整原文，避免正文空白；textContent 不执行 Markdown 内的 HTML。
+  if(typeof window.markdownit!=='function'||typeof window.markdownitContainer!=='function'||!window.jsyaml||typeof window.jsyaml.load!=='function'){
+    root.dataset.reportStatus='fallback';
+    var target=document.getElementById('content');
+    var notice=document.createElement('p');notice.setAttribute('role','status');
+    notice.textContent='排版依赖未能加载，以下显示完整 Markdown 原文。恢复联网后刷新可查看排版版；也可打开同名 Markdown 文件。';
+    var raw=document.createElement('pre');raw.id='markdown-fallback';raw.textContent=mdText;
+    raw.style.whiteSpace='pre-wrap';raw.style.overflowWrap='anywhere';raw.style.fontFamily='var(--font-app)';
+    target.replaceChildren(notice,raw);
+    document.querySelectorAll('.report-nav,.mobile-report-nav,.view-nav-wrap').forEach(function(el){el.hidden=true;el.style.display='none';});
+    document.querySelector('.report-layout').style.gridTemplateColumns='minmax(0,1fr)';
+    document.getElementById('expand-all').hidden=true;document.getElementById('collapse-all').hidden=true;
+    var fallbackTitle=document.createElement('h1');fallbackTitle.className='report-title';fallbackTitle.textContent=document.title;
+    document.getElementById('hero-area').appendChild(fallbackTitle);
+    document.getElementById('print-report').addEventListener('click',function(){window.print();});
+    return;
+  }
+  root.dataset.reportStatus='formatted';
+
+  // ===== 抽 frontmatter =====
+  var fm={};var body=mdText;
+  var fmMatch=mdText.match(/^---\n([\s\S]*?)\n---\n/);
+  if(fmMatch){try{fm=jsyaml.load(fmMatch[1])||{};body=mdText.slice(fmMatch[0].length);}catch(e){console.warn('frontmatter parse',e);}}
+  function escHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
+  function formatDate(value){if(value instanceof Date&&!isNaN(value.getTime()))return value.toISOString().slice(0,10);return String(value==null?'':value).slice(0,10);}
+  var footerMode=String(fm.mode||'company').toLowerCase();
+  document.getElementById('footer-title').textContent={company:'公司公开信息调研报告',client:'客户拜访作战地图',investor:'投资机构拜访作战地图'}[footerMode]||'调研报告';
+  document.getElementById('footer-meta').textContent=fm.as_of?'资料截至 '+formatDate(fm.as_of):'来源与信息边界见正文';
+  document.getElementById('nav-meta').textContent=fm.as_of?'资料截至 '+formatDate(fm.as_of):'公开信息报告';
+
+  // ===== 报告封面 =====
+  var hero=document.getElementById('hero-area');
+  var modeLabel={company:'COMPANY RESEARCH',client:'CLIENT RESEARCH',investor:'INVESTOR RESEARCH'}[footerMode]||'RESEARCH REPORT';
+  var modeText={company:'公司调研',client:'客户拜访',investor:'投资机构调研'}[footerMode]||'调研报告';
+  var depthText={quick:'快速版',standard:'标准版',deep:'深度版'}[String(fm.depth||'').toLowerCase()]||'';
+  var marketText={private:'非上市',listed:'上市公司',subsidiary:'子公司',institution:'机构',unknown:'主体待确认'}[String(fm.market_status||'').toLowerCase()]||'';
+  var tags=[modeText,depthText,marketText,fm.as_of?'截至 '+formatDate(fm.as_of):''].filter(Boolean);
+  if(fm.hero_tag)tags.push(String(fm.hero_tag));
+  var tagHtml='<div class="report-tags">'+tags.map(function(tag){return '<span class="report-tag">'+escHtml(tag)+'</span>';}).join('')+'<span class="report-tag" id="source-count">来源统计中</span></div>';
+  var metrics='';
+  if(fm.hero_kv&&Array.isArray(fm.hero_kv)&&fm.hero_kv.length){
+    metrics='<div class="metric-strip">';
+    fm.hero_kv.forEach(function(it){
+      var k=(it&&it.k)||'',v=(it&&it.v)||'',sub=(it&&it.sub)||'';
+      if(typeof it==='string'){var m=it.match(/k:\s*([^|]+?)\s*\|\s*v:\s*([^|]+?)(?:\s*\|\s*sub:\s*(.+))?$/);if(m){k=m[1];v=m[2];sub=m[3]||'';}}
+      metrics+='<div class="metric-card"><div class="metric-label">'+escHtml(k)+'</div><div class="metric-value">'+escHtml(v)+'</div>'+(sub?'<div class="metric-note">'+escHtml(sub)+'</div>':'')+'</div>';
+    });
+    metrics+='</div>';
+  }
+  hero.innerHTML='<div class="report-cover"><div class="report-kicker">'+modeLabel+'</div><h1 class="report-title">'+escHtml(fm.title||fm.subject||'调研报告')+'</h1>'+(fm.subtitle?'<p class="report-subtitle">'+escHtml(fm.subtitle)+'</p>':'')+tagHtml+metrics+'</div>';
+
+  // ===== markdown-it 配置 =====
+  var md=window.markdownit({html:false,linkify:true,breaks:false,typographer:false});
+
+  // 注册 container
+  function regContainer(name,cls,titlePrefix){
+    md.use(window.markdownitContainer,name,{
+      validate:function(p){return p.trim().match(new RegExp('^'+name+'(\\s+.*)?$'));},
+      render:function(tokens,idx){
+        var m=tokens[idx].info.trim().match(new RegExp('^'+name+'\\s+(.*)$'));
+        var title=m?m[1]:'';
+        if(tokens[idx].nesting===1){
+          var titleHtml='';
+          if(title){titleHtml='<div class="ct-h">'+escHtml(titlePrefix||'')+md.renderInline(title)+'</div>';}
+          return '<div class="'+cls+'">'+titleHtml+'\n';
+        }return '</div>\n';
+      }
+    });
+  }
+  regContainer('alert','bm-alert','');
+  regContainer('summary','ch-summary','');
+  regContainer('ch-summary','ch-summary','');
+  regContainer('callout-mint','bm-callout mint','');
+  regContainer('callout-pink','bm-callout pink','');
+  regContainer('callout-lav','bm-callout lav','');
+  regContainer('callout-cream','bm-callout cream','');
+  regContainer('danger','danger-banner','');
+  regContainer('source','src','');
+
+  // quad 特殊处理
+  md.use(window.markdownitContainer,'quad',{
+    validate:function(p){return p.trim().match(/^quad(\s+.*)?$/);},
+    render:function(tokens,idx){
+      if(tokens[idx].nesting===-1)return '</div>\n';
+      var inner='';
+      for(var i=idx+1;i<tokens.length && tokens[i].type!=='container_quad_close';i++){
+        if(tokens[i].type==='inline')inner+=tokens[i].content+'\n';
+      }
+      var lines=inner.split('\n').filter(function(l){return l.trim();});
+      var groups={};
+      lines.forEach(function(l){var p=l.split('|');var key=p[0].trim();var val=(p.slice(1).join('|')).trim();if(!groups[key])groups[key]=[];groups[key].push(val);});
+      var html='<div class="quad">';
+      Object.keys(groups).forEach(function(k){
+        html+='<div class="quad-cell"><div class="qh">'+md.renderInline(k)+'</div>';
+        groups[k].forEach(function(v){html+='<div>'+md.renderInline(v)+'</div>';});
+        html+='</div>';
+      });
+      html+='</div>';
+      // 用 marker 替换，阻止内部再被渲染
+      tokens[idx].type='html_block';tokens[idx].content=html;
+      for(var j=idx+1;j<tokens.length && tokens[j].type!=='container_quad_close';j++){tokens[j].type='html_inline';tokens[j].content='';}
+      return html;
+    }
+  });
+
+  // role-tri
+  md.use(window.markdownitContainer,'role-tri',{
+    validate:function(p){return p.trim()==='role-tri';},
+    render:function(tokens,idx){
+      if(tokens[idx].nesting===-1)return '';
+      var inner='';for(var i=idx+1;i<tokens.length && tokens[i].type!=='container_role-tri_close';i++){if(tokens[i].type==='inline')inner+=tokens[i].content+'\n';else if(tokens[i].content)inner+=tokens[i].content;}
+      var cards=inner.split(/^===\s*/m).filter(function(s){return s.trim();});
+      var html='<div class="role-tri">';
+      cards.forEach(function(c){
+        var lines=c.trim().split('\n');
+        var head=lines.shift()||'';
+        var ev='';var ul=[];
+        lines.forEach(function(l){l=l.trim();if(l.startsWith('>')){ev=l.replace(/^>\s*/,'');}else if(l.startsWith('-')){ul.push(l.replace(/^-\s*/,''));}});
+        html+='<div class="role-card"><div class="rh">'+md.renderInline(head)+'</div>';
+        if(ul.length){html+='<ul>';ul.forEach(function(u){html+='<li>'+md.renderInline(u)+'</li>';});html+='</ul>';}
+        if(ev)html+='<div class="ev">'+md.renderInline(ev)+'</div>';
+        html+='</div>';
+      });
+      html+='</div>';
+      tokens[idx].type='html_block';tokens[idx].content=html;
+      for(var j=idx+1;j<tokens.length && tokens[j].type!=='container_role-tri_close';j++){tokens[j].type='html_inline';tokens[j].content='';}
+      return html;
+    }
+  });
+
+  // score
+  md.use(window.markdownitContainer,'score',{
+    validate:function(p){return p.trim().match(/^score(\s+.*)?$/);},
+    render:function(tokens,idx){
+      if(tokens[idx].nesting===-1)return '';
+      var title=(tokens[idx].info.trim().match(/^score\s+(.*)$/)||[])[1]||'';
+      var inner='';for(var i=idx+1;i<tokens.length && tokens[i].type!=='container_score_close';i++){if(tokens[i].type==='inline')inner+=tokens[i].content+'\n';}
+      var lines=inner.split('\n').filter(function(l){return l.trim();});
+      var total='';var rows=[];
+      lines.forEach(function(l){
+        var t=l.match(/^===\s*(.+?)\s*===$/);if(t){total=t[1];return;}
+        var p=l.split('|').map(function(s){return s.trim();});
+        if(p.length>=3){var sc=parseFloat(p[2])||0;var max=10;if(p[2].indexOf('/')>=0){var sp=p[2].split('/');sc=parseFloat(sp[0]);max=parseFloat(sp[1]);}var pct=Math.max(0,Math.min(100,Math.round(sc/max*100)));rows.push({name:p[0],weight:p[1],score:p[2],note:p[3]||'',pct:pct});}
+      });
+      var html='<div class="score-list">';
+      if(title)html+='<div class="ct-h" style="font-size:12px;font-weight:500;letter-spacing:.04em;margin-bottom:10px">'+md.renderInline(title)+'</div>';
+      rows.forEach(function(r){html+='<div class="score-row"><div class="sr-name">'+md.renderInline(r.name)+'</div><div class="sr-weight">'+md.renderInline(r.weight)+'</div><div class="score-track"><div class="score-fill" style="width:'+r.pct+'%"></div></div><div class="sr-note">'+md.renderInline(r.score+(r.note?' · '+r.note:''))+'</div></div>';});
+      if(total)html+='<div class="score-total">'+md.renderInline(total)+'</div>';
+      html+='</div>';
+      tokens[idx].type='html_block';tokens[idx].content=html;
+      for(var j=idx+1;j<tokens.length && tokens[j].type!=='container_score_close';j++){tokens[j].type='html_inline';tokens[j].content='';}
+      return html;
+    }
+  });
+
+  // 题库 3 色
+  function regQ(name,extraCls){
+    md.use(window.markdownitContainer,name,{
+      validate:function(p){return p.trim().match(new RegExp('^'+name+'(\\s+.*)?$'));},
+      render:function(tokens,idx){
+        if(tokens[idx].nesting===-1)return '';
+        var title=(tokens[idx].info.trim().match(new RegExp('^'+name+'\\s+(.*)$'))||[])[1]||'';
+        var inner='';for(var i=idx+1;i<tokens.length && tokens[i].type!=='container_'+name+'_close';i++){if(tokens[i].type==='inline')inner+=tokens[i].content+'\n';}
+        var numMatch=title.match(/^([A-Z]?\d+[\.\)]?)\s*[\.\·]?\s*(.+)$/);
+        var num=numMatch?numMatch[1]:'';var qt=numMatch?numMatch[2]:title;
+        var lines=inner.split('\n').filter(function(l){return l.trim();});
+        var dlHtml='<dl>';
+        lines.forEach(function(l){var p=l.split('|');if(p.length>=2){dlHtml+='<dt>'+md.renderInline(p[0].trim())+'</dt><dd>'+md.renderInline(p.slice(1).join('|').trim())+'</dd>';}});
+        dlHtml+='</dl>';
+        var html='<div class="bm-q '+extraCls+'">'+(num?'<div class="bm-q-num">'+num+'</div>':'')+'<button type="button" class="bm-q-t" aria-expanded="true">'+md.renderInline(qt)+'</button>'+dlHtml+'</div>';
+        tokens[idx].type='html_block';tokens[idx].content=html;
+        for(var j=idx+1;j<tokens.length && tokens[j].type!=='container_'+name+'_close';j++){tokens[j].type='html_inline';tokens[j].content='';}
+        return html;
+      }
+    });
+  }
+  regQ('q','');regQ('q-fire','fire');regQ('q-diamond','diamond');
+
+  // 内联 [cnf]/[est]/[wrn]
+  md.renderer.rules.text=function(tokens,idx){
+    return md.utils.escapeHtml(tokens[idx].content)
+      .replace(/\[cnf\]/g,'<span class="cnf">已确认</span>')
+      .replace(/\[est\]/g,'<span class="est">推测</span>')
+      .replace(/\[wrn\]/g,'<span class="wrn">警示</span>');
+  };
+
+  // > src: xxx 转 .src
+  body=body.replace(/^>\s*src:\s*(.+)$/gm,':::source\n$1\n:::');
+
+  // mermaid 代码块
+  var origFence=md.renderer.rules.fence;
+  md.renderer.rules.fence=function(tokens,idx,options,env,self){
+    var t=tokens[idx];if(t.info.trim()==='mermaid'){return '<div class="mermaid">'+md.utils.escapeHtml(t.content)+'</div>';}
+    return origFence(tokens,idx,options,env,self);
+  };
+
+  // 把 Markdown 渲染为连续阅读文档
+  var rendered=md.render(body);
+  document.getElementById('content').innerHTML=rendered;
+
+  var contentEl=document.getElementById('content');
+  Array.prototype.slice.call(contentEl.querySelectorAll(':scope > h1')).forEach(function(h1){h1.remove();});
+
+  function cleanTitle(title){return String(title||'').replace(/^第[一二三四五六七八九十百]+章\s*[·.\-]?\s*/,'').replace(/^\d+\s*[·.\-]\s*/,'').trim();}
+  function sectionBaseId(title,index){
+    var rules=[
+      [/来源与信息缺口|来源及信息缺口/,'sources-gaps'],
+      [/公司总览|决策摘要|执行摘要|核心判断|整体概述/,'company-overview'],
+      [/主体.*(?:范围|边界)|研究范围|公司主体/,'entity-scope'],
+      [/业务报告|业务与产品|产品与业务|业务全景/,'business-report'],
+      [/技术报告|技术与研发|研发与技术|核心技术/,'technology-report'],
+      [/财务.*商业.*风险|财务.*风险|商业质量.*风险/,'finance-commercial-risk'],
+      [/财务|资本|经营数据/,'financials'],
+      [/商业化|商业模式|客户/,'commercialization'],
+      [/竞争|竞品|替代/,'competition'],
+      [/近期变化|近期动态|战略变化|关键事件/,'recent-changes'],
+      [/风险|反对证据|失败模式/,'risks'],
+      [/结论|下一步|行动建议/,'conclusion'],
+      [/来源|参考资料|参考文献/,'sources'],
+      [/信息缺口|待确认|待核实|研究局限/,'information-gaps']
+    ];
+    for(var i=0;i<rules.length;i++){if(rules[i][0].test(title))return rules[i][1];}
+    return 'section-'+String(index+1).padStart(2,'0');
+  }
+  function companyBucket(title){
+    if(/来源|信息缺口|待确认|待核实|研究局限/.test(title))return 'evidence';
+    if(/技术|研发|模型|数据平台|工程|专利|知识产权/.test(title))return 'technology';
+    if(/财务.*商业.*风险|商业质量.*风险|风险|反对证据|结论|下一步/.test(title))return 'decision';
+    if(/业务|产品|商业化|商业模式|客户|财务|资本|竞争|替代|近期变化|近期动态|增长/.test(title))return 'business';
+    return 'overview';
+  }
+  var usedSectionIds={};
+  var h2s=Array.prototype.slice.call(contentEl.querySelectorAll('h2'));
+  h2s.forEach(function(h2,i){
+    var title=cleanTitle(h2.textContent);
+    var baseId=sectionBaseId(title,i);var sectionId=baseId;var suffix=2;
+    while(usedSectionIds[sectionId]){sectionId=baseId+'-'+suffix++;}
+    usedSectionIds[sectionId]=true;
+    var section=document.createElement('section');
+    section.className='bm-ch';
+    section.id=sectionId;
+    var bucket=String(fm.mode||'company').toLowerCase()==='company'?companyBucket(title):'content';
+    section.dataset.sectionGroup=bucket;
+    if(bucket==='business'||bucket==='technology')section.setAttribute('data-view-panel',bucket);
+    var bodyId=sectionId+'-body';
+    var hd=document.createElement('button');hd.type='button';hd.className='bm-ch-hd';hd.setAttribute('aria-expanded','true');hd.setAttribute('aria-controls',bodyId);hd.setAttribute('aria-label','收起'+title);
+    var num=document.createElement('span');num.className='bm-ch-num';num.textContent=String(i+1).padStart(2,'0');
+    var ttl=document.createElement('span');ttl.className='bm-ch-t';ttl.innerHTML=h2.innerHTML.replace(/^第[一二三四五六七八九十百]+章\s*[·.\-]?\s*/,'').replace(/^\d+\s*[·.\-]\s*/,'');
+    var toggle=document.createElement('span');toggle.className='bm-ch-toggle';toggle.setAttribute('aria-hidden','true');toggle.textContent='⌄';
+    hd.appendChild(num);hd.appendChild(ttl);hd.appendChild(toggle);
+    var sectionBody=document.createElement('div');sectionBody.className='bm-ch-body';sectionBody.id=bodyId;
+    var parent=h2.parentNode;parent.insertBefore(section,h2);
+    var sectionHeading=document.createElement('h2');sectionHeading.className='bm-ch-heading';sectionHeading.appendChild(hd);
+    section.appendChild(sectionHeading);section.appendChild(sectionBody);
+    var next=h2.nextSibling;while(next && !(next.nodeType===1 && next.tagName==='H2')){var cur=next;next=next.nextSibling;sectionBody.appendChild(cur);}
+    h2.remove();
+  });
+
+  var reportMode=String(fm.mode||'company').toLowerCase();
+  if(reportMode!=='company')document.querySelector('.view-nav-wrap').hidden=true;
+
+  function setSectionCollapsed(section,collapsed){
+    section.classList.toggle('collapsed',collapsed);
+    var button=section.querySelector('.bm-ch-hd');
+    if(button){button.setAttribute('aria-expanded',String(!collapsed));button.setAttribute('aria-label',(collapsed?'展开':'收起')+button.querySelector('.bm-ch-t').textContent.trim());}
+  }
+  contentEl.querySelectorAll('.bm-ch-hd').forEach(function(hd){hd.addEventListener('click',function(){var section=hd.closest('.bm-ch');setSectionCollapsed(section,!section.classList.contains('collapsed'));});});
+  contentEl.querySelectorAll('.bm-q-t').forEach(function(button,index){
+    var dl=button.parentNode.querySelector('dl');
+    if(dl){dl.id='question-detail-'+(index+1);button.setAttribute('aria-controls',dl.id);}
+    button.addEventListener('click',function(){var collapsed=button.parentNode.classList.toggle('collapsed');button.setAttribute('aria-expanded',String(!collapsed));});
+  });
+
+  contentEl.querySelectorAll('.bm-ch').forEach(function(sec){
+    sec.querySelectorAll('h3').forEach(function(h3,j){h3.id=sec.id+'-section-'+(j+1);});
+  });
+
+  contentEl.querySelectorAll('table').forEach(function(table,index){
+    if(table.parentNode&&table.parentNode.classList.contains('table-scroll'))return;
+    var wrap=document.createElement('div');wrap.className='table-scroll';wrap.tabIndex=0;wrap.setAttribute('role','region');
+    var section=table.closest('.bm-ch');var label=section?section.querySelector('.bm-ch-t').textContent.trim():'报告';
+    wrap.setAttribute('aria-label',label+'表格 '+(index+1));
+    table.querySelectorAll('thead th').forEach(function(th){th.setAttribute('scope','col');});
+    table.parentNode.insertBefore(wrap,table);wrap.appendChild(table);
+  });
+
+  var sections=Array.prototype.slice.call(contentEl.querySelectorAll('.bm-ch'));
+  var tocGroups=reportMode==='company'?
+    [{key:'overview',label:'公司总览'},{key:'business',label:'业务报告'},{key:'technology',label:'技术报告'},{key:'decision',label:'财务与风险'},{key:'evidence',label:'来源与缺口'}]:
+    [{key:'content',label:'报告内容'}];
+  var tocHtml='';
+  function grp(name){return '<span class="group-t">'+escHtml(name)+'</span>';}
+  tocGroups.forEach(function(group){
+    var groupSections=sections.filter(function(sec){return sec.dataset.sectionGroup===group.key;});
+    if(!groupSections.length)return;
+    tocHtml+=grp(group.label);
+    groupSections.forEach(function(sec){
+      var index=sections.indexOf(sec);var title=sec.querySelector('.bm-ch-t').textContent.trim();
+      tocHtml+='<a href="#'+sec.id+'"><span class="ord">'+String(index+1).padStart(2,'0')+'</span>'+escHtml(title.substring(0,20))+'</a>';
+      sec.querySelectorAll('h3').forEach(function(h3){var text=h3.textContent.trim();if(text.length>22)text=text.substring(0,20)+'…';tocHtml+='<a href="#'+h3.id+'" class="sub">'+escHtml(text)+'</a>';});
+    });
+  });
+  document.getElementById('toc-content').innerHTML=tocHtml;
+
+  var mobileNav=document.getElementById('mobile-report-nav');
+  mobileNav.innerHTML=tocGroups.map(function(group){var sec=sections.find(function(item){return item.dataset.sectionGroup===group.key;});return sec?'<a href="#'+sec.id+'">'+escHtml(group.label)+'</a>':'';}).join('');
+
+  function updateViewCard(kind,defaultText){
+    var panels=sections.filter(function(sec){return sec.getAttribute('data-view-panel')===kind;});
+    var link=document.querySelector('[data-view-link="'+kind+'"]');
+    if(!panels.length){link.hidden=true;return;}
+    link.setAttribute('href','#'+panels[0].id);
+    var details=[];
+    panels.forEach(function(panel){var sub=Array.prototype.slice.call(panel.querySelectorAll('h3')).map(function(h){return cleanTitle(h.textContent);});if(sub.length){details=details.concat(sub);}else{details.push(cleanTitle(panel.querySelector('.bm-ch-t').textContent));}});
+    var desc=document.getElementById(kind+'-view-desc');
+    desc.textContent=details.slice(0,4).join(' · ')||defaultText;
+  }
+  updateViewCard('business','产品、客户、商业模式、竞争与增长约束');
+  updateViewCard('technology','能力、研发证据、成熟度、自研边界与依赖');
+
+  var sourceIds={};
+  contentEl.querySelectorAll('tr').forEach(function(row){
+    var cell=row.querySelector('td');if(!cell)return;
+    var match=cell.textContent.trim().match(/^\[(S\d{2,})\]$/i);if(!match)return;
+    var id=match[1].toUpperCase();row.id='source-'+id.toLowerCase();sourceIds[id]=row.id;cell.innerHTML='<span class="evidence-tag">['+id+']</span>';
+  });
+  var sourceCount=document.getElementById('source-count');
+  var sourceTotal=Object.keys(sourceIds).length;sourceCount.textContent=sourceTotal?sourceTotal+' 个公开来源':'来源见正文';
+  var textNodes=[];var walker=document.createTreeWalker(contentEl,NodeFilter.SHOW_TEXT,{acceptNode:function(node){
+    if(!/\[S\d{2,}\]/i.test(node.nodeValue||''))return NodeFilter.FILTER_REJECT;
+    var parent=node.parentElement;if(!parent||parent.closest('a,code,pre,tr[id^="source-"]'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;
+  }});
+  while(walker.nextNode())textNodes.push(walker.currentNode);
+  textNodes.forEach(function(node){
+    var parts=node.nodeValue.split(/(\[S\d{2,}\])/ig);var fragment=document.createDocumentFragment();
+    parts.forEach(function(part){var m=part.match(/^\[(S\d{2,})\]$/i);var id=m&&m[1].toUpperCase();if(id&&sourceIds[id]){var a=document.createElement('a');a.className='evidence-tag';a.href='#'+sourceIds[id];a.textContent='['+id+']';fragment.appendChild(a);}else{fragment.appendChild(document.createTextNode(part));}});
+    node.parentNode.replaceChild(fragment,node);
+  });
+
+  document.getElementById('expand-all').addEventListener('click',function(){sections.forEach(function(sec){setSectionCollapsed(sec,false);});});
+  document.getElementById('collapse-all').addEventListener('click',function(){sections.forEach(function(sec){setSectionCollapsed(sec,true);});});
+  var printState=[];
+  window.addEventListener('beforeprint',function(){printState=sections.map(function(sec){return sec.classList.contains('collapsed');});sections.forEach(function(sec){setSectionCollapsed(sec,false);});});
+  window.addEventListener('afterprint',function(){sections.forEach(function(sec,index){setSectionCollapsed(sec,Boolean(printState[index]));});});
+  document.getElementById('print-report').addEventListener('click',function(){window.print();});
+  document.querySelectorAll('a[href^="#"]').forEach(function(link){link.addEventListener('click',function(){var target=document.querySelector(link.getAttribute('href'));var section=target&&target.closest('.bm-ch');if(section)setSectionCollapsed(section,false);});});
+
+  // Mermaid 启动：先保存原始源码，再逐图显式 parse/render。
+  contentEl.querySelectorAll('.mermaid').forEach(function(block,i){
+    mermaidSources[i]=block.textContent.trim();
+    block.dataset.diagramIndex=String(i+1);
+  });
+  renderAllMermaid();
+
+  // scrollspy
+  var tocLinks=document.querySelectorAll('.bm-toc a,.mobile-report-nav a');
+  var observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        tocLinks.forEach(function(link){link.classList.remove('active');link.removeAttribute('aria-current');});
+        document.querySelectorAll('a[href="#'+en.target.id+'"]').forEach(function(link){link.classList.add('active');link.setAttribute('aria-current','location');});
+      }
+    });
+  },{rootMargin:'-80px 0px -70% 0px'});
+  contentEl.querySelectorAll('.bm-ch, h3').forEach(function(el){if(el.id)observer.observe(el);});
+
+})();
+</script>
+
+</body>
+</html>

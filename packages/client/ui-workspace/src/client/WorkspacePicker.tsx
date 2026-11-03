@@ -22,6 +22,7 @@ import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from './contract/s
 import css from './WorkspacePicker.module.css'
 
 const ADD_WORKSPACE = '::add-workspace'
+const NEW_IDEA = '::new-idea'
 
 /** Core flow props: the owner supplies popover control and pick semantics. */
 export interface WorkspacePickFlowProps {
@@ -43,6 +44,8 @@ export interface WorkspacePickFlowProps {
   onPick: (workspaceId: WorkspaceId) => void
   /** Close the popover (outside click / Escape / post-pick). */
   onClose: () => void
+  /** Offer an isolated start in addition to existing Workspace selection. */
+  onNewIdea?: (() => void) | undefined
   /** Report the picking interaction and adoption occupancy. */
   onBusyChange?: (busy: boolean) => void
   /** Only offer the add action, hide existing workspaces. */
@@ -68,6 +71,7 @@ export function WorkspacePickFlow({
   renderDirectoryFlow,
   onPick,
   onClose,
+  onNewIdea,
   addOnly = false,
   onBusyChange,
   side = 'bottom',
@@ -103,9 +107,10 @@ export function WorkspacePickFlow({
   useEffect(() => {
     if (flowOpen && !flowAvailable) setFlowOpen(false)
   }, [flowOpen, flowAvailable])
-  const addEntries: MenuEntry[] = flowAvailable
-    ? [{ id: ADD_WORKSPACE, label: t('menu.addWorkspace'), icon: <IconPlusOutlineRegular size={16} />, disabled: flowBusy }]
-    : []
+  const addEntries: MenuEntry[] = [
+    ...onNewIdea === undefined ? [] : [{ id: NEW_IDEA, label: t('idea.new'), icon: <IconPlusOutlineRegular size={16} />, disabled: flowBusy }],
+    ...flowAvailable ? [{ id: ADD_WORKSPACE, label: t('menu.addWorkspace'), icon: <IconPlusOutlineRegular size={16} />, disabled: flowBusy }] : [],
+  ]
   // With workspaces listed, the add action pins below the scroll region
   // (divider + always visible); otherwise it IS the menu.
   const pinAdd = !addOnly && workspaces.length > 0
@@ -154,7 +159,7 @@ export function WorkspacePickFlow({
   // loading status instead of jumping into a flow the arriving list would have
   // made unnecessary; the add-only surface lists nothing and never waits.
   const listSettled = addOnly || workspaceSnapshot.phase === 'ready'
-  const addIsTheOnlyEntry = !pinAdd && listSettled && addEntries.length === 1
+  const addIsTheOnlyEntry = !pinAdd && listSettled && addEntries.length === 1 && addEntries[0]?.id === ADD_WORKSPACE
   // `flowBusy` gates this exactly as it disables the equivalent menu entry: a
   // pick still being adopted owns the surface until it settles.
   useEffect(() => {
@@ -178,6 +183,11 @@ export function WorkspacePickFlow({
   }
 
   const handleSelect = (id: string): void => {
+    if (id === NEW_IDEA) {
+      onClose()
+      onNewIdea?.()
+      return
+    }
     if (id === ADD_WORKSPACE) {
       openDirectoryFlow()
       return
@@ -235,6 +245,7 @@ export function WorkspacePicker({
   onPick,
   onClose,
   createWorkspace,
+  onNewIdea,
   useDirectoryFlow,
   renderSlot,
   t,
@@ -246,6 +257,7 @@ export function WorkspacePicker({
       anchorRef={anchorRef}
       useWorkspaces={useWorkspaces}
       createWorkspace={createWorkspace}
+      onNewIdea={onNewIdea}
       useDirectoryFlow={useDirectoryFlow}
       renderDirectoryFlow={owner => renderSlot('conversation.hero.workspace.directoryFlow', owner)}
       selectedId={selectedId}

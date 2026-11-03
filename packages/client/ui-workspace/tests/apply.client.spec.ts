@@ -123,8 +123,10 @@ async function bench() {
   } as never)
   const pickDirectory = vi.fn(() => Promise.resolve({ ok: true as const, value: '/projects/picked' }))
   const directoryPicker = { pick: pickDirectory }
-  Object.assign(new TestRemote(ctx), { directoryPicker })
+  const workspaceRemote = {}
+  Object.assign(new TestRemote(ctx), { directoryPicker, workspace: workspaceRemote })
   ctx.provide('remote.directoryPicker', directoryPicker as never)
+  ctx.provide('remote.workspace', workspaceRemote as never)
   const locale = new LocaleRuntime(ctx)
   // These specs assert the shipped Chinese copy. There is no jsdom `window`
   // in this lane, so browser-language detection never runs and the locale
@@ -178,13 +180,18 @@ function viewInstance(slots: SlotRegistry) {
 const settled = (): Promise<void> => new Promise((resolve) => { setTimeout(resolve, 0) })
 
 describe('ui-workspace apply', () => {
-  it('keeps the host Loader entry inert', () => {
-    expect(hostApply).not.toThrow()
+  it('publishes only the configured public start policy during page boot', async () => {
+    const ctx = new Context()
+    onTestFinished(() => ctx.fiber.dispose())
+    hostApply(ctx, { isolatedIdeas: true })
+    const table: Array<{ kind: string; name?: string; value?: unknown }> = []
+    await ctx.parallel('webserver/index-inject', table as never)
+    expect(table).toEqual([{ kind: 'global', name: '__DSH_WORKSPACE_START__', value: { isolatedIdeas: true } }])
   })
 
   it('declares the services it drives', () => {
     expect(inject).toEqual([
-      'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'layout', 'shortcuts',
+      'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'remote.workspace', 'layout', 'shortcuts',
     ])
   })
 

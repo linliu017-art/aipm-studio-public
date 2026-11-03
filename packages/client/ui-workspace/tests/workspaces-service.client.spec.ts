@@ -1,7 +1,7 @@
 import { setImmediate } from 'node:timers/promises'
 import { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   ISessions, SessionListState, SessionReference, SessionSummary,
 } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -140,11 +140,12 @@ class FakeSessions implements ISessions {
   readonly create: ReturnType<typeof vi.fn<ISessions['create']>>
   readonly fork = vi.fn<ISessions['fork']>(async () => sid('forked'))
   readonly retained: RetainedSession[] = []
+  readonly taskPrompt = vi.fn<SessionReference['binding']['session']['prompt']>(async () => ({ ok: true, value: { accepted: true } }))
   readonly refreshProjections = vi.fn<ISessions['refreshProjections']>(() => Promise.resolve())
   readonly retain = vi.fn<ISessions['retain']>((target) => {
     const release = vi.fn<() => void>()
     const sessionId = typeof target === 'string' ? target : target.childSessionId
-    const binding = { sessionId } as SessionReference['binding']
+    const binding = Object.assign({ sessionId } as SessionReference['binding'], { session: { prompt: this.taskPrompt } })
     const reference: SessionReference = {
       sessionId,
       binding,
@@ -271,6 +272,7 @@ class FakeDirectoryPicker {
 }
 
 interface BenchOptions {
+  readonly createIdea?: () => Promise<string>
   readonly conversation?: boolean
   readonly configureWorkspaces?: (workspaces: FakeWorkspaces) => void
   readonly workspaces?: WorkspaceSnapshot
@@ -309,17 +311,62 @@ function bench(options: BenchOptions = {}) {
     sessions,
     view.actions,
     notify,
+    options.createIdea,
   )
   return { ctx, directoryPicker, sessions, uiWorkspace, workspaces, layout, selectPanel, view, notify, requestDraftInitialization }
 }
 
-function lastOpening(open: MockInstance<UiWorkspaceService['openWorkspace']>): Promise<void> {
-  const result = open.mock.results.at(-1)
-  if (result?.type !== 'return') throw new Error('startSession did not start Workspace navigation')
-  return result.value
-}
-
 describe('UiWorkspaceService', () => {
+  it('restores the exact saved independent draft instead of adopting the first other blank idea', async () => {
+    const other = summary('other-idea', { blank: true, cwd: '/ideas/idea-Old123' })
+    const selected = summary('selected-idea', { blank: true, cwd: '/ideas/idea-New456' })
+    persistSelection({ sessionId: selected.id })
+    const createIdea = vi.fn(async () => '/ideas/idea-Wrong1')
+    const b = bench({ createIdea, workspaces: workspaceState(), sessions: sessionState([other, selected]) })
+    await setImmediate()
+    expect(b.sessions.retained.at(-1)?.reference.sessionId).toBe(selected.id)
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(createIdea).not.toHaveBeenCalled()
+    expect(b.requestDraftInitialization).not.toHaveBeenCalled()
+  })
+
+  it('prepares a fresh Workspace picker target instead of reviving or overwriting another saved draft', async () => {
+    const old = summary('old-picker-draft', { blank: true, cwd: '/w/project' })
+    const b = bench({ workspaces: workspaceState([workspace('project', [old.id])]), sessions: sessionState([old], 'pending') })
+    const prepare = vi.fn()
+    await b.uiWorkspace.openWorkspace(wid('project'), prepare)
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('project') })
+    expect(prepare).toHaveBeenCalledExactlyOnceWith(sid('created-project'))
+    expect(b.sessions.retained.at(-1)?.reference.sessionId).not.toBe(old.id)
+  })
+
+  it('starts a fresh project conversation without restoring an unsent template or overwriting its draft', async () => {
+    const old = summary('old-draft', { blank: true, cwd: '/w/project' })
+    const backing = persistSelection({})
+    const key = `dsh.conversation.${old.id}`
+    const saved = JSON.stringify({ draft: '请用 Agent 工坊处理下面的 AI / Agent 产品任务。\n\n用户原来的要求', view: null })
+    backing.set(key, saved)
+    const b = bench({ workspaces: workspaceState([workspace('project', [old.id])]), sessions: sessionState([old], 'pending') })
+    b.uiWorkspace.startSession(wid('project'))
+    await setImmediate()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('project') })
+    expect(b.sessions.retained.at(-1)?.reference.sessionId).not.toBe(old.id)
+    expect(b.requestDraftInitialization).not.toHaveBeenCalled()
+    expect(backing.get(key)).toBe(saved)
+  })
+
+  it('starts an independent conversation without reviving an existing idea draft or registering a Workspace', async () => {
+    const old = summary('old-idea', { blank: true, cwd: '/ideas/idea-Ab12Cd' })
+    const createIdea = vi.fn(async () => '/ideas/idea-New123')
+    const b = bench({ createIdea, workspaces: workspaceState(), sessions: sessionState([old], 'pending') })
+    b.uiWorkspace.startSession()
+    await setImmediate()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ cwd: '/ideas/idea-New123' })
+    expect(b.sessions.retained.at(-1)?.reference.sessionId).not.toBe(old.id)
+    expect(b.requestDraftInitialization).not.toHaveBeenCalled()
+    expect(b.workspaces.list.getSnapshot().items).toEqual([])
+  })
+
   it('prepares and selects the default Workspace after both startup baselines', async () => {
     const b = bench({ configureWorkspaces: (workspaces) => {
       workspaces.initializeDefault.mockImplementation(async () => {
@@ -792,7 +839,7 @@ describe('UiWorkspaceService', () => {
     ])('prepares $name on the retained target before replacing the current selection', async ({ options }) => {
       const backing = persistSelection({})
       const b = bench({ workspaces: workspaceState([workspace('a')]) })
-      const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+
       b.uiWorkspace.openSession(sid('previous'))
       const previous = b.sessions.retained[0]!
       b.selectPanel.mockClear()
@@ -809,7 +856,7 @@ describe('UiWorkspaceService', () => {
       })
 
       b.uiWorkspace.startSession(wid('a'), options)
-      await lastOpening(opening)
+      await setImmediate()
 
       expect(b.requestDraftInitialization).toHaveBeenCalledExactlyOnceWith(b.sessions.retained[1]!.reference.binding, options)
       expect(b.sessions.binding).toHaveBeenCalledExactlyOnceWith(sid('actual-target'))
@@ -821,10 +868,10 @@ describe('UiWorkspaceService', () => {
 
     it.each([undefined, {}, { clearPreviousDraft: false }])('does not invoke the draft API for default options %j', async (options) => {
       const b = bench({ workspaces: workspaceState([workspace('a')]) })
-      const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+
 
       b.uiWorkspace.startSession(wid('a'), options)
-      await lastOpening(opening)
+      await setImmediate()
 
       expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-a'), { source: 'mainView' })
       expect(b.sessions.binding).not.toHaveBeenCalled()
@@ -835,12 +882,12 @@ describe('UiWorkspaceService', () => {
     it('opens the retained target when its draft is preserved', async () => {
       const backing = persistSelection({})
       const b = bench({ workspaces: workspaceState([workspace('a')]) })
-      const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+
       b.uiWorkspace.openSession(sid('previous'))
       b.requestDraftInitialization.mockReturnValue('preserved')
 
       b.uiWorkspace.startSession(wid('a'), { prompt: 'keep the existing draft' })
-      await lastOpening(opening)
+      await setImmediate()
 
       expect(b.requestDraftInitialization).toHaveBeenCalledExactlyOnceWith(
         b.sessions.retained[1]!.reference.binding, { prompt: 'keep the existing draft' },
@@ -855,21 +902,21 @@ describe('UiWorkspaceService', () => {
       const b = bench({ workspaces: workspaceState([workspace('a')]) })
       const created = Promise.withResolvers<SessionId>()
       b.sessions.create.mockReturnValueOnce(created.promise)
-      const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+
       const options = {
         prompt: '🧭 @notes.md',
         clearPreviousDraft: true,
       }
       const expected = { ...options }
       b.uiWorkspace.startSession(wid('a'), options)
-      const completion = lastOpening(opening)
+
       expect(b.sessions.create).toHaveBeenCalledOnce()
       expect(b.requestDraftInitialization).not.toHaveBeenCalled()
 
       options.clearPreviousDraft = false
       options.prompt = 'caller replaced the prompt'
       created.resolve(sid('captured'))
-      await completion
+      await setImmediate()
 
       expect(b.requestDraftInitialization).toHaveBeenCalledExactlyOnceWith(
         b.sessions.retained[0]!.reference.binding, expected,
@@ -882,20 +929,20 @@ describe('UiWorkspaceService', () => {
         const b = bench({ workspaces: workspaceState([workspace('a'), workspace('b')]) })
         const created = Promise.withResolvers<SessionId>()
         b.sessions.create.mockReturnValueOnce(created.promise)
-        const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+
         b.uiWorkspace.startSession(wid('a'), { prompt: 'late draft' })
-        const completion = lastOpening(opening)
+
         expect(b.sessions.create).toHaveBeenCalledOnce()
         expect(b.requestDraftInitialization).not.toHaveBeenCalled()
 
         if (kind === 'workspace') {
           b.uiWorkspace.startSession(wid('b'), { prompt: 'chosen draft' })
-          await lastOpening(opening)
+          await setImmediate()
         } else if (kind === 'session') b.uiWorkspace.openSession(sid('chosen'))
         else if (kind === 'panel') b.layout.selectPanel('other-panel' as MainPanelId)
         else await b.ctx.fiber.dispose()
         created.resolve(sid('late'))
-        await completion
+        await setImmediate()
 
         expect(b.sessions.retained.some(item => item.reference.sessionId === sid('late'))).toBe(false)
         expect(b.sessions.binding).not.toHaveBeenCalledWith(sid('late'))
@@ -912,7 +959,7 @@ describe('UiWorkspaceService', () => {
       'keeps the previous selection and releases the target after %s', async (failure) => {
         const backing = persistSelection({})
         const b = bench({ workspaces: workspaceState([workspace('a')]), conversation: failure !== 'missing conversation' })
-        const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+
         const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
         b.uiWorkspace.openSession(sid('previous'))
         b.selectPanel.mockClear()
@@ -920,7 +967,7 @@ describe('UiWorkspaceService', () => {
         if (failure === 'missing binding') b.sessions.binding.mockReturnValueOnce(undefined)
 
         b.uiWorkspace.startSession(wid('a'), { prompt: 'unsent' })
-        await expect(lastOpening(opening)).rejects.toThrow('Could not fill the draft. Please try again shortly.')
+        await setImmediate()
 
         expect(b.notify).toHaveBeenCalledExactlyOnceWith({
           kind: 'createFailed', message: 'Could not fill the draft. Please try again shortly.',
@@ -954,13 +1001,13 @@ describe('UiWorkspaceService', () => {
     it('reports an unknown explicit Workspace without preparing a draft or changing selection', async () => {
       const backing = persistSelection({})
       const b = bench()
-      const opening = vi.spyOn(b.uiWorkspace, 'openWorkspace')
+
       const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
       b.uiWorkspace.openSession(sid('previous'))
       b.selectPanel.mockClear()
 
       b.uiWorkspace.startSession(wid('missing'), { prompt: 'unsent' })
-      await expect(lastOpening(opening)).rejects.toThrow('unknown workspace missing')
+      await setImmediate()
 
       expect(b.notify).toHaveBeenCalledExactlyOnceWith({
         kind: 'createFailed', message: 'uiWorkspace.connectWorkspace: unknown workspace missing',
@@ -1345,5 +1392,181 @@ describe('UiWorkspaceService', () => {
     await expect(b.uiWorkspace.createDirectory('/home/u', 'new')).rejects.toMatchObject({
       rpcError: { code: 'directory-picker/exists' },
     })
+  })
+})
+
+
+describe('isolated idea navigation', () => {
+  it('submits a Workshop task directly before navigating, without touching existing drafts', async () => {
+    const sent = Promise.withResolvers<{ ok: true; value: { accepted: true } }>()
+    const b = bench({ createIdea: vi.fn(async () => '/ideas/idea-New123'), sessions: sessionState([], 'pending') })
+    b.sessions.taskPrompt.mockReturnValueOnce(sent.promise)
+    const launch = b.uiWorkspace.startWorkshop(undefined, '收入助手', { mode: 'idea', output: 'prd' })
+    await setImmediate()
+    expect(b.selectPanel).not.toHaveBeenCalled()
+    expect(b.sessions.taskPrompt).toHaveBeenCalledWith([{ type: 'text', text: '收入助手' }], 'queue', expect.any(AbortSignal), undefined,
+      { mode: 'idea', output: 'prd' })
+    expect(b.requestDraftInitialization).not.toHaveBeenCalled()
+    sent.resolve({ ok: true, value: { accepted: true } })
+    await launch
+    expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith(null)
+    expect(b.workspaces.list.getSnapshot().items).toEqual([])
+  })
+
+  it('does not leave the Workshop page after a failed task admission', async () => {
+    const b = bench({ createIdea: vi.fn(async () => '/ideas/idea-New123'), sessions: sessionState([], 'pending') })
+    b.sessions.taskPrompt.mockRejectedValueOnce(new Error('offline'))
+    await expect(b.uiWorkspace.startWorkshop(undefined, '保留的想法', { mode: 'idea', output: 'both' })).rejects.toThrow('offline')
+    expect(b.selectPanel).not.toHaveBeenCalled()
+    expect(b.notify).toHaveBeenCalledWith({ kind: 'createFailed', message: 'offline' })
+    expect(b.sessions.retained.every(item => item.release.mock.calls.length === 1)).toBe(true)
+  })
+
+  it('uses only the explicitly selected project for Workshop iteration', async () => {
+    const b = bench({ sessions: sessionState([], 'pending') })
+    await b.uiWorkspace.startWorkshop(wid('chosen'), '补充异常流程', { mode: 'iterate', output: 'plan' })
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('chosen') })
+    expect(b.sessions.taskPrompt).toHaveBeenCalledOnce()
+    expect(b.requestDraftInitialization).not.toHaveBeenCalled()
+  })
+
+  it('prepares a fresh isolated task without replacing an available unsent draft', async () => {
+    const draft = summary('keep-draft', { blank: true, cwd: '/ideas/idea-Ab12Cd' })
+    const createIdea = vi.fn(async () => '/ideas/idea-New123')
+    const b = bench({ createIdea, workspaces: workspaceState(), sessions: sessionState([draft], 'pending') })
+    b.uiWorkspace.startSession(undefined, { prompt: '工坊任务', newSession: true })
+    await setImmediate()
+    expect(createIdea).toHaveBeenCalledOnce()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ cwd: '/ideas/idea-New123' })
+    expect(b.requestDraftInitialization).toHaveBeenCalledWith(expect.anything(), { prompt: '工坊任务', newSession: true })
+    expect(b.workspaces.list.getSnapshot().items).toEqual([])
+  })
+
+  it('prepares a fresh project task instead of reusing its existing blank conversation', async () => {
+    const draft = summary('keep-draft', { blank: true, cwd: '/w/project' })
+    const b = bench({ workspaces: workspaceState([workspace('project', [draft.id])]), sessions: sessionState([draft], 'pending') })
+    b.uiWorkspace.startSession(wid('project'), { prompt: '迭代工坊 PRD', newSession: true })
+    await setImmediate()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('project') })
+    expect(b.requestDraftInitialization).toHaveBeenCalledWith(expect.anything(), { prompt: '迭代工坊 PRD', newSession: true })
+  })
+
+  it('reuses an ungrouped blank conversation across repeated starts without creating a Workspace', async () => {
+    const draft = summary('draft', { blank: true, cwd: '/ideas/idea-Ab12Cd' })
+    const createIdea = vi.fn(async () => '/ideas/idea-New123')
+    const b = bench({ createIdea, workspaces: workspaceState([workspace('saved')]), sessions: sessionState([draft]) })
+    await setImmediate()
+    b.uiWorkspace.startSession(undefined, { newSession: false })
+    await setImmediate()
+    b.uiWorkspace.startSession(undefined, { newSession: false })
+    await setImmediate()
+    expect(createIdea).not.toHaveBeenCalled()
+    expect(b.sessions.create.mock.calls.every(([request]) => request?.sessionId === draft.id && request.cwd === draft.cwd)).toBe(true)
+    expect(b.workspaces.list.getSnapshot().items.map(item => item.title)).toEqual(['saved'])
+    expect(b.sessions.retained.at(-1)?.reference.sessionId).toBe(draft.id)
+  })
+
+  it('does not reuse an in-flight blank adoption for a fresh launcher draft', async () => {
+    const adoption = Promise.withResolvers<SessionId>()
+    const draft = summary('keep-draft', { blank: true, cwd: '/ideas/idea-Ab12Cd' })
+    const createIdea = vi.fn(async () => '/ideas/idea-New123')
+    const b = bench({ createIdea, sessions: sessionState([draft], 'pending'), configureSessions: (sessions) => {
+      sessions.create.mockReturnValueOnce(adoption.promise).mockResolvedValueOnce(sid('fresh'))
+    } })
+    b.uiWorkspace.startSession(undefined, { newSession: false })
+    b.uiWorkspace.startSession(undefined, { prompt: '工坊任务', newSession: true })
+    await setImmediate()
+    expect(createIdea).toHaveBeenCalledOnce()
+    expect(b.sessions.create).toHaveBeenLastCalledWith({ cwd: '/ideas/idea-New123' })
+    adoption.resolve(draft.id)
+    await setImmediate()
+    expect(b.sessions.retained.map(item => item.reference.sessionId)).toEqual([sid('fresh')])
+    expect(b.requestDraftInitialization).toHaveBeenCalledOnce()
+  })
+
+  it('shares one pending creation across rapid clicks and opens the latest requested draft', async () => {
+    const pending = Promise.withResolvers<string>()
+    const createIdea = vi.fn(() => pending.promise)
+    const b = bench({ createIdea })
+    b.uiWorkspace.startSession()
+    b.uiWorkspace.startSession()
+    b.uiWorkspace.startSession()
+    expect(createIdea).toHaveBeenCalledOnce()
+    pending.resolve('/ideas/idea-New123')
+    await setImmediate()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ cwd: '/ideas/idea-New123' })
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-none'), { source: 'mainView' })
+  })
+
+  it('never reuses an archived, occupied or project-owned blank as the independent draft', async () => {
+    const drafts = [
+      summary('archived', { blank: true, cwd: '/ideas/idea-Arch12' }),
+      summary('occupied', { blank: false, cwd: '/ideas/idea-Used12' }),
+      summary('project', { blank: true, cwd: '/w/saved/idea-Old123' }),
+    ]
+    const createIdea = vi.fn(async () => '/ideas/idea-New123')
+    const b = bench({ createIdea, workspaces: workspaceState([workspace('saved', [sid('project')])], [sid('archived')]), sessions: sessionState(drafts) })
+    await setImmediate()
+    expect(createIdea).toHaveBeenCalledOnce()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ cwd: '/ideas/idea-New123' })
+  })
+
+  it('creates another independent draft when a blank is owned by a different writer', async () => {
+    const draft = summary('draft', { blank: true, cwd: '/ideas/idea-Ab12Cd' })
+    const createIdea = vi.fn(async () => '/ideas/idea-New123')
+    const b = bench({ createIdea, workspaces: workspaceState(), sessions: sessionState([draft]), configureSessions: (sessions) => {
+      sessions.create.mockRejectedValueOnce(new SessionCreateError(new RemoteError('session/writer-held', 'held', { sessionId: draft.id }), draft.id))
+    } })
+    await setImmediate()
+    expect(createIdea).toHaveBeenCalledOnce()
+    expect(b.sessions.create).toHaveBeenLastCalledWith({ cwd: '/ideas/idea-New123' })
+  })
+
+  it('cold starts in an independent idea instead of the most recent project', async () => {
+    const idea = workspace('idea')
+    const old = workspace('default-workspace', [sid('old')])
+    const createIdea = vi.fn(async () => idea.path)
+    const b = bench({ createIdea, workspaces: workspaceState([old, idea]), sessions: sessionState([{ id: sid('old'), displayTitle: 'old', running: false, blank: false, updatedAt: 1, retainedBy: {} }]) })
+    await setImmediate()
+    expect(createIdea).toHaveBeenCalledOnce()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ cwd: idea.path })
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-none'), { source: 'mainView' })
+    expect(b.workspaces.initializeDefault).not.toHaveBeenCalled()
+  })
+
+  it('starts a new idea by default and continues only an explicitly selected project', async () => {
+    const idea = workspace('idea')
+    const old = workspace('old')
+    const createIdea = vi.fn(async () => idea.path)
+    const b = bench({ createIdea, workspaces: workspaceState([old, idea]), sessions: sessionState([], 'pending') })
+    b.uiWorkspace.startSession()
+    await setImmediate()
+    expect(createIdea).toHaveBeenCalledOnce()
+    expect(b.sessions.create).toHaveBeenLastCalledWith({ cwd: idea.path })
+    b.uiWorkspace.startSession(old.workspaceId)
+    await setImmediate()
+    expect(createIdea).toHaveBeenCalledOnce()
+    expect(b.sessions.create).toHaveBeenLastCalledWith({ workspaceId: old.workspaceId })
+  })
+
+  it('keeps a failed idea creation visible without falling back to the current project', async () => {
+    const b = bench({ createIdea: async () => { throw new Error('cannot create folder') }, workspaces: workspaceState([workspace('old')]) })
+    b.uiWorkspace.openSession(sid('existing'))
+    b.uiWorkspace.startSession()
+    await setImmediate()
+    expect(b.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'createFailed' }))
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('existing'), { source: 'mainView' })
+  })
+
+  it('does not open a late idea after the user explicitly selects another project', async () => {
+    const pending = Promise.withResolvers<string>()
+    const b = bench({ createIdea: () => pending.promise, workspaces: workspaceState([workspace('idea'), workspace('chosen')]) })
+    b.uiWorkspace.startSession()
+    b.uiWorkspace.startSession(wid('chosen'))
+    await setImmediate()
+    pending.resolve(workspace('idea').path)
+    await setImmediate()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-chosen'), { source: 'mainView' })
   })
 })

@@ -475,6 +475,14 @@ async function seedWorkspace(scenario: HeadlessScenario, cwd: string): Promise<v
 }
 
 const workspaceSetups: Record<string, (cwd: string) => Promise<void>> = {
+  async 'aipm-workshop-skill'(cwd) {
+    await cp(join(repoRoot, 'packages/aipm/aipm/skills/agent-workshop'), join(cwd, '.dsh/skills/agent-workshop'), { recursive: true })
+  },
+  async 'aipm-interview-skill'(cwd) {
+    const target = join(cwd, '.dsh', 'skills', 'interview-me', 'SKILL.md')
+    await mkdir(dirname(target), { recursive: true })
+    await copyFile(join(repoRoot, 'packages/aipm/aipm/skills/interview-me/SKILL.md'), target)
+  },
   async 'windows-acl-skill'(cwd) {
     const target = join(cwd, '.dsh', 'skills', 'diagnose-windows-sandbox-acl', 'SKILL.md')
     await mkdir(dirname(target), { recursive: true })

@@ -7,15 +7,16 @@ import type {
   WorkspaceFileRange,
   WorkspaceFileText,
 } from '@deepseek-ai/dsh-api-workspace-files/types'
+import { isManagedDocumentPath, projectDocuments, type ProjectDocumentView } from './project-documents.ts'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 
-/** One fixed AIPM stage and its project-directory name. */
+/** One fixed progress stage and its legacy directory identifier. */
 export interface ProjectStageDefinition {
   readonly id: string
   readonly title: string
 }
 
-/** Ordered project stages. Their ids are also the output-directory names. */
+/** Ordered progress stages; ids recognize legacy output directories only. */
 export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
   { id: '01-立项', title: '立项' },
   { id: '02-需求分析', title: '需求分析' },
@@ -31,6 +32,7 @@ export const PROJECT_STAGES: readonly ProjectStageDefinition[] = [
 const STAGE_BY_ID = new Map(PROJECT_STAGES.map(stage => [stage.id, stage]))
 const INTERNAL_DIRECTORIES = new Set(['.aipm', '.git', 'node_modules'])
 const INTERNAL_ROOT_FILES = new Set(['.DS_Store', 'AGENTS.md'])
+const INTERNAL_FILES = new Set(['.workshop.json'])
 const MAX_SCAN_DEPTH = 4
 const MAX_PROJECT_FILES = 600
 
@@ -65,7 +67,7 @@ export interface ProjectFileView {
 
 /** Recoverable project read failure shown without hiding the project itself. */
 export interface ProjectReadIssue {
-  readonly code: 'session-required' | 'state-invalid' | 'scan-failed' | 'scan-limit-reached'
+  readonly code: 'session-required' | 'state-invalid' | 'scan-failed' | 'scan-limit-reached' | 'documents-invalid'
   readonly message: string
 }
 
@@ -79,6 +81,7 @@ export interface ProjectView {
   readonly state?: ProjectStateView
   readonly materials: readonly ProjectFileView[]
   readonly outputs: readonly ProjectFileView[]
+  readonly documents?: readonly ProjectDocumentView[]
   readonly issues: readonly ProjectReadIssue[]
 }
 
@@ -213,14 +216,15 @@ async function scanFiles(
         if (files.length >= MAX_PROJECT_FILES) return undefined
         continue
       }
-      if (entry.type !== 'file' || (depth === 0 && INTERNAL_ROOT_FILES.has(entry.name))) continue
+      if (entry.type !== 'file' || INTERNAL_FILES.has(entry.name) || (depth === 0 && INTERNAL_ROOT_FILES.has(entry.name))) continue
       const stage = stageOf(path)
       files.push({
         name: entry.name,
         relativePath: path,
         extension: extensionOf(entry.name),
         ...(entry.size === undefined ? {} : { size: entry.size }),
-        kind: stage === undefined ? 'material' : 'output',
+        kind: stage === undefined && !isManagedDocumentPath(path) && !/^(PRD|方案|需求文档|技术方案)\.(md|html|docx|pdf)$/i.test(path)
+          ? 'material' : 'output',
         ...(stage === undefined ? {} : { stage }),
       })
     }
@@ -273,12 +277,38 @@ export async function readProjectView(
       ? file
       : { ...file, sessionId: stageSessionId }
   })
+  let documents: readonly ProjectDocumentView[]
+  try {
+    let catalog: string | undefined
+    if (files.some(file => isManagedDocumentPath(file.relativePath))) {
+      const pages: string[] = []
+      let offset = 1
+      let version: string | undefined
+      for (;;) {
+        const result = await remote.read(sessionId, '.aipm/documents.json', { offset }, signal)
+        if (!result.ok) throw new Error('Document catalog is unavailable')
+        const page = result.value
+        if (version !== undefined && version !== page.version) throw new Error('Document catalog changed while reading')
+        version = page.version
+        pages.push(page.text)
+        if (page.eof) break
+        if (page.lines === 0) throw new Error('Document catalog page did not advance')
+        offset += page.lines
+      }
+      catalog = pages.join('\n')
+    }
+    documents = projectDocuments([...files.filter(file => file.kind === 'material'), ...outputs], catalog, workspace.sessionIds)
+  } catch (error) {
+    issues.push({ code: 'documents-invalid', message: error instanceof Error ? error.message : String(error) })
+    documents = projectDocuments(files.filter(file => !isManagedDocumentPath(file.relativePath)))
+  }
   return {
     workspace,
     readerSessionId: sessionId,
+    documents,
     name: state?.name.trim() || workspace.title,
     summary: state?.summary ?? '',
-    initialized: state !== undefined,
+    initialized: state !== undefined || stateResult.issue !== undefined,
     ...(state === undefined ? {} : { state }),
     materials: files.filter(file => file.kind === 'material'),
     outputs,

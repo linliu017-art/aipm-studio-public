@@ -9,6 +9,7 @@ import { apply, inject } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SidebarRootInjected } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { apply as hostApply } from '../src/index.ts'
+import type { WorkshopPanelInjected } from '../src/client/WorkshopPanel.tsx'
 
 const owners = new Set<Fiber>()
 afterEach(async () => {
@@ -33,7 +34,8 @@ async function bench(declare = true) {
   await ctx.plugin(SlotRegistry).await()
   const layout = { selectPanel: vi.fn() }
   const uiWorkspace = {
-    startSession: vi.fn(),
+    startWorkshop: vi.fn(async () => {}),
+    startSession: vi.fn<SidebarRootInjected['startSession']>(),
     openWorkspace: vi.fn(() => Promise.resolve()),
     openSession: vi.fn(),
   }
@@ -41,7 +43,8 @@ async function bench(declare = true) {
   ctx.provide('shortcuts', { catalog: createSnapshotStore([]) } as never)
   ctx.provide('layout', layout)
   ctx.provide('uiWorkspace', uiWorkspace as never)
-  ctx.provide('remote', { workspaceFiles: { list: vi.fn(), read: vi.fn() } } as never)
+  ctx.provide('remote.workspace', {} as never)
+  ctx.provide('remote', { workspace: { renameProject: vi.fn(async () => ({ ok: true })) }, workspaceFiles: { list: vi.fn(), read: vi.fn() } } as never)
   ctx.provide('remote.workspaceFiles', {} as never)
   ctx.provide('sidebarRight', sidebarRight as never)
   ctx.provide('locale', new LocaleRuntime(ctx))
@@ -67,7 +70,7 @@ describe('ui-sidebar apply', () => {
   it('declares only the services it uses', () => {
     expect(inject).toEqual([
       'slots', 'layout', 'uiWorkspace', 'locale', 'shortcuts',
-      'remote', 'remote.workspaceFiles', 'sidebarRight',
+      'remote', 'remote.workspaceFiles', 'remote.workspace', 'sidebarRight',
     ])
   })
 
@@ -87,10 +90,10 @@ describe('ui-sidebar apply', () => {
     const injected = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
     expect(Object.keys(injected)).toEqual(['startSession', 'selectPanel', 'hooks'])
     expect(injected.hooks.panels.getSnapshot().map(panel => panel.id)).toEqual([
-      'aipm-projects',
+      'aipm-workshop', 'aipm-projects',
     ])
     expect(b.slots.entries('main').map(entry => entry.options.key)).toEqual([
-      'aipm-projects',
+      'aipm-workshop', 'aipm-projects',
     ])
     // Both arms delegate to the Workspace UI's shared New Session action.
     injected.startSession('workspace' as never)
@@ -105,6 +108,24 @@ describe('ui-sidebar apply', () => {
     injected.selectPanel(panelId)
     expect(b.layout.selectPanel).toHaveBeenCalledExactlyOnceWith(panelId)
     expectTypeOf<Parameters<SidebarRootInjected['selectPanel']>[0]>().toEqualTypeOf<MainPanelId | null>()
+  })
+
+  it('opens Workshop without a Session and sends only the task and structured choices on launch', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const navigation = (b.slots.entries('sidebar')[0]!.inject as () => SidebarRootInjected)()
+    b.sidebarRight.isExpanded.mockReturnValue(true)
+    navigation.selectPanel('aipm-workshop' as MainPanelId)
+    expect(b.layout.selectPanel).toHaveBeenCalledWith('aipm-workshop')
+    expect(b.sidebarRight.toggleExpanded).toHaveBeenCalledOnce()
+    expect(b.uiWorkspace.startSession).not.toHaveBeenCalled()
+    const entry = b.slots.entries('main').find(item => item.options.key === 'aipm-workshop')!
+    const startWorkshop = entry.inject!().startWorkshop as WorkshopPanelInjected['startWorkshop']
+    void startWorkshop({ mode: 'idea', task: '收入助手', output: 'prd' })
+    expect(b.uiWorkspace.startWorkshop).toHaveBeenLastCalledWith(undefined, '收入助手', { mode: 'idea', output: 'prd' })
+    expect(b.uiWorkspace.startSession).not.toHaveBeenCalled()
+    void startWorkshop({ mode: 'iterate', task: '补充异常流程', output: 'plan', workspaceId: 'selected-project' as never })
+    expect(b.uiWorkspace.startWorkshop).toHaveBeenLastCalledWith('selected-project', '补充异常流程', { mode: 'iterate', output: 'plan' })
   })
 
   it('opens a project deliverable on the right without leaving its project page', async () => {
@@ -155,20 +176,20 @@ describe('ui-sidebar apply', () => {
       await panel.await()
       await vi.waitFor(() => {
         expect(injected.hooks.panels.getSnapshot().map(item => item.id)).toEqual([
-          'aipm-projects', 'custom-panel',
+          'aipm-workshop', 'aipm-projects', 'custom-panel',
         ])
       })
       expect(b.slots.entries('main').map(entry => entry.options.key)).toEqual([
-        'aipm-projects', 'custom-panel',
+        'aipm-workshop', 'aipm-projects', 'custom-panel',
       ])
       await panel.dispose()
       await vi.waitFor(() => {
         expect(injected.hooks.panels.getSnapshot().map(item => item.id)).toEqual([
-          'aipm-projects',
+          'aipm-workshop', 'aipm-projects',
         ])
       })
       expect(b.slots.entries('main').map(entry => entry.options.key)).toEqual([
-        'aipm-projects',
+        'aipm-workshop', 'aipm-projects',
       ])
     } finally {
       await panel.dispose()

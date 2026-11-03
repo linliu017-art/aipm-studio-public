@@ -12,6 +12,7 @@ import {
 } from '@deepseek-ai/dsh-workspace'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { workspaceView } from './feed.ts'
+import { renameProjectState } from './project-name.ts'
 import type {
   WorkspaceArchiveSessionRequest,
   WorkspaceArchiveValue,
@@ -86,6 +87,26 @@ export class WorkspaceCommands {
         }
         await workspace.setTitle(title)
       }
+      return { workspace: workspaceView(workspace) }
+    })
+  }
+
+  /**
+   * Rename a saved project and its Workspace without moving files or changing stage progress.
+   * @param request - registered project identity and proposed title.
+   * @returns updated Workspace once both names have committed.
+   */
+  renameProject(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
+    const title = request.title.trim()
+    if (title === '') return Promise.reject(new RemoteError('gateway/bad-request', 'Project name must not be blank', {}))
+    return this.enqueue(async () => {
+      const workspace = this.requireWorkspace(request.workspaceId)
+      if (this.ctx.workspaceRegistry.list().some(candidate => candidate.id !== workspace.id && candidate.title === title)) {
+        throw new RemoteError('workspace/name-conflict', `Project name '${title}' is already in use`, { name: title })
+      }
+      await renameProjectState(workspace.path, title, async () => {
+        if (workspace.title !== title) await workspace.setTitle(title)
+      })
       return { workspace: workspaceView(workspace) }
     })
   }

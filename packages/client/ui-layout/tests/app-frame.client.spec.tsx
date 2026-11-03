@@ -237,7 +237,7 @@ describe('AppFrame', () => {
     expect(tracks(frame)).toEqual([280, 0])
   })
 
-  it.each(['aipm-projects', 'schedules'])('omits history and its resize handle on %s, restoring them on return', (panel) => {
+  it.each(['aipm-projects', 'aipm-workshop', 'schedules'])('omits history and its resize handle on %s, restoring them on return', (panel) => {
     const { instance, frame, sidebarOwner } = mountFrame()
     act(() => { instance.actions.setSidebar(340) })
     act(() => { instance.actions.selectPanel(panel as MainPanelId) })

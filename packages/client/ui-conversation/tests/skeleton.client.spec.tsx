@@ -130,6 +130,7 @@ function mount(
     overlayTakeover?: boolean
     /** The session list summary's `blank` flag — independent of the snapshot's. */
     summaryBlank?: boolean
+    allowUngrouped?: boolean
     /** Drop the session's summary row entirely (a session the list has not caught up with). */
     omitSummaryRow?: boolean
     /** Classify the selected child as a subagent instead of an ordinary fork. */
@@ -345,6 +346,7 @@ function mount(
       renderSlotChain,
       renderFactorySlot,
       selectWorkspace: retargetWorkspace,
+      allowUngrouped: options.allowUngrouped === true,
       t,
     }
     const useFactorySlot = ((name: string, fallback: (props: never) => ReactNode) => (
@@ -399,6 +401,15 @@ describe('Hero chrome', () => {
 })
 
 describe('ConversationRoot resident composer', () => {
+  it('allows an isolated ungrouped draft to compose without selecting or registering a Workspace', () => {
+    const b = mount(sessionSnapshotOf({ blank: true }), [], undefined, {
+      summaryBlank: true, allowUngrouped: true,
+    })
+    expect(b.view.getByText('未归属项目')).toBeTruthy()
+    expect(b.view.getByRole('textbox').getAttribute('contenteditable')).toBe('true')
+    expect(b.retargetWorkspace).not.toHaveBeenCalled()
+  })
+
   it('keeps global header navigation without selecting a Session', () => {
     const b = mount(sessionSnapshotOf(), [], undefined, { sessionId: undefined })
     expect(b.view.container.querySelector('header')).not.toBeNull()

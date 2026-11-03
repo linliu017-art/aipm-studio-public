@@ -109,6 +109,7 @@ function hostPathBridge(): HostPathBridge | undefined {
 }
 
 interface WorkspaceNavigation {
+  readonly allowsUngrouped?: boolean
   openSession(sessionId: SessionId): void
   openWorkspace(
     workspaceId: Parameters<ConversationInjected['selectWorkspace']>[0],
@@ -324,6 +325,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
       widthControls: { scope: 'root' },
     },
     inject: (sessionId: SessionId | undefined): ConversationInjected => ({
+      allowUngrouped: workspaceNavigation.allowsUngrouped === true,
       hooks: {
         composerBlock: sessionId === undefined ? ABSENT_BLOCK : composerBlocks.storeFor(sessionId),
       },

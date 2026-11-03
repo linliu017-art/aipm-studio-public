@@ -59,7 +59,7 @@ interface QuickAction {
   id: string
   title: SidebarKey
   description: SidebarKey
-  prompt: string
+  prompt: SidebarKey
   icon: ReactNode
 }
 
@@ -69,35 +69,35 @@ const QUICK_ACTIONS: readonly QuickAction[] = [
     id: 'research',
     title: 'quick.research.title',
     description: 'quick.research.description',
-    prompt: '请帮我完成调研与分析。请先结合当前项目材料，梳理市场、用户、竞品与趋势，再根据任务需要输出结论。',
+    prompt: 'quick.research.prompt',
     icon: <IconSearchOutlineRegular size={16} />,
   },
   {
     id: 'material',
     title: 'quick.material.title',
     description: 'quick.material.description',
-    prompt: '请帮我处理当前项目材料。请先阅读已有文件，再按我的具体目标整理、对比并提取关键信息。',
+    prompt: 'quick.material.prompt',
     icon: <IconDataOutlineRegular size={16} />,
   },
   {
     id: 'planning',
     title: 'quick.planning.title',
     description: 'quick.planning.description',
-    prompt: '请帮我完成项目规划与管理。请结合已有材料拆解任务、梳理依赖和进度，并标出风险与待确认项。',
+    prompt: 'quick.planning.prompt',
     icon: <IconChecklistOutlineRegular size={16} />,
   },
   {
     id: 'review',
     title: 'quick.review.title',
     description: 'quick.review.description',
-    prompt: '请帮我评审当前项目或指定材料，重点发现信息缺口、风险、矛盾和可优化的地方。',
+    prompt: 'quick.review.prompt',
     icon: <IconInspectOutlineRegular size={16} />,
   },
   {
     id: 'output',
     title: 'quick.output.title',
     description: 'quick.output.description',
-    prompt: '请帮我创建一项产品产出。请先读取当前项目材料，判断需要的前置信息和对应能力，再按我稍后补充的要求生成文档、方案、流程或原型。',
+    prompt: 'quick.output.prompt',
     icon: <IconListPenOutlineRegular size={16} />,
   },
 ] as const
@@ -135,7 +135,7 @@ export function SidebarRoot({
   const activePanelId = usePanelInfo(info => info.activePanelId)
   const newShortcut = useShortcuts(rows => rows.find(row => row.id === 'session.new'))
   const [quickOpen, setQuickOpen] = useState(false)
-  const railOnly = activePanelId === 'aipm-projects' || activePanelId === 'schedules'
+  const railOnly = activePanelId === 'aipm-projects' || activePanelId === 'aipm-workshop' || activePanelId === 'schedules'
   const buildVersion = localBuildVersion()
   const darwinDesktop = isDarwinDesktop()
   const identity = (
@@ -253,7 +253,7 @@ export function SidebarRoot({
                   type="button"
                   className={css.quickAction}
                   onClick={() => {
-                    startSession(undefined, { prompt: action.prompt, clearPreviousDraft: true })
+                    startSession(undefined, { prompt: t(action.prompt) })
                   }}
                 >
                   <span className={css.quickIcon} aria-hidden="true">{action.icon}</span>

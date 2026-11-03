@@ -386,6 +386,10 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions }: Questi
 
   const continueFlow = (): void => {
     if (!answered(draft)) {
+      if (!hasOptions) {
+        skipQuestion()
+        return
+      }
       setError({ key: 'error.unanswered' })
       return
     }
@@ -616,7 +620,7 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions }: Questi
                   </Button>
                   <Button
                     variant="primary"
-                    disabled={busy !== null || !answered(draft) || (index === questions.length - 1 && !canSubmit)}
+                    disabled={busy !== null || (hasOptions && !answered(draft)) || (index === questions.length - 1 && !canSubmit)}
                     onClick={continueFlow}
                   >
                     {busy === 'answer'

@@ -1389,6 +1389,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-agent-preset AgentPresetLabel id \'agent-preset\'',
       'client-ui-jobs JobListAction id \'job-list\'',
       'client-ui-subagent SubagentCatalogAction id \'subagent-catalog\'',
+      'client-ui-workspace ProjectContext id \'workspace.project-context\'',
       'experimental-client-ui-agent-team TeamAction id \'agent-team\'',
     ],
     replaceRisk: 'none',
@@ -1799,6 +1800,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-conversation ConversationPanel key \'conversation\'',
       'client-ui-plugin-manager PluginManagerPage',
       'client-ui-schedule TaskManagerPage',
+      'client-ui-sidebar WorkshopPanel',
       'client-ui-sidebar ProjectsPanel',
     ],
     replaceRisk: 'shadows-shipped-ui',
@@ -3235,6 +3237,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       'client-ui-plugin-manager PluginsPanelIcon',
       'client-ui-schedule TaskManagerIcon',
+      'client-ui-sidebar WorkshopPanelIcon',
       'client-ui-sidebar ProjectsPanelIcon',
     ],
     replaceRisk: 'none',

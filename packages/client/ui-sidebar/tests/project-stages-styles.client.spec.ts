@@ -15,11 +15,10 @@ describe('project overview adaptation', () => {
     expect(css).not.toMatch(/\.status\b/)
   })
 
-  it('keeps Markdown icons unfilled and adds only a faint tint to stage folders', () => {
+  it('keeps Markdown icons unfilled in the logical document list', () => {
     const markdown = css.match(/(?:^|\n)\.markdownIcon\s*\{([^}]*)\}/)?.[1]
     expect(markdown).toContain('var(--dsw-nini-accent-text)')
     expect(markdown).not.toMatch(/background|border|box-shadow/)
-    expect(css).toMatch(/\.stageFolderIcon\s*\{[^}]*background: color-mix\(in srgb, var\(--dsw-nini-accent\) 8%, transparent\);/)
   })
 
   it('uses light/dark semantic colors for numbered status controls', () => {

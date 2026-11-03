@@ -339,12 +339,16 @@ Host service backing the generated `ctx.remote.workspace` namespace.
 @Remote('create') create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue>
 
 /**
- * Initialize or reuse the default Workspace during first-use startup. The
- * directory name is fixed, so the Host never renames or relocates an
- * existing default; its initial title is that same name, which browser
- * consumers label in the reader's language.
- * @param signal - caller lifetime; cancels native directory lookup.
- * @returns the durable Workspace, or undefined when first-use initialization is ineligible; creates no Session or message.
+ * Prepare an unregistered idea directory outside existing project trees.
+ * @param signal - caller lifetime and directory-lookup cancellation.
+ * @returns an empty directory path; no Workspace, Session or project files are created.
+ */
+@Remote('createIdea') async createIdea(signal: AbortSignal): Promise<IdeaDirectoryValue>
+
+/**
+ * Initialize or reuse the first-use Workspace without creating a Session.
+ * @param signal - caller lifetime and directory-lookup cancellation.
+ * @returns the default Workspace when initialization is eligible.
  */
 @Remote('initializeDefault') async initializeDefault(signal: AbortSignal): Promise<WorkspaceValue | undefined>
 
@@ -354,6 +358,13 @@ Host service backing the generated `ctx.remote.workspace` namespace.
  * @returns the updated Workspace projection.
  */
 @Remote('rename') rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue>
+
+/**
+ * Change a saved project's name and its Workspace title without moving its directory.
+ * @param request - registered project identity and non-blank title.
+ * @returns Workspace after project metadata and title have been saved.
+ */
+@Remote('renameProject') renameProject(request: WorkspaceRenameRequest): Promise<WorkspaceValue>
 
 /**
  * Remove one Workspace registration while retaining files and Sessions.

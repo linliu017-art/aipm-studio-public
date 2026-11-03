@@ -1,6 +1,9 @@
 /** Session commands whose activation policy is explicit at each Remote method. */
 
 import { modelAvailable } from './catalog.ts'
+import { prepareDelivery } from './delivery-context.ts'
+import { prepareInspectionTarget } from './inspection-context.ts'
+import { workshopContext } from './workshop-context.ts'
 import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -352,6 +355,11 @@ export class SessionCommandController {
           receiptId => this.ctx.fileUploads.resolve(agent, receiptId),
         )
         const content = await this.ctx.attachments.admitPromptContent(admission.content)
+        const delivery = await prepareDelivery(agent.session, request.workshop, request.requestId,
+          request.content.filter(part => part.type === 'text').map(part => part.text).join('\n'))
+        const inspection = delivery?.inspection ?? await prepareInspectionTarget(agent.session, request.workshop)
+        const context = request.workshop === undefined ? undefined : await workshopContext(this.ctx, agent, request.workshop)
+        if (hasPromptRequest(agent, request.requestId)) return { accepted: true }
         const message: UserMessage = createUserMessage({ content, source })
         if (this.ctx.agents.get(agent.id) !== agent) {
           throw new RemoteError(
@@ -361,8 +369,11 @@ export class SessionCommandController {
           )
         }
         using binding = this.ctx.fileUploads.bindPrompt(agent, admission.receiptIds, request.requestId)
+        if (context !== undefined) agent.inject(context)
         if (request.mode === 'steer') agent.steer(message)
         else agent.followup(message)
+        if (delivery !== undefined) agent.session.append('workshop/delivery-start', delivery.selection)
+        if (inspection !== undefined) agent.session.append('workshop/inspection-start', { ...inspection, requestId: request.requestId })
         binding.commit()
       } catch (error) {
         if (remoteErrorOf(error) !== undefined) throw error

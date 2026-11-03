@@ -1,0 +1,10 @@
+version: 1
+scenario: aipm-agent-workshop
+profile: headless
+composition: aipm-agent-workshop
+recording: authored
+header:
+  class: aipm-agent-workshop
+  pin: true
+workspace:
+  setup: aipm-workshop-skill

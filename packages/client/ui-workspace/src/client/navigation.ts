@@ -17,6 +17,7 @@ import type {
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { DEFAULT_WORKSPACE_DIRECTORY } from '@deepseek-ai/dsh-api-workspace-controller/default-workspace'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkshopTaskOptions } from '@deepseek-ai/dsh-api-session-controller/types'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { DraftInitializationOptions } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { RowToast } from './contract/slots.ts'
@@ -29,10 +30,15 @@ interface MainSelection {
 }
 
 /** Optional content preparation for the resolved target Session. */
-export type StartSessionOptions = DraftInitializationOptions
+export type StartSessionOptions = DraftInitializationOptions & {
+  /** New-task starts are fresh by default; false explicitly opts into blank-Session reuse. */
+  readonly newSession?: boolean
+}
 
 /** Workspace archive and directory operations consumed by Client UI domains. */
 export interface UiWorkspace {
+  /** Isolated conversations can compose before being registered to a Workspace. */
+  readonly allowsUngrouped: boolean
   /**
    * Select a Session and show its Conversation as one UI navigation action.
    * @param target - known Session identity or durable direct-parent subagent address to display.
@@ -42,7 +48,7 @@ export interface UiWorkspace {
   /**
    * Connect a Workspace and open its Session unless a later navigation supersedes it.
    * @param workspaceId - target Workspace.
-   * @param beforeOpen - optional synchronous preparation for the selected Session,
+   * @param beforeOpen - optional synchronous preparation for a fresh target Session,
    * skipped after supersession; a throw aborts the open and releases the retained reference.
    * @returns completion; a superseded request may create a Session but does not open it.
    * @throws on failure; a refused creation is also shown through the Workspace
@@ -65,11 +71,20 @@ export interface UiWorkspace {
   /**
    * Start a New Session flow and navigate to its Session; a creation the Host
    * refuses is shown through the Workspace notice and leaves the selection as it was.
-   * @param workspaceId - explicit target; absent uses the automatic default Workspace,
-   * then inherits the current or most recent Workspace when that default is unavailable.
-   * @param options - initial content; existing text or attachments are preserved unless clearPreviousDraft is true.
+   * @param workspaceId - explicit project to continue; absent creates an independent idea when configured,
+   * otherwise uses the default, current, or recent Workspace.
+   * @param options - initial content and optional fresh Session;
+   * other Sessions retain their text and attachments; newSession: false explicitly requests blank reuse.
    */
   startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void
+  /**
+   * Submit a Workshop task before showing its fresh conversation, preserving other drafts.
+   * @param workspaceId - explicit project, or an independent idea when absent.
+   * @param task - user-authored task or a localized materials request.
+   * @param options - workflow and output selection sent as structured Host parameters.
+   * @returns after acceptance and navigation; failures retain the current page and raise a notice.
+   */
+  startWorkshop(workspaceId: WorkspaceId | undefined, task: string, options: WorkshopTaskOptions): Promise<void>
   /**
    * Archive a Session and clear it when it is the current selection.
    * @param sessionId - Session to archive.
@@ -140,6 +155,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     {}, { persist: { name: 'dsh.sessions.current' } },
   )
   private mainReference: SessionReference | undefined
+  private readonly creatingIdeas = new Map<boolean, Promise<SessionId>>()
 
   /**
    * @param ctx - Client root Context.
@@ -156,6 +172,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     private readonly sessions: ISessions,
     private readonly view: Pick<WorkspaceViewStoreActions, 'pinSessionOrder'>,
     private readonly notify: (toast: RowToast) => void,
+    private readonly createIdea?: () => Promise<string>,
   ) {
     super(ctx, 'uiWorkspace')
     ctx.effect(() => {
@@ -169,6 +186,8 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       }
     }, 'ui-workspace: Workspace navigation policy')
   }
+
+  get allowsUngrouped(): boolean { return this.createIdea !== undefined }
 
   async connectWorkspace(workspaceId: WorkspaceId): Promise<SessionId> {
     const workspace = this.workspaces.list.getSnapshot().items
@@ -211,10 +230,23 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   async openWorkspace(workspaceId: WorkspaceId, beforeOpen?: (sessionId: SessionId) => void): Promise<void> {
+    return this.openConnectedSession(() => beforeOpen === undefined
+      ? this.connectWorkspace(workspaceId)
+      : this.createWorkspaceSession(workspaceId), beforeOpen)
+  }
+
+  private async createWorkspaceSession(workspaceId: WorkspaceId): Promise<SessionId> {
+    if (!this.workspaces.list.getSnapshot().items.some(item => item.workspaceId === workspaceId)) {
+      throw new Error(`uiWorkspace.connectWorkspace: unknown workspace ${workspaceId}`)
+    }
+    return this.sessions.create({ workspaceId })
+  }
+
+  private async openConnectedSession(connect: () => Promise<SessionId>, beforeOpen?: (sessionId: SessionId) => void): Promise<void> {
     const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
     let sessionId: SessionId
     try {
-      sessionId = await this.connectWorkspace(workspaceId)
+      sessionId = await connect()
     } catch (error: unknown) {
       // Reported here, not in connectWorkspace: startup restoration calls that
       // directly and stays console-only.
@@ -233,6 +265,10 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const draftOptions = options === undefined ? undefined : { ...options }
     const initializeDraft = draftOptions !== undefined
       && (draftOptions.prompt !== undefined || draftOptions.clearPreviousDraft === true)
+    if (workspaceId === undefined && this.createIdea !== undefined) {
+      void this.openIdea(draftOptions, 'reveal', draftOptions?.newSession === false).catch((reason: unknown) => { console.warn('new idea failed:', reason) })
+      return
+    }
     const workspace = this.workspaces.list.getSnapshot()
     const sessions = this.sessions.list.getSnapshot()
     const current = this.mainReference?.sessionId
@@ -254,13 +290,86 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       this.clearMain()
       return
     }
-    void this.openWorkspace(target, initializeDraft ? (id) => {
+    const prepare = initializeDraft ? (id: SessionId) => {
       const binding = this.sessions.binding(id)
       if (binding === undefined) this.draftPreparationFailed()
       this.prepareDraft(binding, draftOptions)
-    } : undefined).catch(
+    } : undefined
+    const opening = draftOptions?.newSession !== false
+      ? this.openConnectedSession(() => this.createWorkspaceSession(target), prepare)
+      : this.openWorkspace(target, prepare)
+    void opening.catch(
       (reason: unknown) => { console.warn('new session failed:', reason) },
     )
+  }
+
+  async startWorkshop(workspaceId: WorkspaceId | undefined, task: string, options: WorkshopTaskOptions): Promise<void> {
+    const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
+    try {
+      let sessionId: SessionId
+      if (workspaceId === undefined) {
+        const createIdea = this.createIdea
+        if (createIdea === undefined) throw new Error('Independent idea creation is not configured')
+        sessionId = await this.sessions.create({ cwd: await createIdea() })
+      } else {
+        sessionId = await this.sessions.create({ workspaceId })
+      }
+      navigation.throwIfAborted()
+      using reference = this.sessions.retain(sessionId, { source: 'mainView' })
+      const binding = await reference.ready
+      navigation.throwIfAborted()
+      const result = await binding.session.prompt([{ type: 'text', text: task }], 'queue', navigation, undefined, options)
+      if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
+      if (!navigation.aborted) this.replaceMain(sessionId, navigation, 'reveal')
+    } catch (error) {
+      if (!navigation.aborted) this.notify({ kind: 'createFailed', message: creationFailureMessage(error) })
+      throw error
+    }
+  }
+
+  private async openIdea(options?: StartSessionOptions, panel: 'reveal' | 'preserve' = 'reveal', reuse = true): Promise<void> {
+    const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
+    try {
+      if (this.createIdea === undefined) throw new Error('Independent idea creation is not configured')
+      const id = await this.resolveIdea(reuse)
+      navigation.throwIfAborted()
+      this.replaceMain(id, navigation, panel, options === undefined ? undefined : (sessionId) => {
+        const binding = this.sessions.binding(sessionId)
+        if (binding === undefined) this.draftPreparationFailed()
+        this.prepareDraft(binding, options)
+      })
+    } catch (error) {
+      if (!navigation.aborted) this.notify({ kind: 'createFailed', message: creationFailureMessage(error) })
+      throw error
+    }
+  }
+
+  private async resolveIdea(reuse = true): Promise<SessionId> {
+    const pending = this.creatingIdeas.get(reuse)
+    if (pending !== undefined) return pending
+    const workspace = this.workspaces.list.getSnapshot()
+    const sessions = this.sessions.list.getSnapshot()
+    const blank = sessions.ids.map(id => sessions.byId[id]).find(summary =>
+      summary !== undefined && summary.blank && summary.cwd !== undefined
+      && /[/\\]idea-[a-zA-Z0-9]{6}$/.test(summary.cwd)
+      && !workspace.archivedSessionIds.includes(summary.id)
+      && !workspace.items.some(item => item.sessionIds.includes(summary.id)
+        || summary.cwd === item.path || summary.cwd?.startsWith(`${item.path}/`)
+        || summary.cwd?.startsWith(`${item.path}\\`)),
+    )
+    const attempt = (async () => {
+      if (reuse && blank?.cwd !== undefined) {
+        try {
+          return await this.sessions.create({ sessionId: blank.id, cwd: blank.cwd })
+        } catch (error) {
+          if (sessionCreateErrorOf(error)?.rpcError.code !== 'session/writer-held') throw error
+        }
+      }
+      if (this.createIdea === undefined) throw new Error('Independent idea creation is not configured')
+      return this.sessions.create({ cwd: await this.createIdea() })
+    })().finally(() => { this.creatingIdeas.delete(reuse) })
+    this.creatingIdeas.set(reuse, attempt)
+    return attempt
   }
 
   private prepareDraft(binding: SessionBinding, options: DraftInitializationOptions): void {
@@ -359,8 +468,14 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const summary = saved.sessionId === undefined ? undefined : sessions.byId[saved.sessionId]
     const workspace = summary === undefined ? undefined
       : workspaces.items.find(item => item.sessionIds.includes(summary.id))
-    if (summary !== undefined && (!summary.blank || workspace === undefined)) {
+    if (summary !== undefined && !workspaces.archivedSessionIds.includes(summary.id)
+      && (!summary.blank || workspace === undefined)) {
       this.replaceMain(summary.id, this.lifetime.signal, 'preserve')
+      return
+    }
+    if (this.createIdea !== undefined && (summary === undefined
+      || (summary.blank && (workspace === undefined || workspace.title === DEFAULT_WORKSPACE_DIRECTORY)))) {
+      await this.openIdea(undefined, 'preserve')
       return
     }
     const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])

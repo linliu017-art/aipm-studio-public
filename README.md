@@ -8,7 +8,7 @@ AIPM Studio is a personal AI product-management workspace built on [DeepSeek Har
 
 - Organize a product project into nine independent work areas, with stage progress, source materials, and generated documents.
 - Complete a requested deliverable using the project's existing materials, then stop for the next user instruction.
-- Use the bundled project-initiation skill and general writing skill. The other eight stages currently use general task methods and do not have dedicated stage skills.
+- Use 13 bundled skills for initiation, requirements, PRDs, prototypes, research, task planning, and writing, including Agent Workshop for AI product PRDs and technical plans. Launch and retrospective work still use general methods.
 
 This project is experimental. Review generated decisions and documents, and back up important project files before letting the agent edit them.
 

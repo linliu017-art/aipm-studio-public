@@ -106,7 +106,7 @@ async function scanProjectFiles(root: string, options: ProjectScanOptions): Prom
         if (truncated) return
         continue
       }
-      if (!entry.isFile()) continue
+      if (!entry.isFile() || entry.name === '.workshop.json') continue
       const path = join(directory, entry.name)
       const relativePath = relative(root, path)
       if (depth === 0 && INTERNAL_ROOT_FILES.has(entry.name)) continue
@@ -124,7 +124,7 @@ async function scanProjectFiles(root: string, options: ProjectScanOptions): Prom
         extension: extname(entry.name).slice(1).toLowerCase(),
         size: details.size,
         modifiedAt: details.mtime.toISOString(),
-        kind: stage === undefined ? 'material' : 'output',
+        kind: stage === undefined && !relativePath.startsWith('文档' + sep) ? 'material' : 'output',
         ...(stage === undefined ? {} : { stage }),
       })
     }

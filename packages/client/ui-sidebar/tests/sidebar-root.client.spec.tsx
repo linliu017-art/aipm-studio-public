@@ -27,7 +27,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-function mountShell(shortcuts: readonly ShortcutCatalogEntry[] = [], withHeader = false, panel: 'aipm-projects' | 'schedules' | null = null) {
+function mountShell(shortcuts: readonly ShortcutCatalogEntry[] = [], withHeader = false, panel: 'aipm-projects' | 'aipm-workshop' | 'schedules' | null = null) {
   const startSession = vi.fn<SidebarRootComponentProps['startSession']>()
   let regionOwner: SidebarSectionOwnerProps | undefined
   let settingsOwner: SidebarSettingsOwnerProps | undefined
@@ -123,8 +123,16 @@ describe('fixed SidebarRoot shell', () => {
     expect(shell.startSession).toHaveBeenCalledOnce()
     const [workspace, options] = shell.startSession.mock.calls[0]!
     expect(workspace).toBeUndefined()
-    expect(options?.prompt).toContain('调研与分析')
-    expect(options?.clearPreviousDraft).toBe(true)
+    expect(options?.prompt).toBe('I want to research: ')
+    expect(options?.clearPreviousDraft).toBeUndefined()
+    expect(shell.startSession.mock.calls[0]).toMatchInlineSnapshot(`
+      [
+        undefined,
+        {
+          "prompt": "I want to research: ",
+        },
+      ]
+    `)
   })
 
   it('renders the local-build fallback when brand slots are empty', () => {
@@ -141,7 +149,7 @@ describe('fixed SidebarRoot shell', () => {
     expect(screen.getByText('1.2.3')).toBeTruthy()
   })
 
-  it.each(['aipm-projects', 'schedules'] as const)('hides the history pane and quick actions on %s', (panel) => {
+  it.each(['aipm-projects', 'aipm-workshop', 'schedules'] as const)('hides the history pane and quick actions on %s', (panel) => {
     const shell = mountShell([], false, panel)
     expect(shell.container.querySelector('section')?.hidden).toBe(true)
     expect(screen.queryByRole('button', { name: 'Quick actions' })).toBeNull()

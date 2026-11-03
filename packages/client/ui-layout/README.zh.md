@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-root slot 在侧边栏、主内容及可选右栏上方渲染横跨全宽的 `shell.header`。对话页侧栏宽度为 264～420px，默认为 280px；项目与任务中心仅保留固定的 58px 一级菜单，并保留对话栏宽度供返回时恢复。一级菜单没有拖动手柄。右侧面板首次打开使用视口宽度的 45%，之后保留用户的像素宽度偏好，上限为 70%；为保护中栏的 400px 空间，先缩减至 300px，再关闭。拖动没有过渡延迟；右侧手柄在关闭或全屏时不显示。
+root slot 在侧边栏、主内容及可选右栏上方渲染横跨全宽的 `shell.header`。对话页侧栏宽度为 264～420px，默认为 280px；Agent 工坊、项目与任务中心仅保留固定的 58px 一级菜单，并保留对话栏宽度供返回时恢复。一级菜单没有拖动手柄。右侧面板首次打开使用视口宽度的 45%，之后保留用户的像素宽度偏好，上限为 70%；为保护中栏的 400px 空间，先缩减至 300px，再关闭。拖动没有过渡延迟；右侧手柄在关闭或全屏时不显示。
 
 全局面板占据 root 作用域的 `main` keyed slot；`conversation` 是为会话界面保留的 key。`ctx.layout.selectPanel(id)` 选中已注册面板，`null` 则选中会话界面，但不改变当前会话。Plugins 页面是默认组合中的一个全局面板。
 
@@ -34,7 +34,7 @@ root 作用域的单一 `shell.bottom` slot 横跨三列下方的整行。占用
 <a id="window-chrome-seat"></a>
 ### 窗口 chrome 座
 
-在 macOS 桌面（`html[data-platform='darwin']`）下，顶部导航在横向避开 hiddenInset 红绿灯，所有内容列位于其下方。项目与任务中心不再重复叠加原生标题栏避让。根元素的浮层避让仍供挂载到框架外的弹窗与菜单使用。chrome 行通过 `data-window-drag` 标记自己的窗口拖动区域，控件保持可点。
+在 macOS 桌面（`html[data-platform='darwin']`）下，顶部导航在横向避开 hiddenInset 红绿灯，所有内容列位于其下方。Agent 工坊、项目与任务中心不再重复叠加原生标题栏避让。根元素的浮层避让仍供挂载到框架外的弹窗与菜单使用。chrome 行通过 `data-window-drag` 标记自己的窗口拖动区域，控件保持可点。
 
 Windows Electron 的 `data-windows-titlebar` 标记在所有列上方预留顶栏高度，并移除收起后的侧栏轨道。内容区仅左上角保留 16px 圆角，其余角和内部交界处保持直角。框架发布 `--dsh-windows-content-radius` 和 `--dsh-windows-sidebar-width`，供 ui-sidebar-right 的全屏圆角及侧栏避让使用。普通 Web 文档不会获得该标记；macOS 保留其独立布局。
 

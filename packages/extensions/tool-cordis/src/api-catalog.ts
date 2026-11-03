@@ -3600,16 +3600,28 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the Workspace and whether this call created it.',
       },
       {
+        signature: '@Remote(\'createIdea\') async createIdea(signal: AbortSignal): Promise<IdeaDirectoryValue>',
+        description: 'Prepare an unregistered idea directory outside existing project trees.',
+        parameters: [{ name: 'signal', description: 'caller lifetime and directory-lookup cancellation.' }],
+        returns: 'an empty directory path; no Workspace, Session or project files are created.',
+      },
+      {
         signature: '@Remote(\'initializeDefault\') async initializeDefault(signal: AbortSignal): Promise<WorkspaceValue | undefined>',
-        description: 'Initialize or reuse the default Workspace during first-use startup. The directory name is fixed, so the Host never renames or relocates an existing default; its initial title is that same name, which browser consumers label in the reader\'s language.',
-        parameters: [{ name: 'signal', description: 'caller lifetime; cancels native directory lookup.' }],
-        returns: 'the durable Workspace, or undefined when first-use initialization is ineligible; creates no Session or message.',
+        description: 'Initialize or reuse the first-use Workspace without creating a Session.',
+        parameters: [{ name: 'signal', description: 'caller lifetime and directory-lookup cancellation.' }],
+        returns: 'the default Workspace when initialization is eligible.',
       },
       {
         signature: '@Remote(\'rename\') rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue>',
         description: 'Rename one Workspace to a unique non-blank title.',
         parameters: [{ name: 'request', description: 'Workspace identity and proposed title.' }],
         returns: 'the updated Workspace projection.',
+      },
+      {
+        signature: '@Remote(\'renameProject\') renameProject(request: WorkspaceRenameRequest): Promise<WorkspaceValue>',
+        description: 'Change a saved project\'s name and its Workspace title without moving its directory.',
+        parameters: [{ name: 'request', description: 'registered project identity and non-blank title.' }],
+        returns: 'Workspace after project metadata and title have been saved.',
       },
       {
         signature: '@Remote(\'delete\') delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue>',
@@ -5405,6 +5417,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface HostConnectionRpc {\n    handle(channel: string, handler: ConnectionRpcHandler): () => Promise<void>;\n    intercept(channel: \'/api\', matches: ConnectionRpcEndpointMatcher, handler: ConnectionRpcHandler): () => Promise<void>;\n}',
   },
   {
+    name: 'IdeaDirectoryValue',
+    declaration: 'export interface IdeaDirectoryValue {\n    readonly path: string;\n}',
+  },
+  {
     name: 'ImageAttachmentLimits',
     declaration: 'export interface ImageAttachmentLimits {\n    maxImageBytes: number;\n    maxImagesPerMessage: number;\n    maxMessageImageBytes: number;\n    maxImagePixels: number;\n    maxImageDimension: number;\n    mediaTypes: readonly ImageMediaType[];\n}',
   },
@@ -6926,7 +6942,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionPromptRequest',
-    declaration: 'export interface SessionPromptRequest {\n    readonly requestId: SessionRequestId;\n    readonly sessionId: SessionId;\n    readonly mode: \'queue\' | \'steer\';\n    readonly content: readonly PromptContentPart[];\n    readonly clientTimeZone?: string;\n}',
+    declaration: 'export interface SessionPromptRequest {\n    readonly requestId: SessionRequestId;\n    readonly sessionId: SessionId;\n    readonly mode: \'queue\' | \'steer\';\n    readonly content: readonly PromptContentPart[];\n    readonly clientTimeZone?: string;\n    readonly workshop?: WorkshopTaskOptions;\n}',
   },
   {
     name: 'SessionPromptValue',
@@ -8255,6 +8271,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkflowStopReason',
     declaration: 'export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';',
+  },
+  {
+    name: 'WorkshopTaskOptions',
+    declaration: 'export interface WorkshopTaskOptions {\n    readonly reviewTarget?: {\n        readonly documentId: string;\n        readonly version: number;\n    };\n    readonly inspection?: {\n        readonly sourcePath: string;\n        readonly baselinePath?: string;\n    };\n    readonly delivery?: {\n        readonly documents: readonly {\n            readonly id: string;\n            readonly version: number;\n        }[];\n        readonly sourcePath?: string;\n    };\n    readonly mode: \'idea\' | \'materials\' | \'iterate\' | \'review\' | \'reverse\' | \'gaps\' | \'impact\' | \'handoff\';\n    readonly output: \'prd\' | \'plan\' | \'both\';\n}',
   },
   {
     name: 'Workspace',

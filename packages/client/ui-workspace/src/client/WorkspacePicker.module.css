@@ -18,3 +18,12 @@
 .menuStatus {
   color: var(--dsw-alias-label-secondary);
 }
+
+.projectLabel {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}

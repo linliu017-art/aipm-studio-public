@@ -1,5 +1,9 @@
+import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
+import SkillRegistry from '@deepseek-ai/dsh-skill'
 import { createInboxStub } from '@deepseek-ai/dsh-agent-loop-testkit'
 import type { Agent, ModelSelectionRef } from '@deepseek-ai/dsh-agent'
 import AttachmentStore, { AttachmentId } from '@deepseek-ai/dsh-attachment'
@@ -20,7 +24,7 @@ import type { SessionRequestId } from '../src/types.ts'
 
 const SESSION = SessionId('upload-session')
 
-async function uploadHarness(origin?: 'subagent'): Promise<{
+async function uploadHarness(origin?: 'subagent', destination?: string): Promise<{
   ctx: Context
   controller: SessionCommandController
   uploads: FileUploads
@@ -38,7 +42,7 @@ async function uploadHarness(origin?: 'subagent'): Promise<{
   await ctx.plugin(AgentRegistry)
   await ctx.plugin(CommandRuntime)
   const session = ctx.sessions.create(SESSION, {
-    meta: { cwd: '/workspace', ...(origin === undefined ? {} : { origin }) },
+    meta: { cwd: destination ?? '/workspace', ...(origin === undefined ? {} : { origin }) },
   })
   const inbox = createInboxStub()
   const followup = vi.fn()
@@ -121,6 +125,49 @@ function promptRequest(content: Parameters<SessionCommandController['prompt']>[0
     content,
   }
 }
+
+describe('Workshop prompt admission', () => {
+  it.each((['idea', 'materials', 'iterate', 'review'] as const).flatMap(mode => [
+    { mode, output: 'prd' as const, expected: '只生成 PRD，不生成技术方案' },
+    { mode, output: 'plan' as const, expected: '只生成技术方案，不生成 PRD' },
+    { mode, output: 'both' as const, expected: '生成 PRD 和技术方案' },
+  ]))('loads the scoped skill behind a plain user task ($mode/$output)', async ({ mode, output, expected }) => {
+    const { ctx, controller, agent, followup } = await uploadHarness()
+    await ctx.plugin(SkillRegistry)
+    ctx.skills.register({ name: 'agent-workshop', description: 'Workshop', source: 'runtime', content: 'Canonical Workshop instructions' })
+    const inject = vi.fn<Agent['inject']>((message) => { agent.inbox.append('next-step', message) })
+    agent.inject = inject
+    followup.mockImplementation((message: UserMessage) => { agent.inbox.append('next-turn', message) })
+    const request = { ...promptRequest([{ type: 'text', text: '我自己的产品想法' }]), workshop: { mode, output, ...mode === 'review' ? { reviewTarget: { documentId: 'exact-plan', version: 3 } } : {} } }
+    await expect(controller.prompt(request)).resolves.toEqual({ accepted: true })
+    await expect(controller.prompt(request)).resolves.toEqual({ accepted: true })
+    expect(inject).toHaveBeenCalledOnce()
+    const context = inject.mock.calls[0]![0]
+    expect(context.source).toEqual({ kind: 'skill-invocation', name: 'agent-workshop', form: 'instructions' })
+    const text = context.content.filter(item => item.type === 'text').map(item => item.text).join('')
+    expect(text).toContain('Canonical Workshop instructions')
+    expect(text).toContain(mode === 'review' ? '只交付独立审稿报告' : expected)
+    expect(text).toContain('不是产品功能')
+    if (mode === 'review') {
+      expect(text).toContain('exact-plan')
+      expect(text).toContain('严格使用指定版本')
+    }
+    expect(followup).toHaveBeenCalledOnce()
+    const message = followup.mock.calls[0]![0] as UserMessage
+    expect(message.content).toEqual([{ type: 'text', text: '我自己的产品想法' }])
+    expect(inject.mock.invocationCallOrder[0]).toBeLessThan(followup.mock.invocationCallOrder[0]!)
+  })
+
+  it('rejects unavailable Workshop setup before admitting any task', async () => {
+    const { controller, followup, agent } = await uploadHarness()
+    const inject = vi.fn<Agent['inject']>()
+    agent.inject = inject
+    await expect(controller.prompt({ ...promptRequest([{ type: 'text', text: '保留的想法' }]),
+      workshop: { mode: 'idea', output: 'prd' } })).rejects.toMatchObject({ code: 'gateway/internal' })
+    expect(followup).not.toHaveBeenCalled()
+    expect(inject).not.toHaveBeenCalled()
+  })
+})
 
 describe('Session file uploads', () => {
   it('registers an HTTP route bound to the upload service', async () => {
@@ -478,5 +525,69 @@ describe('Session file uploads', () => {
         code: 'gateway/internal',
         message: 'failed to store file upload: Error: disk unavailable',
       })
+  })
+})
+
+
+describe('repository inspection admission', () => {
+  it.each(['reverse', 'gaps'] as const)('records one canonical %s target after admission, outside the user task', async (mode) => {
+    const root = await mkdtemp(join(tmpdir(), 'inspection-admission-'))
+    onTestFinished(() => rm(root, { recursive: true, force: true }))
+    const source = join(root, 'source'); const destination = join(root, 'reports')
+    await mkdir(source); await mkdir(destination)
+    const { ctx, controller, agent, followup } = await uploadHarness(undefined, destination)
+    await ctx.plugin(SkillRegistry)
+    ctx.skills.register({ name: 'agent-workshop', description: 'Workshop', source: 'runtime', content: 'Inspection skill' })
+    const inject = vi.fn<Agent['inject']>((message) => { agent.inbox.append('next-step', message) }); agent.inject = inject
+    followup.mockImplementation((message: UserMessage) => { agent.inbox.append('next-turn', message) })
+    const selected: unknown[] = []
+    ctx.on('session/event', (_session, event) => { if (event.type === 'workshop/inspection-start') selected.push(event.data) })
+    const request = { ...promptRequest([{ type: 'text' as const, text: '分析我的项目' }]),
+      workshop: { mode, output: 'prd' as const, inspection: { sourcePath: source } } }
+    await controller.prompt(request); await controller.prompt(request)
+    expect(selected).toEqual([{ sourceRoot: await realpath(source), task: mode, requestId: 'req-1' }])
+    expect(inject).toHaveBeenCalledOnce()
+    const message = followup.mock.calls[0]?.[0] as UserMessage
+    expect(message.content).toEqual([{ type: 'text', text: '分析我的项目' }])
+  })
+
+  it('rejects an unavailable source before injecting or admitting a prompt', async () => {
+    const { ctx, controller, agent, followup } = await uploadHarness()
+    await ctx.plugin(SkillRegistry)
+    ctx.skills.register({ name: 'agent-workshop', description: 'Workshop', source: 'runtime', content: 'Inspection skill' })
+    const inject = vi.fn<Agent['inject']>(); agent.inject = inject
+    await expect(controller.prompt({ ...promptRequest([{ type: 'text', text: '分析项目' }]), workshop: { mode: 'reverse', output: 'prd',
+      inspection: { sourcePath: '/not-an-existing-inspection-folder' } } })).rejects.toMatchObject({ code: 'gateway/bad-request' })
+    expect(followup).not.toHaveBeenCalled(); expect(inject).not.toHaveBeenCalled()
+  })
+})
+
+
+describe('selected-document Workshop admission', () => {
+  it.each(['impact', 'handoff'] as const)('logs one %s selection while keeping rules outside human text', async (mode) => {
+    const { ctx, controller, agent, followup } = await uploadHarness()
+    await ctx.plugin(SkillRegistry)
+    ctx.skills.register({ name: 'agent-workshop', description: 'Workshop', source: 'runtime', content: 'Selected document skill' })
+    const inject = vi.fn<Agent['inject']>((message) => { agent.inbox.append('next-step', message) }); agent.inject = inject
+    followup.mockImplementation((message: UserMessage) => { agent.inbox.append('next-turn', message) })
+    const selected: unknown[] = []
+    ctx.on('session/event', (_session, event) => { if (event.type === 'workshop/delivery-start') selected.push(event.data) })
+    const request = { ...promptRequest([{ type: 'text' as const, text: '只处理这次需求' }]),
+      workshop: { mode, output: 'prd' as const, delivery: { documents: [{ id: 'prd-id', version: 2 }] } } }
+    await controller.prompt(request); await controller.prompt(request)
+    expect(selected).toEqual([{ requestId: 'req-1', task: mode, request: '只处理这次需求', documents: [{ id: 'prd-id', version: 2 }] }])
+    expect(inject).toHaveBeenCalledOnce()
+    expect((followup.mock.calls[0]?.[0] as UserMessage).content).toEqual([{ type: 'text', text: '只处理这次需求' }])
+  })
+  it('rejects empty, duplicate or invalid versions before admitting the task', async () => {
+    const { ctx, controller, agent, followup } = await uploadHarness()
+    await ctx.plugin(SkillRegistry)
+    ctx.skills.register({ name: 'agent-workshop', description: 'Workshop', source: 'runtime', content: 'Selected document skill' })
+    const inject = vi.fn<Agent['inject']>(); agent.inject = inject
+    for (const documents of [[], [{ id: 'same', version: 1 }, { id: 'same', version: 1 }], [{ id: 'doc', version: 0 }]]) {
+      await expect(controller.prompt({ ...promptRequest([{ type: 'text', text: '交接' }]),
+        workshop: { mode: 'handoff', output: 'prd', delivery: { documents } } })).rejects.toMatchObject({ code: 'gateway/bad-request' })
+    }
+    expect(followup).not.toHaveBeenCalled(); expect(inject).not.toHaveBeenCalled()
   })
 })

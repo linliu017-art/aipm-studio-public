@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-03-aipm-agent-workshop.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-03-aipm-agent-workshop.md
+/agent-note-native-agent-workshop-adapter:
+  en: 7e371ce488474d4b
+  zh: 66fa624efd8d08fd
+/agent-note-native-agent-workshop-adapter/problem:
+  en: dc29f4722c7d7318
+  zh: 2fcb0bd80cfdfb96
+/agent-note-native-agent-workshop-adapter/decision:
+  en: 0ca8cf37335d5917
+  zh: c75b08959675c09f
+/agent-note-native-agent-workshop-adapter/consequences:
+  en: fa2aee23b99f1933
+  zh: c0175bcba4649497
+/agent-note-native-agent-workshop-adapter/verification:
+  en: 1d7b634de0f503f3
+  zh: b0906ab805e0e043
+/agent-note-native-agent-workshop-adapter/alternatives-considered:
+  en: 2ee4dcdb44373ec5
+  zh: 584884a1d96bad2b

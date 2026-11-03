@@ -9,10 +9,12 @@
     "src/index.ts",
     "src/types.ts",
     "src/commands.ts",
+    "src/project-name.ts",
     "src/default-workspace.ts",
     "src/directory-picker.ts",
     "src/feed.ts",
-    "src/default-directory.ts"
+    "src/default-directory.ts",
+    "src/idea-workspace.ts"
   ],
   "references": [
     { "path": "../../../vendor/cordis" },
@@ -21,6 +23,7 @@
     { "path": "../../host/directory-picker" },
     { "path": "../../storage/storage-domain" },
     { "path": "../../typert/protocol" },
+    { "path": "../../util/atomic-write" },
     { "path": "../../util/deque" },
     { "path": "../../util/native-command" },
     { "path": "../../workspace/workspace" }

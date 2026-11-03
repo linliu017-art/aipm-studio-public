@@ -69,6 +69,8 @@ function deferred<T>(): Deferred<T> {
 }
 
 class FakeWorkspaceRemote implements WorkspaceRemote {
+  readonly renameProject = vi.fn<WorkspaceRemote['renameProject']>(request => this.onRename(request))
+  readonly createIdea = vi.fn<WorkspaceRemote['createIdea']>(async () => remoteOk({ path: '/w/idea' }))
   readonly initializeDefault = vi.fn<WorkspaceRemote['initializeDefault']>(async () => remoteOk({ workspace: workspace('default') }))
   readonly calls: Array<{ readonly method: string; readonly request: unknown }> = []
   onCreate: (request: WorkspaceCreateRequest) => Promise<RemoteResult<WorkspaceCreateValue>> = request =>

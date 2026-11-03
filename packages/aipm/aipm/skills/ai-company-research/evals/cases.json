@@ -1,0 +1,151 @@
+{
+  "version": "4.1",
+  "skill": "ai-company-research",
+  "loading": {
+    "positive": [
+      "使用 $ai-company-research 调研一家公司的业务、技术、财务、商业质量和风险。",
+      "快速查一下某科技公司现在做什么、核心技术、融资或财务、怎么赚钱和主要风险。",
+      "结合最新年报和中报，对一家上市公司做业务、研发、商业模式与财务基本面调研。",
+      "研究某品牌、境内运营公司和海外控股主体的关系，做一份集团级公司报告。",
+      "评估一家新软件供应商的经营、客户、技术、财务稳定性与公开风险。",
+      "把一家公司的业务报告、技术报告、财务商业质量和风险整合成一份可追溯的 HTML 报告。",
+      "下周见客户，先查清它的业务、采购信号、技术栈、决策链并准备现场问题。",
+      "我要拜访一家基金，分析基金阶段、已投项目、出手节奏、合伙人与我方匹配。"
+    ],
+    "negative": [
+      {"prompt": "我下周面试某公司 AI 产品经理，JD 在附件里，做面试作战地图。", "route": "interview-research"},
+      {"prompt": "我已经拿到这家公司 25K 的 offer，接、谈还是拒？", "route": "offer-auditor"},
+      {"prompt": "拆解某 App 的用户、功能、体验和会员定价。", "route": "product-analyst"},
+      {"prompt": "分析某公司的专利布局、IPC、专利族和 FTO 风险。", "route": "tech-mining"},
+      {"prompt": "只查这家公司的注册地址和成立时间。", "route": "direct-answer"},
+      {"prompt": "分析中国企业级大模型市场未来五年规模。", "route": "market-research"},
+      {"prompt": "读取内部 Excel，计算各业务线毛利率。", "route": "spreadsheet-analysis"},
+      {"prompt": "把昨天的客户录音整理成会议纪要。", "route": "meeting-notes-organizer"}
+    ]
+  },
+  "hero_queries": [
+    {
+      "id": "private_quick",
+      "prompt": "快速调研一家未上市 AI 初创公司，核实主体、当前业务、付费方、技术证据、公开融资或财务线索、近一年变化和三个风险。没有公开营收就明确说明，不要把融资或估值写成营收。",
+      "expected": [
+        "mode=company and depth=quick",
+        "private-company financial limitations are explicit",
+        "company claims and verified facts are separated",
+        "the report uses the five company modules in one integrated deliverable",
+        "business and technology sections are independently understandable",
+        "the operating-chain matrix links product, payer, delivery, technology, monetization and sources"
+      ]
+    },
+    {
+      "id": "listed_standard",
+      "prompt": "对一家上市软件公司做标准档公司调研，以最新年报和已发布中报或季报为真源，分析业务线、收入结构、研发、商业模式、竞争和风险。",
+      "expected": [
+        "financial period, currency, unit and consolidation scope are explicit",
+        "official filings support material numbers",
+        "segments and comparable periods are not mixed",
+        "derived metrics are reproducible",
+        "business, technology and financial narratives agree with the operating-chain matrix"
+      ]
+    },
+    {
+      "id": "group_deep",
+      "prompt": "对一个跨境互联网集团做深度公开信息调研，先区分海外控股主体、境内运营法人和主要品牌，再分析业务、技术、公开财务、变现、竞争与监管风险。",
+      "expected": [
+        "entity tree precedes analysis",
+        "group, legal-entity and brand data are not merged without evidence",
+        "conflicting estimates retain source and scope",
+        "major conclusions include counterevidence",
+        "each material product line maps to payer, delivery, technology, monetization and evidence"
+      ]
+    },
+    {
+      "id": "subsidiary_scope",
+      "prompt": "调研某集团旗下运营子公司，区分子公司自身业务与母公司合并财务，不能把集团收入直接归给子公司。",
+      "expected": [
+        "market_status=subsidiary",
+        "parent and target-entity scopes are explicitly separated",
+        "undisclosed subsidiary financials remain unknown",
+        "group evidence is not silently allocated to the subsidiary"
+      ]
+    },
+    {
+      "id": "institution_scope",
+      "prompt": "快速研究一家非营利产业研究机构，说明主体、项目、技术能力、资金或预算公开性、合作网络与风险，不套用上市公司利润表。",
+      "expected": [
+        "market_status=institution",
+        "the applicable funding or budget basis is explained",
+        "inapplicable company metrics are marked rather than fabricated",
+        "public sources or explicit gaps cover every core dimension"
+      ]
+    },
+    {
+      "id": "weak_technology_evidence",
+      "prompt": "调研一家只公开了产品页面和招聘信息的私营软件公司。仍需给出技术报告，但不能凭功能或岗位关键词猜它的系统架构、底层模型、数据流和自研比例。",
+      "expected": [
+        "the technology report remains present and independently readable",
+        "product capabilities are separated from implementation evidence",
+        "recruiting and marketing are treated only as signals or company claims",
+        "unknown architecture, model, data flow and make-versus-buy boundaries stay unknown"
+      ]
+    },
+    {
+      "id": "integrated_html_delivery",
+      "prompt": "把公司调研交付为一份 Markdown 和一份单文件 HTML。HTML 要白底柔黑、系统字体、无渐变无阴影无 emoji，业务和技术章可独立读，移动端与 A4 打印可用。",
+      "expected": [
+        "one Markdown source produces one integrated HTML report",
+        "exactly five company H2 modules are present",
+        "the HTML uses border and spacing hierarchy without gradients, shadows or emoji",
+        "semantic navigation, keyboard access, mobile overflow handling and print styles are present"
+      ]
+    },
+    {
+      "id": "client_standard",
+      "prompt": "下周要见一家制造业客户，做标准档拜访前调研：先建立公司底图，再分析真实需求、采购信号、决策链、我方切入、最小验证、双向问题与会议议程。",
+      "expected": [
+        "mode=client and depth=standard",
+        "company facts and opportunity statements are separated",
+        "decision chain and minimum validation are actionable",
+        "no job interview or candidate content appears"
+      ]
+    },
+    {
+      "id": "investor_standard",
+      "prompt": "准备拜访一家基金，核实管理主体、基金规模与募集口径、投资阶段、票面、近期案例、出手节奏、决策合伙人和我方匹配。",
+      "expected": [
+        "mode=investor and depth=standard",
+        "target, committed, paid-in and AUM concepts are not mixed",
+        "portfolio conflicts and decision process are covered",
+        "no offer or interview-prep content appears"
+      ]
+    }
+  ],
+  "hard_gates": [
+    "all modes: entity and reporting scope are explicit",
+    "all modes: material claims are traceable to real sources",
+    "all modes: listed-company numbers use official filings",
+    "all modes: private-company missing financials are not fabricated",
+    "all modes: facts, company claims, estimates, inferences and unknowns are separated",
+    "company mode: one integrated report contains exactly five H2 modules",
+    "company mode: business and technology reports are independently understandable without duplicate files",
+    "company mode: material product lines map product, payer, delivery, technology, monetization and sources, with gaps left explicit",
+    "company mode: the operating-chain matrix, overview, business, technology and financial analysis do not contradict each other",
+    "company mode: technology implementation and architecture are not inferred when evidence supports only product capabilities or investment signals",
+    "all modes: no job interview, offer, product-only, or dedicated patent-search, IPC, patent-portfolio or FTO deliverable is inserted",
+    "HTML delivery: Markdown and HTML contain the same report",
+    "company HTML delivery: it is responsive, keyboard accessible, printable and contains no gradients, box shadows or emoji"
+  ],
+  "judge_rubric_scope": "company",
+  "non_company_judging": "client and investor hero queries use their expected assertions plus all-modes and applicable HTML hard gates; they do not use the company five-module rubric",
+  "judge_rubric": {
+    "entity_scope": 10,
+    "company_overview_and_decision_value": 8,
+    "business_report": 15,
+    "technology_report_and_evidence_boundary": 15,
+    "operating_chain_and_cross_section_consistency": 15,
+    "financials_commercial_quality_and_risk": 15,
+    "source_traceability_and_information_gaps": 12,
+    "recent_changes_and_competition": 5,
+    "depth_and_delivery_fit": 5
+  },
+  "pass_rule": "score >= 85 and no hard gate fails"
+}

@@ -24,12 +24,16 @@ English | [中文](README.zh.md)
 
 The Host controller serializes mutations whose correctness depends on current registry state and throws `RemoteError` with a stable error code for expected failures. Its `follow()` stream synchronously attaches to durable Workspace changes, emits one complete baseline first, then emits ordered `upsert`, `remove`, `order`, `archived`, and `pinned` increments. Archive and pin sets are Session id arrays, with the most recently pinned id first in the pin array. A reconnect starts another generation with a replacement baseline, so consumers do not depend on receiving every increment while disconnected. `archiveSession` without `stopActivity` refuses a Session with running work as `workspace/session-active`, whose details list that work by family (`turn`, `subagent`, `job`, `schedule`) with item ids and labels; with `stopActivity: true` the registry's providers stop the work first and the response arrives once the archive set is durable, while the stops settle in the background.
 
+`renameProject({ workspaceId, title })` renames a saved AIPM project. It requires a non-blank trimmed name and rejects another Workspace’s title. The command locks `.aipm/project.json`, preserves unrelated fields, and commits the Workspace title after the metadata write. If title persistence rejects, it restores the original metadata bytes under the same lock. AIPM stage updates share this lock and re-read current metadata. Metadata must resolve inside the registered project; directories and deliverables are never moved or rewritten. The generic `rename` operation continues to change only a Workspace title.
+
 The Client entry provides `ClientWorkspaceModel` and `createWorkspaceStateStream()`. The model owns Workspace rows, registry order, archived and pinned Session identities, unary mutation echoes, and stream/unary race resolution. A newer Host row wins by `updatedAt`; a committed stream order outranks an older unary response; a removed Workspace id cannot be resurrected by delayed data. Pin snapshots change only when their identities or order change. The package exposes framework-neutral snapshots and subscriptions, leaving navigation policy and React hooks to the UI owner. `WorkspaceController.archiveSession(sessionId, { stopActivity })` throws `WorkspaceArchiveError` with the Host's `rpcError`, so a surface can tell the running-work refusal from a missing Session or a carrier fault and offer to stop the work.
 
 <a id="first-use-workspace"></a>
 ### First-use Workspace
 
 `workspace.initializeDefault()` returns the durable default Workspace; the Client service exposes it as `workspaces.initializeDefault(signal?)`. It takes no request: the Host owns the fixed `default-workspace` directory name, and the registry derives the initial title from that same segment, so one installation keeps one on-disk path and one stored title in every language. The Host places the directory under its account's `<Documents>/deepseek-harness`, including on remote Web hosts. OS filename restrictions apply. Linux system lookup requires `xdg-user-dir` with an enabled Documents directory; hosts without it must configure `documentsDirectory` or use the folder picker.
+
+`workspace.createIdea()` prepares a unique empty directory under `<Documents>/deepseek-harness/ideas`, or `ideasDirectory` when configured, and returns its path without registering a Workspace. The Host rejects an ideas root inside any registered Workspace, including through symlinks. Creation never copies project instructions or changes an existing Workspace, and a failure never selects an old project. The operation creates no Session or AIPM project files.
 
 The [Workspace registry](../../workspace/workspace/README.md#first-use-workspace) owns eligibility, directory creation, and durable initialization. An existing default Workspace is returned without another Documents lookup and is never renamed or relocated. Ineligible first use returns `undefined`, so startup can leave directory selection to the user. Lookup and creation failures use standard Remote error handling. Initialization creates no Session and sends no message.
 
@@ -38,6 +42,7 @@ The [Workspace registry](../../workspace/workspace/README.md#first-use-workspace
 | Configuration | Default | Purpose |
 | --- | --- | --- |
 | `documentsDirectory` | System Documents directory | Fully qualified Host directory override |
+| `ideasDirectory` | `<Documents>/deepseek-harness/ideas` | Fully qualified parent for independent ideas; must be outside registered Workspace trees |
 | `documentsLookupTimeoutMs` | `10000` | Positive maximum duration of OS directory lookup, in milliseconds |
 
 Documents lookup holds the registry mutation queue, so other Workspace mutations, including registration of a picked directory, can wait up to `documentsLookupTimeoutMs`. Cancellation can stop the lookup; after resolution succeeds, it does not roll back creation or registration.

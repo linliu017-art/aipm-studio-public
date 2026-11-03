@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-11-03-project-inspection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-11-03-project-inspection.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-11-03-project-inspection:
+  en: 90665b990dfea5fd
+  zh: 9ce437c1ba5ebeb0
+/2026-11-03-project-inspection/summary:
+  en: 0ef8cd6b420f5cf4
+  zh: 12a69cb69fe145d7
+/2026-11-03-project-inspection/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-11-03-project-inspection/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-11-03-project-inspection/compatibility:
+  en: 80782ffc3a5760cd
+  zh: ab8fe60064a934fe
+/2026-11-03-project-inspection/verification:
+  en: 66e0113386081ce9
+  zh: 1b7dd6a3a15c57e2
+/2026-11-03-project-inspection/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

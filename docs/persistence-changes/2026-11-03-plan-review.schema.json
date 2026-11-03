@@ -1,0 +1,252 @@
+{
+  "formatVersion": 2,
+  "roots": [
+    {
+      "key": "event:aipm/review-request",
+      "kind": "event",
+      "event": "aipm/review-request",
+      "surface": false,
+      "digest": "7a019f248466b740d92341b1456a09f6d57f3abea1c4db8d8238b515c93aafd1",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "documentId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "input",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "maxTokens",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "model",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "provider",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "reasoningEffort",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "requestId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "system",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "version",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "aipm/review-request"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:aipm/review-result",
+      "kind": "event",
+      "event": "aipm/review-result",
+      "surface": false,
+      "digest": "3a43f85618197d8cb0f83119affc05ecc6f1da176417071b888127bcba2a6b27",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 8,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 9,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "requestId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "status",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "usage",
+                "type": 6,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "complete"
+          },
+          {
+            "kind": "literal",
+            "value": "failed"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "cacheReadTokens",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "cacheWriteTokens",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "inputTokens",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "outputTokens",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "reasoningTokens",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "totalTokens",
+                "type": 7,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "aipm/review-result"
+          }
+        ]
+      }
+    }
+  ],
+  "types": []
+}

@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.1-alpha.1/aipm-isolated-ideas/guide.md
+/:
+  en: 49fad656c8f39408
+  zh: 6cb8a7b9242484de
+/nini-flow-independent-ideas:
+  en: d666600be476c4d7
+  zh: 102ea3e880a56bc1
+/nini-flow-independent-ideas/change:
+  en: 1afd3d959a9a250e
+  zh: d1776552a8072a76
+/nini-flow-independent-ideas/migration:
+  en: 68b83aedad942cb7
+  zh: 96cbb4a9924ff96e

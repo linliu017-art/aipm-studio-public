@@ -1,0 +1,85 @@
+# Read the shipped AIPM persona so later routing changes invalidate this snapshot.
+- id: system-prompt
+  name: '@deepseek-ai/dsh-system-prompt'
+  config:
+    personaPrefix: !!js >-
+      (() => { const req = process.getBuiltinModule('node:module').createRequire(baseUrl); const path = process.getBuiltinModule('node:path'); const fs = process.getBuiltinModule('node:fs'); const yaml = req('js-yaml'); const source = path.join(path.dirname(req.resolve('@deepseek-ai/dsh-aipm/package.json')), 'cordis.patch.yml'); const rows = yaml.load(fs.readFileSync(source, 'utf8'), { schema: req('@deepseek-ai/cordis-plugin-include').entryListSchema }); return rows.flatMap(row => row.insert ?? []).find(row => row.id === 'preset-aipm').config.plugins.find(row => row.id === 'persona').config.prefix })()
+
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+  config:
+    includeDefaultRoots: false
+    watch: false
+    bundledSkillDir: !!js >-
+      process.getBuiltinModule('node:path').join(process.cwd(), '.dsh', 'skills')
+
+- insert:
+    - id: aipm
+      name: '@deepseek-ai/dsh-aipm'
+      config:
+        review:
+          maxInputBytes: 120000
+          maxOutputTokens: 6000
+          timeoutMs: 120000
+        inspection:
+          maxEntries: 5000
+          maxFiles: 300
+          maxDepth: 12
+          maxFileBytes: 200000
+          maxReadLines: 160
+          maxIndexBytes: 64000
+          maxEvidenceBytes: 240000
+          maxReportBytes: 400000
+        delivery:
+          maxFiles: 30
+          maxFileBytes: 4000000
+          maxInputBytes: 240000
+          maxReportBytes: 400000
+          maxArchiveBytes: 12000000
+          maxArchiveInputBytes: 12000000
+
+# Replay patch shared by the ordinary headless snapshot composition. The model
+# script comes from the scenario's committed session JSONL.
+
+- id: llm-deepseek
+  name: '@deepseek-ai/dsh-llm-deepseek-api-key'
+  disabled: true
+
+- id: plugin-package-inventory-deepseek
+  disabled: true
+
+- id: session-title-llm
+  disabled: true
+
+- id: session-persistence-jsonl
+  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  config:
+    root: !!js dshHomePath('sessions')
+    compression: none
+
+- id: sandbox
+  name: '@deepseek-ai/dsh-sandbox-local'
+  config:
+    runnerCommand:
+      - bash
+      - -c
+      - while [ "$1" != "--" ]; do shift; done; shift; exec "$@"
+      - passthrough-runner
+    runnerFailureSignatures:
+      - 'passthrough-runner: profile rejected'
+
+- insert:
+    - id: llm-replay
+      name: '@deepseek-ai/dsh-llm-replay'
+      config:
+        providers:
+          - id: deepseek-official
+            name: DeepSeek
+            models:
+              - id: deepseek-v4-flash
+              - id: deepseek-v4-pro
+          - id: deepseek-messages
+            name: DeepSeek Messages
+            models:
+              - id: deepseek-v4-flash
+              - id: deepseek-v4-pro

@@ -1,0 +1,72 @@
+{
+  "skills": [
+    {
+      "name": "product-prd",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "d60cff01c1e0a198b5585ca100c82b89cd9100d99113008b2e1db695b881949f"
+    },
+    {
+      "name": "baoyu-design",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "a94a4c3a1619696621fb838124f958988d07c21e5218b5b35b33344c21381bc5",
+      "excludedOptionalBackends": [
+        "agents/gen-pptx",
+        "agents/gen-video"
+      ],
+      "supportedOutput": "HTML"
+    },
+    {
+      "name": "interview-me",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "ace4b675999bb504593d572e0f73f3d7e803ad6fddf318445598c82c11939db2"
+    },
+    {
+      "name": "idea-refine",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "79e773058963adc7646b0115b4f8a4afc974c5ff95843e4ef1cafff3cb51899e"
+    },
+    {
+      "name": "product-teardown-standard",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "487aa35985bfd4c95ad3a0c952ab45f8b0af5e9612dccd703741713fb2d9f468"
+    },
+    {
+      "name": "ai-company-research",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "513c471cb4143305a5d221def751f9ab50f2110c329e5dd3f7e376503133dae4"
+    },
+    {
+      "name": "planning-and-task-breakdown",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "ed0f90cc5951ddd4bcab7f871f64efec93a49af9279ef93bc470da77ad8da3f7"
+    },
+    {
+      "name": "spec-driven-development",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "e656a0693d9e75c8ce03fee54c460860212a9566da81aa27ff32b68d62f42cc0"
+    },
+    {
+      "name": "prototype",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3"
+    },
+    {
+      "name": "ai-concept-learning",
+      "source": "local Codex skill",
+      "sourceSkillSha256": "201f485da1d9a141e72fac47f7943e2778524ace022a18699d9dde3c7e9fc34e"
+    },
+    {
+      "name": "agent-workshop",
+      "source": "agent-workshop by Hubo (MIT), native workbench adaptation",
+      "sourceSkillSha256": "7c2f8709ac3722b62ec84777005fe3c3af0101f75577afe85d1245d974bceb3b",
+      "sourceFiles": {
+        "blueprint/knowledge/__init__.py": "5099ed315741b09db6beee240890cbf4170a2025aa96ab9d2efa26e0e5192249",
+        "blueprint/rules.py": "c65178bfecc600638d273ccb74da301070532d3d31a87d266031f8512e77e707",
+        "blueprint/plan_agent.py": "5abed0aeaa237939bc92a496def1ecdf241ce0069ee1fbf280f4a386a5e3ab16",
+        "blueprint/workspace.py": "f47c029489b86511b229945053137af255eaedecb8ce920d60e7cc7f1d355efc"
+      },
+      "license": "agent-workshop/references/LICENSE",
+      "adaptation": "Uses the current workbench model, typed native tools, stage directories and immutable artifact versions; no Python service, separate API credentials, reverse auditing or mock playground."
+    }
+  ]
+}

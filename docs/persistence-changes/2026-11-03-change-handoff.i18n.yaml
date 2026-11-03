@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-11-03-change-handoff.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-11-03-change-handoff.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-11-03-change-handoff:
+  en: 2fd81512eb80f45a
+  zh: 48f22f39971980d7
+/2026-11-03-change-handoff/summary:
+  en: cf8fbc95c8500d14
+  zh: c1e907143d25e54b
+/2026-11-03-change-handoff/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-11-03-change-handoff/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-11-03-change-handoff/compatibility:
+  en: 8fac163ea05eccdb
+  zh: de4b0869bad3cf2e
+/2026-11-03-change-handoff/verification:
+  en: ecd4543f0ecc0685
+  zh: 37a8423f4b8a7f17
+/2026-11-03-change-handoff/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

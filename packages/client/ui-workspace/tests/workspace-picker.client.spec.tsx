@@ -88,6 +88,7 @@ function mount(
   items: readonly WorkspaceView[] = [workspace('alpha', 'Alpha')],
   createWorkspace = vi.fn(),
   occupancy = occupancySource(),
+  onNewIdea?: () => void,
 ) {
   const onPick = vi.fn()
   const onClose = vi.fn()
@@ -103,6 +104,7 @@ function mount(
       usePanelInfo={usePanelInfo} useResource={useResource}
       useWorkspaces={hook(workspaceState(nextItems))}
       onPick={onPick}
+      onNewIdea={onNewIdea}
       onClose={onClose}
       createWorkspace={createWorkspace}
       useDirectoryFlow={occupancy.useDirectoryFlow}
@@ -124,6 +126,16 @@ function chooseAdd(): void {
 }
 
 describe('WorkspacePicker', () => {
+  it('offers an independent new idea without selecting or overwriting an existing Workspace', () => {
+    const onNewIdea = vi.fn()
+    const b = mount([workspace('old', '轻颜相机')], vi.fn(), occupancySource(), onNewIdea)
+    fireEvent.click(screen.getByRole('menuitem', { name: '聊一个新想法' }))
+    expect(onNewIdea).toHaveBeenCalledOnce()
+    expect(b.onPick).not.toHaveBeenCalled()
+    expect(b.createWorkspace).not.toHaveBeenCalled()
+    expect(b.onClose).toHaveBeenCalledOnce()
+  })
+
   it('lists same-title Workspaces separately and forwards the selected id', () => {
     const b = mount([workspace('alpha', 'Shared'), workspace('beta', 'Shared')])
     const entries = screen.getAllByRole('menuitem', { name: 'Shared' })

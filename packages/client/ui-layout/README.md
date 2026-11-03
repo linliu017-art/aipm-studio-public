@@ -25,7 +25,7 @@ This package provides the Web GUI's three-column AppFrame, edge-column widths, a
 <a id="use-this-package"></a>
 ## Use this package
 
-The root slot renders the full-width `shell.header` above the sidebar, main content, and optional right column. Conversation uses a 264–420px sidebar, initially 280px; Projects and Task center use only its fixed 58px navigation rail, preserving the conversation width for return navigation. The rail has no resize handle. The right panel first opens at 45% of the viewport, retains the user's pixel preference, and is capped at 70%. It shrinks to 300px before closing to protect 400px for the center. Dragging has no transition delay; the right handle is absent while closed or fullscreen.
+The root slot renders the full-width `shell.header` above the sidebar, main content, and optional right column. Conversation uses a 264–420px sidebar, initially 280px; Agent Workshop, Projects and Task center use only its fixed 58px navigation rail, preserving the conversation width for return navigation. The rail has no resize handle. The right panel first opens at 45% of the viewport, retains the user's pixel preference, and is capped at 70%. It shrinks to 300px before closing to protect 400px for the center. Dragging has no transition delay; the right handle is absent while closed or fullscreen.
 
 Global panels occupy the root-scoped `main` keyed slot; `conversation` is the reserved key for the Conversation. `ctx.layout.selectPanel(id)` selects a registered panel, and `null` selects the Conversation without changing the current Session. The Plugins page contributes one of the shipped global panels.
 
@@ -34,7 +34,7 @@ The single root-scoped `shell.bottom` slot spans the full width below the three 
 <a id="window-chrome-seat"></a>
 ### Window-chrome seat
 
-On macOS desktop (`html[data-platform='darwin']`), the top navigation clears the hiddenInset traffic lights horizontally; all columns start below it. Projects and Task center do not add a second native-titlebar clearance. The root's overlay clearance remains available to portalled dialogs and menus. Chrome rows mark their own drag region with `data-window-drag`, while controls remain clickable.
+On macOS desktop (`html[data-platform='darwin']`), the top navigation clears the hiddenInset traffic lights horizontally; all columns start below it. Agent Workshop, Projects and Task center do not add a second native-titlebar clearance. The root's overlay clearance remains available to portalled dialogs and menus. Chrome rows mark their own drag region with `data-window-drag`, while controls remain clickable.
 
 Windows Electron's `data-windows-titlebar` marker reserves the caption height above all columns and removes the collapsed sidebar rail. Only the content area's top-left corner has a 16px radius; the other corners and the internal divider remain square. The frame publishes `--dsh-windows-content-radius` and `--dsh-windows-sidebar-width` for ui-sidebar-right's fullscreen corner and sidebar clearance. Ordinary Web documents do not receive the marker; macOS retains its separate layout.
 

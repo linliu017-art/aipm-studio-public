@@ -2,6 +2,14 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-workspace'
+import z from '@deepseek-ai/schemastery'
+import { registerReviewTool, type ReviewConfig } from './plan-review.ts'
+import { basename } from 'node:path'
+import { registerInspectionTool, type InspectionConfig } from './inspection-tool.ts'
+import { registerDeliveryTool, type DeliveryConfig } from './delivery-tool.ts'
+import { registerDocumentTool } from './document-tool.ts'
+import { registerWorkshopTool } from './workshop-tool.ts'
 import { GENERAL_SKILLS, STAGES, STAGE_IDS, findStage } from './stages.ts'
 import { PROJECT_STATE_FILE, STAGE_STATUSES, initProject, readProject, updateStage, type ProjectState } from './store.ts'
 
@@ -14,6 +22,32 @@ export const name = 'aipm'
 
 /** Services used by the scoped stage tool. */
 export const inject = ['tools']
+
+/** Explicit bounds for automatic and manual technical-plan review. */
+export interface Config {
+  /** Required model-review input, output and time limits. */
+  review: ReviewConfig
+  /** Optional repository analysis policy; omission disables these source-reading tools. */
+  inspection?: InspectionConfig | null
+  /** Optional selected-document analysis and archive limits. */
+  delivery?: DeliveryConfig | null
+}
+/** Loader-owned review budget and deadline validation. */
+export const Config: z<Config> = z.object({ review: z.object({
+  maxInputBytes: z.number().step(1).min(1).required(),
+  maxOutputTokens: z.number().step(1).min(1).required(),
+  timeoutMs: z.number().step(1).min(1).max(2147483647).required(),
+}).required(), inspection: z.union([z.const(null), z.object({
+  maxEntries: z.number().step(1).min(1).required(),
+  maxFiles: z.number().step(1).min(1).required(), maxDepth: z.number().step(1).min(1).required(),
+  maxFileBytes: z.number().step(1).min(1).required(), maxReadLines: z.number().step(1).min(1).required(),
+  maxIndexBytes: z.number().step(1).min(1).required(), maxEvidenceBytes: z.number().step(1).min(1).required(),
+  maxReportBytes: z.number().step(1).min(1).required(),
+})]).default(null), delivery: z.union([z.const(null), z.object({
+  maxFiles: z.number().step(1).min(1).required(), maxFileBytes: z.number().step(1).min(1).required(),
+  maxInputBytes: z.number().step(1).min(1).required(), maxReportBytes: z.number().step(1).min(1).required(),
+  maxArchiveBytes: z.number().step(1).min(1).required(), maxArchiveInputBytes: z.number().step(1).min(1).required(),
+})]).default(null) })
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: '暂无产出',
@@ -41,13 +75,19 @@ function describe(state: ProjectState): string {
 /**
  * Register `aipm_stage` for the mounting agent scope.
  * @param ctx - agent-scoped services.
+ * @param config - explicit independent-review policy.
  */
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: Config): void {
+  if (config.inspection !== undefined && config.inspection !== null) registerInspectionTool(ctx, config.inspection)
+  if (config.delivery !== undefined && config.delivery !== null) registerDeliveryTool(ctx, config.delivery)
+  registerReviewTool(ctx, config.review)
+  registerDocumentTool(ctx, config.review)
+  registerWorkshopTool(ctx, config.review)
   ctx.tools.register(defineTool({
     name: 'aipm_stage',
     description: 'Read or update the AIPM product project in the Session working directory. '
       + '"get" returns the independent stages with their status, typical outputs, and skills; "init" turns the working directory into a project '
-      + `(stage folders ${STAGE_IDS.join(', ')}, ${PROJECT_STATE_FILE}, AGENTS.md); "update" records progress of one stage after a task changed its outputs. `
+      + `(${PROJECT_STATE_FILE} and AGENTS.md, without empty stage folders); "update" records progress of one stage after a task changed its outputs. `
       + `Never edit ${PROJECT_STATE_FILE} directly.`,
     parameters: {
       action: { type: 'string', required: true, enum: ['get', 'init', 'update'], description: 'Operation to perform.' },
@@ -72,11 +112,22 @@ export function apply(ctx: Context): void {
       if (session === undefined || cwd === undefined) throw new Error('aipm_stage requires a Session with a working directory')
       if (args.action === 'get') {
         const state = await readProject(cwd)
-        return { summary: state === undefined ? `当前工作目录 ${cwd} 还不是 AIPM 项目，可以用 action "init" 创建。` : describe(state) }
+        return { summary: state === undefined
+          ? `当前独立工作目录：${cwd}。尚未登记产品；先澄清本轮目标，需要保存产物时再用 action "init" 登记。不要读取其他项目或为登记自行查看程序源码。`
+          : `当前项目目录：${cwd}\n${describe(state)}\n只读写这个项目；另一个产品想法请通过工作台“聊一个新想法”入口创建独立对话，不覆盖当前项目。` }
       }
       if (args.action === 'init') {
         if (args.name === undefined) throw new Error('init requires name')
         const state = await initProject(cwd, { name: args.name, summary: args.summary ?? '' })
+        const registry = ctx.get('workspaceRegistry')
+        if (registry !== undefined) {
+          const existing = await registry.resolveByPath(cwd)
+          const workspace = existing ?? await registry.create(cwd)
+          if (existing === undefined || basename(cwd).startsWith('idea-')) {
+            await workspace.setTitle(`${state.name} · ${basename(cwd).slice(-6)}`)
+          }
+          await workspace.attachSession(session.id)
+        }
         return { summary: `已创建项目。\n${describe(state)}` }
       }
       if (args.stage === undefined || findStage(args.stage) === undefined) throw new Error(`update requires stage, one of ${STAGE_IDS.join(', ')}`)

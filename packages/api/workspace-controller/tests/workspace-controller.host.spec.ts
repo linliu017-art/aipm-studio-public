@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,7 @@ import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import WorkspaceController from '../src/index.ts'
 import { DEFAULT_WORKSPACE_DIRECTORY } from '../src/default-workspace.ts'
+import { prepareIdeaDirectory } from '../src/idea-workspace.ts'
 import { WorkspaceFeed } from '../src/feed.ts'
 import type { WorkspaceFollowFrame } from '../src/types.ts'
 import { MemoryStorageBackend } from '../../../storage/storage-domain/tests/helpers/memory-backend.ts'
@@ -87,6 +88,102 @@ async function nextFrame(
 }
 
 describe('WorkspaceController commands', () => {
+  it('renames saved project metadata and Workspace title while retaining unrelated content', async () => {
+    const { controller, root } = await harness()
+    const path = stageDir(root, 'saved-project')
+    stageDir(path, '.aipm')
+    const state = { schemaVersion: 1, name: '自动项目名', summary: '保留简介', createdAt: 'original',
+      stages: { '03-PRD': { status: 'done', note: '保留进度' } }, extra: { keep: true } }
+    writeFileSync(join(path, '.aipm/project.json'), JSON.stringify(state))
+    writeFileSync(join(path, '方案.md'), '# 原始方案')
+    const created = await controller.create({ path })
+    await expect(controller.renameProject({ workspaceId: created.workspace.workspaceId, title: '  我的记账本  ' }))
+      .resolves.toMatchObject({ workspace: { title: '我的记账本', path } })
+    expect(JSON.parse(readFileSync(join(path, '.aipm/project.json'), 'utf8'))).toEqual({ ...state, name: '我的记账本' })
+    expect(readFileSync(join(path, '方案.md'), 'utf8')).toBe('# 原始方案')
+    await expect(controller.create({ path })).resolves.toMatchObject({ workspace: { title: '我的记账本' }, created: false })
+  })
+
+  it('restores the exact metadata bytes when Workspace title persistence rejects a project rename', async () => {
+    const { controller, ctx, root } = await harness()
+    const path = stageDir(root, 'saved-project')
+    stageDir(path, '.aipm')
+    const original = '{"schemaVersion":1, "name":"原名称", "stages":{}}\n'
+    writeFileSync(join(path, '.aipm/project.json'), original)
+    const created = await controller.create({ path })
+    const workspace = ctx.workspaceRegistry.get(created.workspace.workspaceId)!
+    vi.spyOn(workspace, 'setTitle').mockRejectedValueOnce(new Error('storage failed'))
+    await expect(controller.renameProject({ workspaceId: workspace.id, title: '新名称' })).rejects.toThrow('storage failed')
+    expect(readFileSync(join(path, '.aipm/project.json'), 'utf8')).toBe(original)
+    expect(workspace.title).toBe('saved-project')
+  })
+
+  it('refuses blank, conflicting, invalid and redirected project metadata without changing titles', async () => {
+    const { controller, root } = await harness()
+    const path = stageDir(root, 'saved-project')
+    const created = await controller.create({ path })
+    await expect(controller.renameProject({ workspaceId: created.workspace.workspaceId, title: '  ' }))
+      .rejects.toMatchObject({ code: 'gateway/bad-request' })
+    const occupied = await controller.create({ path: stageDir(root, 'occupied') })
+    await expect(controller.renameProject({ workspaceId: created.workspace.workspaceId, title: occupied.workspace.title }))
+      .rejects.toMatchObject({ code: 'workspace/name-conflict' })
+    stageDir(path, '.aipm')
+    writeFileSync(join(path, '.aipm/project.json'), '{invalid')
+    await expect(controller.renameProject({ workspaceId: created.workspace.workspaceId, title: '新名称' })).rejects.toThrow()
+    expect(readFileSync(join(path, '.aipm/project.json'), 'utf8')).toBe('{invalid')
+    const redirected = stageDir(root, 'redirected-project')
+    const outside = stageDir(root, 'outside-metadata')
+    const metadata = JSON.stringify({ schemaVersion: 1, name: '保留', stages: {} })
+    writeFileSync(join(outside, 'project.json'), metadata)
+    symlinkSync(outside, join(redirected, '.aipm'), process.platform === 'win32' ? 'junction' : 'dir')
+    const other = await controller.create({ path: redirected })
+    await expect(controller.renameProject({ workspaceId: other.workspace.workspaceId, title: '不得写入' })).rejects.toThrow('outside')
+    expect(readFileSync(join(outside, 'project.json'), 'utf8')).toBe(metadata)
+    await expect(controller.create({ path })).resolves.toMatchObject({ workspace: { title: 'saved-project' } })
+  })
+
+  it('creates independent ideas without inheriting or changing an existing project', async () => {
+    const { controller, ctx, root } = await harness()
+    const existing = stageDir(root, 'deepseek-harness/default-workspace')
+    stageDir(existing, '.aipm')
+    const metadata = JSON.stringify({ name: '轻颜相机' })
+    writeFileSync(join(existing, '.aipm/project.json'), metadata)
+    writeFileSync(join(existing, 'AGENTS.md'), '# 轻颜相机')
+    await controller.create({ path: existing })
+    const [first, second] = await Promise.all([
+      controller.createIdea(new AbortController().signal),
+      controller.createIdea(new AbortController().signal),
+    ])
+    expect(first.path).not.toBe(second.path)
+
+    for (const value of [first, second]) {
+      expect(value.path).toMatch(/deepseek-harness[/\\]ideas[/\\]idea-/)
+      expect(existsSync(join(value.path, 'AGENTS.md'))).toBe(false)
+      expect(existsSync(join(value.path, '.aipm/project.json'))).toBe(false)
+    }
+    expect(ctx.workspaceRegistry.list()).toHaveLength(1)
+    expect(readFileSync(join(existing, '.aipm/project.json'), 'utf8')).toBe(metadata)
+    expect(readFileSync(join(existing, 'AGENTS.md'), 'utf8')).toBe('# 轻颜相机')
+  })
+
+  it('rejects an ideas root nested inside an existing Workspace before creating it', async () => {
+    const { controller, ctx, root } = await harness()
+    const existing = stageDir(root, 'existing')
+    await controller.create({ path: existing })
+    const nested = join(existing, 'ideas')
+    await expect(prepareIdeaDirectory(ctx, nested)).rejects.toMatchObject({ code: 'workspace/invalid-path' })
+    expect(existsSync(nested)).toBe(false)
+  })
+
+  it('reports a failed idea directory creation without selecting an existing project', async () => {
+    const { ctx, root } = await harness()
+    const blocked = join(root, 'blocked')
+    writeFileSync(blocked, 'keep')
+    await expect(prepareIdeaDirectory(ctx, join(blocked, 'ideas'))).rejects.toMatchObject({ code: 'workspace/invalid-path' })
+    expect(ctx.workspaceRegistry.list()).toHaveLength(0)
+    expect(readFileSync(blocked, 'utf8')).toBe('keep')
+  })
+
   it('serializes concurrent path adoption and preserves an existing title', async () => {
     const { controller, root } = await harness()
     const path = stageDir(root, 'alpha')

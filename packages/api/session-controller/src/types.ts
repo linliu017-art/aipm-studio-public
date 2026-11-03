@@ -329,6 +329,96 @@ export interface SessionForkValue {
   readonly sessionId: SessionId
 }
 
+/** Explicitly selected repository and requested analysis; reports are written outside this root. */
+export interface InspectionTarget {
+  /** Admitted human task identity; a later human prompt ends this inspection scope. */
+  readonly requestId?: string
+  readonly sourceRoot: string
+  readonly task: 'reverse' | 'gaps'
+  readonly baselinePath?: string
+}
+/** Exact read-only source excerpt, recorded before returning it to the model. */
+export interface InspectionEvidence {
+  readonly id: string
+  readonly path: string
+  readonly fileHash: string
+  readonly startLine: number
+  readonly endLine: number
+  readonly text: string
+  readonly kind: 'code' | 'documentation' | 'requirement'
+}
+/** Bounded scan coverage; this inventory does not imply every file was read or tested. */
+export interface InspectionScan {
+  readonly files: { readonly path: string; readonly bytes: number }[]
+  readonly truncated: boolean
+  readonly skipped: number
+}
+/** Host-only inspection state, reset on each explicit source selection. */
+export interface InspectionState {
+  readonly target: InspectionTarget | null
+  readonly scan: InspectionScan | null
+  readonly evidence: readonly InspectionEvidence[]
+}
+
+declare module '@deepseek-ai/dsh-session/types' {
+  interface SessionEventMap {
+    /** User-selected read-only repository scope committed after prompt admission. */
+    'workshop/inspection-start': InspectionTarget
+    /** Bounded source inventory used by this analysis. */
+    'workshop/inspection-scan': InspectionScan
+    /** Verified source excerpt available for later report citations. */
+    'workshop/inspection-evidence': InspectionEvidence
+  }
+}
+declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    /** Host-only selected repository, inventory and evidence for report validation. */
+    workshopInspection: InspectionState
+  }
+}
+
+/** Admitted document selection for one advisory impact or handoff task. */
+export interface DeliverySelection {
+  readonly requestId: string
+  readonly task: 'impact' | 'handoff'
+  readonly request: string
+  readonly documents: readonly { readonly id: string; readonly version: number }[]
+  readonly sourceRoot?: string
+}
+/** Exact document bytes read before analysis or packaging. */
+export interface DeliverySnapshot {
+  readonly documents: readonly { readonly id: string; readonly version: number; readonly hash: string }[]
+}
+/** Host-only task and input-snapshot state. */
+export interface DeliveryState { readonly selection: DeliverySelection | null; readonly snapshot: DeliverySnapshot | null }
+
+declare module '@deepseek-ai/dsh-session/types' {
+  interface SessionEventMap {
+    /** Explicit selected versions and task, committed after human prompt admission. */
+    'workshop/delivery-start': DeliverySelection
+    /** Hashes of the exact document snapshots returned by the native loader. */
+    'workshop/delivery-snapshot': DeliverySnapshot
+  }
+}
+declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    /** Host-only selected documents and observed byte hashes. */
+    workshopDelivery: DeliveryState
+  }
+}
+
+/** Server-owned Agent Workshop workflow selected by the launch form. */
+export interface WorkshopTaskOptions {
+  /** Exact project-page selection, used only by review mode; never inserted into user text. */
+  readonly reviewTarget?: { readonly documentId: string; readonly version: number }
+  /** Source selection for reverse-PRD and gap-analysis modes. */
+  readonly inspection?: { readonly sourcePath: string; readonly baselinePath?: string }
+  /** Explicit saved-document selection for impact and handoff. */
+  readonly delivery?: { readonly documents: readonly { readonly id: string; readonly version: number }[]; readonly sourcePath?: string }
+  readonly mode: 'idea' | 'materials' | 'iterate' | 'review' | 'reverse' | 'gaps' | 'impact' | 'handoff'
+  readonly output: 'prd' | 'plan' | 'both'
+}
+
 /** Session prompt request. */
 export interface SessionPromptRequest {
   /** Client-minted identity persisted on the exact accepted user message. */
@@ -338,6 +428,8 @@ export interface SessionPromptRequest {
   /** At least one non-whitespace text part or attachment. */
   readonly content: readonly PromptContentPart[]
   readonly clientTimeZone?: string
+  /** Load Workshop instructions on the Host; content remains the user's task only. */
+  readonly workshop?: WorkshopTaskOptions
 }
 
 /** Receipt after one prompt enters the target Agent inbox. */
