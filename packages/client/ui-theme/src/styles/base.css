@@ -30,3 +30,24 @@ body {
 [data-dsh-automatic-focus]:focus:focus-visible {
   outline: none;
 }
+
+/* Keep native single-select chevrons clear of the control edge and text. */
+select:not([multiple]):is(:not([size]), [size='1']) {
+  appearance: none;
+  padding-inline-end: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 12px;
+}
+
+select:not([multiple]):required:invalid {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+@media (forced-colors: active) {
+  select:not([multiple]):is(:not([size]), [size='1']) {
+    appearance: auto;
+    background-image: none;
+  }
+}

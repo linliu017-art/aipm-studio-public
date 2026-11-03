@@ -462,7 +462,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                         first choice. The option is named because a screen
                         reader announces it either way, and an empty one is
                         announced as a choice with no identity. */}
-                    {probeApi === undefined ? <option value="">{t('customApiUnset')}</option> : null}
+                    {probeApi === undefined ? <option value="" disabled hidden>{t('customApiUnset')}</option> : null}
                     {protocols.map(choice => <option key={choice} value={choice}>{protocolLabel(t, choice)}</option>)}
                   </select>
                 </div>

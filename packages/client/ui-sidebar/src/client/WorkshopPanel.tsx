@@ -2,7 +2,7 @@
 import { useId, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button, Tooltip, IconAgentPresetOutlineRegular, IconFolderOpenOutlineRegular,
-  IconNewChatOutlineRegular, IconRefreshOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+  IconNewChatOutlineRegular, IconRefreshOutlineRegular, IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useProjectViews, type AipmPanelsInjected } from './AipmPanels.tsx'
 import type { WorkshopMode, WorkshopStartRequest, WorkshopOutput } from './workshop-launch.ts'
 import shared from './AipmPanels.module.css'
@@ -100,17 +100,22 @@ export function WorkshopPanel(props: Props) {
   const projectField = (
     <div className={css.field}>
       <label htmlFor={fieldId + '-project'}>{t(inspection ? 'workshop.inspection.destination' : 'workshop.project.label')}</label>
-      <select id={fieldId + '-project'} value={workspaceId} disabled={starting || state.phase !== 'ready'}
-        onChange={(event) => {
-          const id = event.currentTarget.value
-          updateDraft({ workspaceId: id, documentIds: choices.find(project => project.workspace.workspaceId === id)?.documents
-            ?.filter(document => document.kind === 'prd' || document.kind === 'plan').map(document => document.id) ?? [] })
-        }}>
-        <option value="">{t(delivery ? 'workshop.delivery.chooseProject' : mode === 'iterate' ? 'workshop.project.choose' : inspection ? 'workshop.inspection.newDestination' : 'workshop.project.upload')}</option>
-        {choices.map(project => <option key={project.workspace.workspaceId} value={project.workspace.workspaceId}>
-          {project.name}
-        </option>)}
-      </select>
+      <div className={css.projectSelect}>
+        <select id={fieldId + '-project'} data-clear={!delivery && mode !== 'iterate' && workspaceId !== ''} value={workspaceId} data-placeholder={workspaceId === ''} required={delivery || mode === 'iterate'} disabled={starting || state.phase !== 'ready'}
+          onChange={(event) => {
+            const id = event.currentTarget.value
+            updateDraft({ workspaceId: id, documentIds: choices.find(project => project.workspace.workspaceId === id)?.documents
+              ?.filter(document => document.kind === 'prd' || document.kind === 'plan').map(document => document.id) ?? [] })
+          }}>
+          <option value="" disabled hidden>{t(delivery ? 'workshop.delivery.chooseProject' : mode === 'iterate' ? 'workshop.project.choose' : inspection ? 'workshop.inspection.chooseDestination' : 'workshop.project.optional')}</option>
+          {choices.map(project => <option key={project.workspace.workspaceId} value={project.workspace.workspaceId}>
+            {project.name}
+          </option>)}
+        </select>
+        {!delivery && mode !== 'iterate' && workspaceId !== '' && <button type="button" className={css.clearProject} disabled={starting || state.phase !== 'ready'}
+          aria-label={t('workshop.project.clear')} title={t('workshop.project.clear')}
+          onClick={() => { updateDraft({ workspaceId: '', documentIds: [] }) }}><IconCloseOutlineRegular size={14} /></button>}
+      </div>
       <p>{t(delivery ? 'workshop.delivery.projectHint' : inspection ? 'workshop.inspection.destinationHint' : mode === 'iterate' ? 'workshop.project.iterateHint' : 'workshop.project.materialsHint')}</p>
       {mode === 'iterate' && state.phase === 'ready' && choices.length === 0
         && <p role="status">{t('workshop.project.noVersions')}</p>}
@@ -220,7 +225,6 @@ export function WorkshopPanel(props: Props) {
           </div>
         </details>}
         <div className={css.footer}>
-          <p>{t(delivery ? 'workshop.delivery.launchHint' : inspection ? 'workshop.inspection.launchHint' : 'workshop.launchHint')}</p>
           <Button type="submit" variant="primary" disabled={!valid || starting} icon={<IconNewChatOutlineRegular size={16} />}>
             {t(starting ? 'workshop.starting' : 'workshop.start')}
           </Button>

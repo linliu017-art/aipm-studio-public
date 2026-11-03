@@ -53,7 +53,7 @@ The service owns theme and font-size state and publishes snapshots. The ui-layou
 
 ### Stylesheets
 
-`base.css` owns the shared radius scale and settings-card material aliases. The material aliases resolve on `body`, alongside the active palette. Follow [Web styling](../../../docs/web-styling.md#corner-radii-and-settings-cards) when choosing component radii.
+`base.css` owns the shared radius scale and settings-card material aliases. Native single-select controls share a chevron inset from the right edge and reserve space for it; forced-colors mode restores the native arrow. The material aliases resolve on `body`, alongside the active palette. Follow [Web styling](../../../docs/web-styling.md#corner-radii-and-settings-cards) when choosing component radii.
 
 `src/styles/` holds eight sheets imported in order by ui-theme's dynamic client entry: `base.css`, `corner-shape.css`, `design-platform.css`, `focus.css`, `onboarding.css`, `scrollbar.css`, `gradient-shadow-text.css`, and `shiki.css`. The client bundle compiles and injects them as plugin-owned global styles, so unload and HMR remove them with ui-theme. `scrollbar.css` consumes the `--dsw-alias-scrollbar-*` tokens and must follow `design-platform.css`, which declares them. Status marks use their own semantic state tokens. `--dsw-alias-bg-document-selection` uses blue-500 at 40% opacity in both themes for selections over original document colors. `design-platform.css` also owns the code-diff fill aliases and their static alpha palette entries, plus the `--dsw-alias-file-diff-*` code, gutter, and marker palette for file comparisons; `shiki.css` owns syntax colors.
 
