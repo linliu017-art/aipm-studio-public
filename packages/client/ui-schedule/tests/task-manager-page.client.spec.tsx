@@ -118,6 +118,7 @@ afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
     localStorage.clear()
+    sessionStorage.clear()
   } finally {
     installedStyles?.remove()
     installedStyles = undefined
@@ -159,6 +160,7 @@ function mount(
   initial: Partial<CatalogSnapshot<ScheduleCatalogEntry>> = {},
   dictionary: typeof en | typeof zh = en,
   overrides: Partial<TaskManagerPageProps> = {},
+  expandEnded = true,
 ) {
   let snapshot: CatalogSnapshot<ScheduleCatalogEntry> = {
     records, status: 'ready', deleting: [], settled: true, readRequest: 0, readSettled: 0, ...initial,
@@ -173,7 +175,8 @@ function mount(
     useResource: () => { throw new Error('The task manager does not load document resources') },
     onDelete: vi.fn<TaskManagerPageProps['onDelete']>(async () => 'deleted'),
     onRetry: vi.fn(async () => {}),
-    onNewTask: vi.fn(),
+    onSetPaused: vi.fn(async () => 'ok' as const),
+    onCreateTask: vi.fn(async () => {}),
     onUpdateTiming: vi.fn<TaskManagerPageProps['onUpdateTiming']>(async ({ expected }) => ({
       ok: true, value: { id: expected.id, updated: false, record: expected },
     })),
@@ -189,19 +192,27 @@ function mount(
     ...overrides,
   }
   const view = render(<TaskManagerPage {...props} />)
+  if (expandEnded) {
+    const toggle = screen.queryByRole('button', { name: new RegExp(`${dictionary['status.inactive']}.*${dictionary['group.expand']}`) })
+    if (toggle !== null) fireEvent.click(toggle)
+  }
   return {
     props, view,
     updateTiming: vi.mocked(props.onUpdateTiming),
     update(next: Partial<CatalogSnapshot<ScheduleCatalogEntry>>) {
       snapshot = { ...snapshot, ...next }
       view.rerender(<TaskManagerPage {...props} />)
+      if (expandEnded) {
+        const toggle = screen.queryByRole('button', { name: new RegExp(`${dictionary['status.inactive']}.*${dictionary['group.expand']}`) })
+        if (toggle !== null) fireEvent.click(toggle)
+      }
     },
   }
 }
 
 function taskNames(): string[] {
   return within(screen.getByRole('list', { name: en['list.label'] })).queryAllByRole('button')
-    .filter(button => button.closest('li') !== null)
+    .filter(button => button.closest('li') !== null && button.hasAttribute('aria-label') && button.getAttribute('aria-haspopup') !== 'menu')
     .map(button => button.getAttribute('aria-label')!)
 }
 
@@ -611,13 +622,146 @@ it('updates original Session navigation as metadata arrives and archive state ch
   expect(screen.getByRole('menuitem', { name: en['delete.action'] })).toBeDefined()
 })
 
+describe('Task creation', () => {
+  it('distinguishes a pause failure from an expired one-time task', async () => {
+    mount({ records: [at] }, en, { onSetPaused: vi.fn(async () => 'error' as const) })
+    fireEvent.click(screen.getByRole('button', { name: `${en['detail.more']}：${at.title}` }))
+    fireEvent.click(screen.getByRole('menuitem', { name: en['task.pause'] }))
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe(en['task.statusError']) })
+    expect(screen.getByRole('alert').textContent).not.toBe(en['task.statusPast'])
+  })
+
+  it('explains expiration only when resuming an expired one-time task', async () => {
+    const paused = { ...at, status: 'paused' as const }
+    mount({ records: [paused] }, en, { onSetPaused: vi.fn(async () => 'past' as const) })
+    fireEvent.click(screen.getByRole('button', { name: `${en['detail.more']}：${at.title}` }))
+    fireEvent.click(screen.getByRole('menuitem', { name: en['task.resume'] }))
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe(en['task.statusPast']) })
+  })
+
+  it('groups today, upcoming, paused and ended tasks and expands ended results for search', () => {
+    const today = new Date(); today.setHours(12, 0, 0, 0)
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
+    const items = [
+      { ...at, id: 'group-today' as ScheduleId, title: 'Today task', scheduledAt: today.toISOString() },
+      { ...at, id: 'group-tomorrow' as ScheduleId, title: 'Upcoming task', scheduledAt: tomorrow.toISOString() },
+      { ...at, id: 'group-paused' as ScheduleId, title: 'Paused task', status: 'paused' as const },
+      { ...at, id: 'group-ended' as ScheduleId, title: 'Ended task', status: 'inactive' as const },
+    ]
+    mount({ records: items }, en, {}, false)
+    const list = screen.getByRole('list', { name: en['list.label'] })
+    const text = list.textContent ?? ''
+    expect(text.indexOf(en['group.today'])).toBeLessThan(text.indexOf(en['group.upcoming']))
+    expect(text.indexOf(en['group.upcoming'])).toBeLessThan(text.indexOf(en['status.paused']))
+    expect(text.indexOf(en['status.paused'])).toBeLessThan(text.indexOf(en['status.inactive']))
+    expect(within(list).queryByRole('button', { name: 'Ended task' })).toBeNull()
+    fireEvent.click(within(list).getByRole('button', { name: new RegExp(`${en['status.inactive']}.*${en['group.expand']}`) }))
+    expect(within(list).getByRole('button', { name: 'Ended task' })).toBeDefined()
+    fireEvent.click(within(list).getByRole('button', { name: new RegExp(`${en['status.inactive']}.*${en['group.collapse']}`) }))
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Ended task' } })
+    expect(within(list).getByRole('button', { name: 'Ended task' })).toBeDefined()
+  })
+
+  it('offers pause and confirmed deletion from the task list', async () => {
+    const h = mount({ records: [at] })
+    const more = screen.getByRole('button', { name: `${en['detail.more']}：${at.title}` })
+    fireEvent.click(more)
+    fireEvent.click(screen.getByRole('menuitem', { name: en['task.pause'] }))
+    await waitFor(() => { expect(h.props.onSetPaused).toHaveBeenCalledWith(at, true) })
+    fireEvent.click(more)
+    fireEvent.click(screen.getByRole('menuitem', { name: en['delete.action'] }))
+    expect(h.props.onDelete).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: en['delete.confirm'] }))
+    await waitFor(() => { expect(h.props.onDelete).toHaveBeenCalledWith(at.id) })
+  })
+
+  it('stages reminder changes until the user saves them', async () => {
+    localStorage.clear()
+    mount({ records: [at] })
+    fireEvent.click(screen.getByRole('button', { name: at.title }))
+    fireEvent.change(screen.getByLabelText(en['advance.label']), { target: { value: '5' } })
+    expect(localStorage.getItem(`dsh.schedule.advance-reminder.v1.${at.id}`)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: en['rule.save'] }))
+    await waitFor(() => { expect(JSON.parse(localStorage.getItem(`dsh.schedule.advance-reminder.v1.${at.id}`)!).minutes).toBe(5) })
+    localStorage.clear()
+  })
+
+  it('defaults to the computer local time each time the form opens', () => {
+    vi.useFakeTimers()
+    try {
+      const now = new Date('2026-11-05T12:34:56Z')
+      vi.setSystemTime(now)
+      mount({ records: [at] })
+      fireEvent.click(screen.getByRole('button', { name: en['new.action'] }))
+      const expected = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      expect(screen.getByLabelText<HTMLInputElement>(en['create.time']).value).toBe(expected)
+      fireEvent.click(screen.getAllByRole('button', { name: en['create.cancel'] })[1]!)
+      vi.setSystemTime(new Date(now.getTime() + 60000))
+      fireEvent.click(screen.getByRole('button', { name: en['new.action'] }))
+      const later = new Date(now.getTime() + 60000)
+      expect(screen.getByLabelText<HTMLInputElement>(en['create.time']).value).toBe(`${String(later.getHours()).padStart(2, '0')}:${String(later.getMinutes()).padStart(2, '0')}`)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('creates a daily task from the page and leaves the list visible', async () => {
+    const h = mount({ records: [at] })
+    fireEvent.click(screen.getByRole('button', { name: en['new.action'] }))
+    const dialog = screen.getByRole('dialog', { name: en['create.title'] })
+    fireEvent.change(within(dialog).getByLabelText(en['create.name']), { target: { value: 'Weekly review' } })
+    fireEvent.change(within(dialog).getByLabelText(en['create.instruction']), { target: { value: 'Summarize changes' } })
+    fireEvent.change(within(dialog).getByLabelText(en['create.frequency']), { target: { value: 'daily' } })
+    fireEvent.change(within(dialog).getByLabelText(en['create.time']), { target: { value: '10:30' } })
+    fireEvent.change(within(dialog).getByLabelText(en['advance.label']), { target: { value: '5' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: en['create.save'] }))
+    await waitFor(() => { expect(h.props.onCreateTask).toHaveBeenCalledOnce() })
+    expect(vi.mocked(h.props.onCreateTask).mock.calls[0]?.[0].remindBeforeMinutes).toBe(5)
+    expect(vi.mocked(h.props.onCreateTask).mock.calls[0]?.[0].schedule).toMatchObject({ title: 'Weekly review', prompt: 'Summarize changes', daily: { time: '10:30:00' } })
+    await waitFor(() => { expect(screen.queryByRole('dialog', { name: en['create.title'] })).toBeNull() })
+  })
+
+  it('retries an unconfirmed submission with the same identity', async () => {
+    const h = mount({ records: [at] })
+    vi.mocked(h.props.onCreateTask).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined)
+    fireEvent.click(screen.getByRole('button', { name: en['new.action'] }))
+    const dialog = screen.getByRole('dialog', { name: en['create.title'] })
+    fireEvent.change(within(dialog).getByLabelText(en['create.name']), { target: { value: 'Review' } })
+    fireEvent.change(within(dialog).getByLabelText(en['create.instruction']), { target: { value: 'Summarize' } })
+    fireEvent.change(within(dialog).getByLabelText(en['create.frequency']), { target: { value: 'daily' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: en['create.save'] }))
+    await within(dialog).findByRole('alert')
+    fireEvent.click(within(dialog).getByRole('button', { name: en['create.retry'] }))
+    await waitFor(() => { expect(h.props.onCreateTask).toHaveBeenCalledTimes(2) })
+    expect(vi.mocked(h.props.onCreateTask).mock.calls[1]?.[0]).toEqual(vi.mocked(h.props.onCreateTask).mock.calls[0]?.[0])
+  })
+})
+
+describe('Reminder navigation', () => {
+  it('opens the requested task when the task page is already visible', async () => {
+    mount({ records: [at] })
+    window.dispatchEvent(new CustomEvent('dsh-schedule-open-task', { detail: at.id }))
+    await waitFor(() => { expect(screen.getByRole('button', { name: at.title }).getAttribute('aria-expanded')).toBe('true') })
+  })
+})
+
+describe('Task selection after reload', () => {
+  it('restores the selected task from this browser tab', async () => {
+    sessionStorage.setItem('dsh.schedule.selected-task.v1', at.id)
+    mount({ records: [at] })
+    await waitFor(() => { expect(screen.getByRole('button', { name: at.title }).getAttribute('aria-expanded')).toBe('true') })
+    expect(screen.getByRole('complementary', { name: en['detail.label'] })).toBeDefined()
+  })
+})
+
 describe('Task manager catalog', () => {
-  it('starts a new Session instead of offering a page creation form', () => {
+  it('opens a creation form without starting a Session', () => {
     const h = mount({ records: [at] })
     // The heading's compact action and the empty state's named action are the
     // mock's two creation entries; only the heading's shows while a row exists.
     fireEvent.click(screen.getByRole('button', { name: en['new.action'] }))
-    expect(h.props.onNewTask).toHaveBeenCalledOnce()
+    expect(screen.getByRole('dialog', { name: en['create.title'] })).toBeDefined()
+    expect(h.props.onCreateTask).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: en['empty.action'] })).toBeNull()
   })
 
@@ -654,7 +798,7 @@ describe('Task manager catalog', () => {
     // The Plugins page's card column: plain list items with no separator; the
     // column's own 2px gap breaks the rows apart.
     const list = screen.getByRole('list', { name: en['list.label'] })
-    const wraps = list.querySelectorAll(':scope > li')
+    const wraps = list.querySelectorAll(`:scope > li.${css.listRowItem}`)
     expect(wraps).toHaveLength(3)
     for (const wrap of wraps) expect(wrap.querySelector(`.${css.row!}`)).not.toBeNull()
     expect(list.querySelector(`.${css.row!}`)?.querySelector(`.${css.rowTitle!}`)?.textContent).toBe('Send summary')
@@ -669,7 +813,7 @@ describe('Task manager catalog', () => {
     expect(screen.queryByText('session-gamma')).toBeNull()
     expect(screen.getAllByText('Once')).toHaveLength(2)
     expect(screen.getByText('Every 301 seconds')).toBeDefined()
-    expect(screen.queryByRole('button', { name: /create|new task|pause|resume|edit|run now|history/i })).toBeNull()
+    expect(screen.getByRole('button', { name: en['status.paused'] })).toBeDefined()
     expect(screen.queryByRole('complementary')).toBeNull()
     fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Escape' })
     expect(taskNames()).toHaveLength(3)
@@ -824,7 +968,9 @@ describe('Task manager catalog', () => {
     // The empty state's action keeps the mock's single creation entry: it starts a
     // new Session instead of resetting the filters the reader chose.
     fireEvent.click(emptyNewTaskButton())
-    expect(h.props.onNewTask).toHaveBeenCalledOnce()
+    expect(screen.getByRole('dialog', { name: en['create.title'] })).toBeDefined()
+    expect(h.props.onCreateTask).not.toHaveBeenCalled()
+    fireEvent.click(screen.getAllByRole('button', { name: en['create.cancel'] })[1]!)
     expect(taskNames()).toEqual([])
     expect(screen.getByRole<HTMLInputElement>('searchbox').value).toBe('release')
     expect(within(statuses).getByRole('button', { name: en['status.inactive'] }).getAttribute('aria-pressed')).toBe('true')
@@ -839,11 +985,11 @@ describe('Task manager catalog', () => {
     mount({ records: [ended, every, after] }, dictionary)
     const list = screen.getByRole('list', { name: dictionary['list.label'] })
     const names = () => within(list).queryAllByRole('button')
-      .filter(button => button.closest('li') !== null)
+      .filter(button => button.closest('li') !== null && button.hasAttribute('aria-label') && button.getAttribute('aria-haspopup') !== 'menu')
       .map(button => button.getAttribute('aria-label'))
     const statuses = screen.getByRole('group', { name: dictionary['statusFilter.label'] })
     const chooseStatus = (name: string) => fireEvent.click(within(statuses).getByRole('button', { name }))
-    expect(names()).toEqual(['Send summary', 'Review release', 'Check metrics'])
+    expect(names()).toEqual(['Send summary', 'Check metrics', 'Review release'])
     expect(within(statuses).getByRole('button', { name: dictionary['statusFilter.all'] }).getAttribute('aria-pressed')).toBe('true')
     chooseStatus(dictionary['status.active'])
     expect(names()).toEqual(['Send summary', 'Check metrics'])
@@ -952,7 +1098,7 @@ describe.each([['English', en], ['Chinese', zh]] as const)('task detail views in
     expect(visibleText(detail, dictionary['status.active'])).toHaveLength(0)
     expect(visibleText(detail, at.id)).toHaveLength(0)
     const menu = openMore(dictionary)
-    expect(within(menu).getAllByRole('menuitem')).toHaveLength(1)
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(2)
     expect(within(menu).getByRole('menuitem', { name: dictionary['delete.action'] })).toBeDefined()
     fireEvent.keyDown(menu, { key: 'Escape' })
     expect(screen.queryByRole('menu')).toBeNull()
@@ -1267,14 +1413,14 @@ describe('Task manager details', () => {
     expect(within(detail).queryByRole('region', { name: dictionary['delivery.label'] })).toBeNull()
     h.update({ records: [ended] })
     expect(screen.getByRole('complementary')).toBe(detail)
-    expect(screen.getByRole('button', { name: 'Review release' })).toBe(row)
-    expect(row.getAttribute('aria-expanded')).toBe('true')
-    expect(row.querySelector('time')).toBeNull()
-    expect(document.getElementById(row.getAttribute('aria-describedby')!)?.textContent).toContain(dictionary['status.inactive'])
+    const endedRow = screen.getByRole('button', { name: 'Review release' })
+    expect(endedRow.getAttribute('aria-expanded')).toBe('true')
+    expect(endedRow.querySelector('time')).toBeNull()
+    expect(document.getElementById(endedRow.getAttribute('aria-describedby')!)?.textContent).toContain(dictionary['status.inactive'])
     expect(within(detail).getByText(dictionary['status.inactive'])).toBeDefined()
     expect(visibleText(detail, dictionary['detail.nextRun'])).toHaveLength(0)
     expect(nextRunTime(detail)).toBeNull()
-    expect(row.textContent).not.toContain(dictionary['list.nextPrefix'])
+    expect(endedRow.textContent).not.toContain(dictionary['list.nextPrefix'])
     expect(detail.textContent).not.toMatch(/execution completed|completed successfully|execution succeeded|执行已完成|执行成功/i)
     // The linked-Session strip belongs to Rules, so open it before switching views.
     const context = detailContext(detail)!
@@ -1308,6 +1454,7 @@ describe('Task manager details', () => {
     expect(screen.getByRole('complementary')).toBe(detail)
     expect(within(detail).getByText(en['status.inactive'])).toBeDefined()
     fireEvent.click(screen.getByRole('button', { name: en['statusFilter.all'] }))
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`${en['status.inactive']}.*${en['group.expand']}`) }))
     expect(screen.getByRole('button', { name: 'Review release' }).getAttribute('aria-expanded')).toBe('true')
   })
 
@@ -1478,7 +1625,7 @@ describe('Task manager details', () => {
     expect(nextRunTime(detail)?.textContent).toBe(absoluteNextRun(at.scheduledAt, en))
     expect(relativeText(detail)).toBe(relativeNextRun(at.scheduledAt, en))
     const menu = openMore()
-    expect(within(menu).getAllByRole('menuitem')).toHaveLength(1)
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(2)
     expect(within(menu).getByRole('menuitem', { name: en['delete.action'] })).toBeDefined()
     fireEvent.keyDown(menu, { key: 'Escape' })
     expect(detail.querySelector('img')).toBeNull()
@@ -1621,7 +1768,7 @@ describe('Task manager details', () => {
 })
 
 describe('Task detail rule header and run-time card', () => {
-  it.each([en, zh])('shows the heading, one compact next-run line, and an overflow menu with only deletion', (dictionary) => {
+  it.each([en, zh])('shows the heading, one compact next-run line, and an overflow menu with pause and deletion', (dictionary) => {
     mount({ records: [at] }, dictionary)
     fireEvent.click(screen.getByRole('button', { name: 'Review release' }))
     const detail = screen.getByRole('complementary', { name: dictionary['detail.label'] })
@@ -1633,7 +1780,7 @@ describe('Task detail rule header and run-time card', () => {
     const repeat = within(card).getByRole('button', { name: new RegExp(`^${dictionary['rule.repeat']}`) })
     expect(repeat.textContent).toContain(dictionary['frequency.once'])
     const menu = openMore(dictionary)
-    expect(within(menu).getAllByRole('menuitem')).toHaveLength(1)
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(2)
     expect(within(menu).getByRole('menuitem', { name: dictionary['delete.action'] }).hasAttribute('disabled')).toBe(false)
   })
 
@@ -1701,7 +1848,7 @@ describe('Task detail rule header and run-time card', () => {
     more.focus()
     fireEvent.click(more)
     const menu = screen.getByRole('menu')
-    expect(within(menu).getAllByRole('menuitem')).toHaveLength(1)
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(2)
     fireEvent.keyDown(menu, { key: 'Escape' })
     expect(screen.queryByRole('menu')).toBeNull()
     expect(document.activeElement).toBe(more)

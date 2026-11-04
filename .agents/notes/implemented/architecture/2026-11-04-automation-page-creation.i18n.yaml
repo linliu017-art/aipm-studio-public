@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-04-automation-page-creation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-04-automation-page-creation.md
+/agent-note-create-scheduled-tasks-on-the-task-page:
+  en: 5e59e3bc2574a4ac
+  zh: 5bebbcd20ea078df
+/agent-note-create-scheduled-tasks-on-the-task-page/problem:
+  en: 5b051021bd64ee52
+  zh: 45d594a6a026e326
+/agent-note-create-scheduled-tasks-on-the-task-page/decision:
+  en: 2106d0a3e3e2c1f2
+  zh: b2b2915ac4182ca3
+/agent-note-create-scheduled-tasks-on-the-task-page/advance-notices:
+  en: 7e0f02661b660b35
+  zh: 398c826dc7d034a3
+/agent-note-create-scheduled-tasks-on-the-task-page/reload-and-sound:
+  en: 5a1e4a6de21e58df
+  zh: 31a74d7bd2d82502
+/agent-note-create-scheduled-tasks-on-the-task-page/verification:
+  en: b5d33956644ac711
+  zh: a116756d63d8f256

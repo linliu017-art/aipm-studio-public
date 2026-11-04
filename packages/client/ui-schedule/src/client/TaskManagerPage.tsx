@@ -1,8 +1,9 @@
 /** Cross-session retained reminders with local search and selection. */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  Button, IconClockOutlineRegular, IconCloseOutlineRegular, IconPlusOutlineRegular, IconSearchOutlineRegular, Input,
+  Button, IconClockOutlineRegular, IconCloseOutlineRegular, IconEllipsisOutlineRegular,
+  IconPlusOutlineRegular, IconSearchOutlineRegular, Input, Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -13,17 +14,16 @@ import { TaskDetail, useTaskDetail, type TaskDetailInjected } from './TaskDetail
 import { useRelativeClock } from './relative-clock.ts'
 import { formatScheduleFrequency, nextRunParts, taskName, zoneLabel } from './schedule-format.ts'
 import type { FrequencyZone } from './schedule-format.ts'
+import { CreateTaskForm, type CreateTaskInput } from './CreateTaskForm.tsx'
+import { clearTaskOpenRequest, OPEN_TASK_EVENT, selectedTaskForPage, SELECTED_TASK_KEY } from './task-manager-navigation.ts'
+import { TaskMenu } from './TaskMenu.tsx'
 import css from './TaskManagerPage.module.css'
 
 /** Injected catalog and task actions for the management page. */
 export interface TaskManagerInjected extends TaskDetailInjected {
   /** Host task catalog with its query and deletion state. */
   readonly hooks: { readonly catalog: HostObservable<CatalogSnapshot<ScheduleCatalogEntry>> }
-  /**
-   * Start a new Session, where a reminder is created by asking the model to
-   * schedule it. The page deliberately has no creation form of its own.
-   */
-  readonly onNewTask: () => void
+  readonly onCreateTask: (input: CreateTaskInput) => Promise<void>
 }
 
 /** Root-scoped task catalog props derived from the framework and injected actions. */
@@ -39,12 +39,37 @@ type StatusFilter = 'all' | ScheduleCatalogEntry['status']
  * @returns the searchable task list beside the selected task's detail.
  */
 export function TaskManagerPage(props: TaskManagerPageProps) {
-  const { useCatalog, onNewTask, onRetry, t } = props
+  const { useCatalog, onCreateTask, onRetry, t } = props
+  const [creating, setCreating] = useState(false)
+  const [rowMenu, setRowMenu] = useState<ScheduleId | null>(null)
+  const [deleteRow, setDeleteRow] = useState<ScheduleCatalogEntry | null>(null)
+  const [rowError, setRowError] = useState<'past' | 'error' | null>(null)
+  const [rowPending, setRowPending] = useState(false)
+  const [endedExpanded, setEndedExpanded] = useState(false)
+  const onNewTask = () => { setCreating(true) }
   const catalog = useCatalog(snapshot => snapshot)
   const { records, status } = catalog
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [selectedId, setSelectedId] = useState<ScheduleId | null>(null)
+  const [selectedId, setSelectedId] = useState<ScheduleId | null>(selectedTaskForPage)
+  useEffect(() => {
+    try {
+      if (selectedId === null) sessionStorage.removeItem(SELECTED_TASK_KEY)
+      else sessionStorage.setItem(SELECTED_TASK_KEY, selectedId)
+    } catch { /* Navigation remains usable without storage. */ }
+  }, [selectedId])
+  useEffect(() => {
+    clearTaskOpenRequest()
+    const onOpen = (event: Event) => {
+      const id = (event as CustomEvent<unknown>).detail
+      if (typeof id !== 'string') return
+      clearTaskOpenRequest()
+      setSelectedId(id as ScheduleId)
+      setTab('rule')
+    }
+    window.addEventListener(OPEN_TASK_EVENT, onOpen)
+    return () => { window.removeEventListener(OPEN_TASK_EVENT, onOpen) }
+  }, [])
   // The rows state how long remains, so they read the shared ticking clock
   // rather than a value sampled at mount: a catalog refresh can move the target
   // this text describes.
@@ -64,6 +89,20 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
     )).toSorted((left, right) =>
       Date.parse(left.scheduledAt) - Date.parse(right.scheduledAt))
   }, [records, search, statusFilter])
+
+  const startOfToday = new Date(now)
+  startOfToday.setHours(0, 0, 0, 0)
+  const startOfTomorrow = new Date(startOfToday)
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
+  const groups = [
+    { id: 'overdue', title: t('group.overdue'), records: rows.filter(record => record.status === 'active' && Date.parse(record.scheduledAt) < startOfToday.getTime()) },
+    { id: 'today', title: t('group.today'), records: rows.filter(record => record.status === 'active' && Date.parse(record.scheduledAt) >= startOfToday.getTime() && Date.parse(record.scheduledAt) < startOfTomorrow.getTime()) },
+    { id: 'upcoming', title: t('group.upcoming'), records: rows.filter(record => record.status === 'active' && Date.parse(record.scheduledAt) >= startOfTomorrow.getTime()) },
+    { id: 'unknown', title: t('group.unknown'), records: rows.filter(record => record.status === 'active' && !Number.isFinite(Date.parse(record.scheduledAt))) },
+    { id: 'paused', title: t('status.paused'), records: rows.filter(record => record.status === 'paused') },
+    { id: 'ended', title: t('status.inactive'), records: rows.filter(record => record.status === 'inactive').toReversed() },
+  ].filter(group => group.records.length > 0)
+  const showEnded = endedExpanded || statusFilter === 'inactive' || search.trim() !== ''
 
   // An inactive-only filter is its own empty state: no task is inactive, rather than no task matched.
   const emptyTitle = statusFilter === 'inactive' && search.trim() === ''
@@ -122,7 +161,7 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
             </div>
             <div className={css.filters}>
               <div className={css.filterTabs} role="group" aria-label={t('statusFilter.label')}>
-                {(['all', 'active', 'inactive'] as const).map(value => (
+                {(['all', 'active', 'paused', 'inactive'] as const).map(value => (
                   <button
                     key={value}
                     type="button"
@@ -148,6 +187,7 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
                 <IconCloseOutlineRegular />
               </Button>}
             </div>
+            {rowError !== null && <p role="alert">{t(rowError === 'past' ? 'task.statusPast' : 'task.statusError')}</p>}
             <div className={css.list}>
               {selected === undefined && <CatalogFeedback status={status} populated={rows.length > 0} onRetry={onRetry} t={t} />}
               {status === 'ready' && rows.length === 0 && <div className={css.empty} role="status">
@@ -158,49 +198,87 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
                 </Button>
               </div>}
               <ul className={css.listRows} aria-label={t('list.label')} aria-busy={status === 'loading'}>
-                {rows.map((record) => {
+                {groups.map(group => <Fragment key={group.id}>
+                  <li className={css.groupHeading}>
+                    {group.id === 'ended' && statusFilter === 'all' && search.trim() === ''
+                      ? <button type="button" className={css.groupToggle} aria-expanded={showEnded} onClick={() => { setEndedExpanded(value => !value) }}>
+                        <span>{group.title} <span className={css.groupCount}>{group.records.length}</span></span>
+                        <span className={css.groupToggleLabel}>{t(showEnded ? 'group.collapse' : 'group.expand')} {showEnded ? '⌃' : '⌄'}</span>
+                      </button>
+                      : <div className={css.groupTitle}>{group.title} <span className={css.groupCount}>{group.records.length}</span></div>}
+                  </li>
+                  {(group.id === 'ended' && !showEnded ? [] : group.records).map((record) => {
                   // One pair per row: the same absolute stamp and distance reach
                   // both halves, from one formatting call.
-                  const nextRun = nextRunParts(record.scheduledAt, t('time.locale'), now, t)
-                  return (
-                    <li key={record.id}>
-                      <Button
-                        className={clsx(css.row, selectedId === record.id && css.selectedRow,
-                          record.status === 'inactive' && css.endedRow)}
-                        aria-label={taskName(record)}
-                        aria-describedby={`${detailId}-metadata-${record.id}`}
-                        aria-expanded={selectedId === record.id}
-                        aria-controls={selectedId === record.id ? detailId : undefined}
-                        onClick={(event) => {
-                          rowRef.current = event.currentTarget
-                          setSelectedId(record.id)
-                          setTab('rule')
-                        }}
-                      >
-                        <IconClockOutlineRegular className={css.rowGlyph} />
-                        <span className={css.rowContent}>
-                          <span className={css.rowTitle}>{taskName(record)}</span>
-                          <span className={css.rowSummary} id={`${detailId}-metadata-${record.id}`}>
-                            {record.status === 'inactive'
-                              && <span className={css.metadata}>{t('status.inactive')}</span>}
-                            <span className={css.metadata}>{frequency(record)}</span>
-                            {record.status === 'active' && <span className={css.metadata}>
-                              {t('list.nextPrefix')}<time dateTime={record.scheduledAt}>
-                                {nextRun.absolute}
-                              </time>
-                              {' '}<span className={css.nextRunRelative}>{nextRun.relative}</span>
-                            </span>}
+                    const nextRun = nextRunParts(record.scheduledAt, t('time.locale'), now, t)
+                    return (
+                      <li key={record.id} className={css.listRowItem}>
+                        <Button
+                          className={clsx(css.row, selectedId === record.id && css.selectedRow,
+                            record.status === 'inactive' && css.endedRow)}
+                          aria-label={taskName(record)}
+                          aria-describedby={`${detailId}-metadata-${record.id}`}
+                          aria-expanded={selectedId === record.id}
+                          aria-controls={selectedId === record.id ? detailId : undefined}
+                          onClick={(event) => {
+                            rowRef.current = event.currentTarget
+                            setSelectedId(record.id)
+                            setTab('rule')
+                          }}
+                        >
+                          <IconClockOutlineRegular className={css.rowGlyph} />
+                          <span className={css.rowContent}>
+                            <span className={css.rowTitle}>{taskName(record)}</span>
+                            <span className={css.rowSummary} id={`${detailId}-metadata-${record.id}`}>
+                              {record.status !== 'active'
+                              && <span className={css.metadata}>{t(record.status === 'paused' ? 'status.paused' : 'status.inactive')}</span>}
+                              <span className={css.metadata}>{frequency(record)}</span>
+                              {record.status === 'active' && <span className={css.metadata}>
+                                {t('list.nextPrefix')}<time dateTime={record.scheduledAt}>
+                                  {nextRun.absolute}
+                                </time>
+                                {' '}<span className={css.nextRunRelative}>{nextRun.relative}</span>
+                              </span>}
+                            </span>
                           </span>
-                        </span>
-                      </Button>
-                    </li>
-                  )
-                })}
+                        </Button>
+                        <TaskMenu className={css.rowMenu} open={rowMenu === record.id} onClose={() => { setRowMenu(null) }} align="end" portal
+                          anchor={<Button className={css.rowMore} aria-label={`${t('detail.more')}：${taskName(record)}`}
+                            aria-haspopup="menu" aria-expanded={rowMenu === record.id}
+                            onClick={() => { setRowMenu(rowMenu === record.id ? null : record.id) }}>
+                            <IconEllipsisOutlineRegular />
+                          </Button>}
+                          items={[
+                            ...(record.status === 'inactive' ? [] : [{ id: 'pause',
+                              label: t(record.status === 'paused' ? 'task.resume' : 'task.pause'), disabled: rowPending }]),
+                            { id: 'delete', label: t('delete.action'), danger: true, disabled: rowPending },
+                          ]}
+                          onSelect={(action) => {
+                            setRowMenu(null)
+                            if (action === 'delete') { setDeleteRow(record); return }
+                            setRowError(null)
+                            setRowPending(true)
+                            void props.onSetPaused(record, record.status !== 'paused').then((result) => { setRowError(result === 'ok' ? null : result) })
+                              .catch(() => { setRowError('error') }).finally(() => { setRowPending(false) })
+                          }} />
+                      </li>
+                    )
+                  })}
+                </Fragment>)}
               </ul>
             </div>
           </div>
         </div>
       </div>
+      {deleteRow !== null && <Modal open title={t('delete.title')} description={t('delete.description')}
+        closeLabel={t('delete.close')} onClose={() => { if (!rowPending) setDeleteRow(null) }}
+        footer={<><Button variant="outline" disabled={rowPending} onClick={() => { setDeleteRow(null) }}>{t('delete.cancel')}</Button>
+          <Button disabled={rowPending} onClick={() => {
+            setRowPending(true)
+            void props.onDelete(deleteRow.id).then(() => { setDeleteRow(null) }).finally(() => { setRowPending(false) })
+          }}>{t('delete.confirm')}</Button></>} />}
+      {creating && <CreateTaskForm t={t} useWorkspaces={props.useWorkspaces} onCreate={onCreateTask}
+        onClose={() => { setCreating(false) }} />}
       {selected !== undefined && <TaskDetail
         {...detail.props}
         task={selected}

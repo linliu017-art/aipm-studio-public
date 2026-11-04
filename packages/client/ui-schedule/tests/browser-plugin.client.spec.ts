@@ -99,6 +99,7 @@ async function baseContext(
     provider.provide('remote.schedule', (remote.schedule ?? {}) as never)
   } }).await()
   ctx.provide('uiWorkspace', { openSession: vi.fn(), startSession: vi.fn() } as never)
+  ctx.provide('layout', { selectPanel: vi.fn() } as never)
   ctx.provide('sidebarRightTabs', { register: sidebar.register } as never)
   ctx.provide('sidebarRight', { openTab: sidebar.openTab, tabsIn: sidebar.tabsIn } as never)
   const id = 'cold-original' as SessionId
@@ -140,7 +141,7 @@ describe('ui-schedule browser half', () => {
   it('declares only the services used by registration', () => {
     expect(inject).toEqual([
       'slots', 'locale', 'remote', 'remote.schedule', 'conversation', 'uiConversation', 'uiWorkspace', 'sessions',
-      'workspaces', 'sidebarRightTabs', 'sidebarRight',
+      'workspaces', 'sidebarRightTabs', 'sidebarRight', 'layout',
     ])
   })
 
@@ -224,7 +225,7 @@ describe('ui-schedule browser half', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     try {
-      const overlay = ctx.slots.entries('shell.overlay')[0]!
+      const overlay = ctx.slots.entries('shell.overlay').find(entry => entry.options.id === 'schedule.delete-toast')!
       expect(overlay.component).toBe(ScheduleDeleteToast)
       expect(overlay.options).toMatchObject({ id: 'schedule.delete-toast' })
       expect(overlay.locale).toBe('schedule.manager')
@@ -330,10 +331,9 @@ describe('ui-schedule browser half', () => {
       ) as ScheduleTaskCatalogInjected & ScheduleTaskBindingInjected
       expect(chip.taskBindings).toBe(body.taskBindings)
       expect(chip.hooks.catalog).toBe(body.hooks.catalog)
-      // The panel starts a new reminder in a Session rather than opening a creation form.
       const panel = injectedFace(ctx.slots.entries('main')[0]!, undefined as never) as TaskManagerInjected
-      panel.onNewTask()
-      expect(startSession).toHaveBeenCalledOnce()
+      expect(panel.onCreateTask).toBeTypeOf('function')
+      expect(startSession).not.toHaveBeenCalled()
     } finally {
       await fiber.dispose()
       owner()

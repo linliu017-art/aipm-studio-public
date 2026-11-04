@@ -14,10 +14,11 @@ import { resolveScheduleUpdate } from './update.ts'
 import {
   foldScheduleEvents, ScheduleInputError, ScheduleLogError, ScheduleId, createAfterScheduleRecord, createAtScheduleRecord,
   createEveryScheduleRecord, createDailyScheduleRecord, createWeeklyScheduleRecord, createCronScheduleRecord,
-  scheduleTitle,
+  scheduleTitle, isRecurringScheduleRecord, resolveRecurringOccurrence,
 } from './domain.ts'
 import type {
-  DeliveryRetentionBounds, ScheduleCatalogEntry, ScheduleCreateRequest, ScheduleDeleteRequest, ScheduleDeleteResult,
+  DeliveryRetentionBounds, ScheduleCatalogEntry, ScheduleClientCreateRequest, ScheduleCreateRequest, ScheduleDeleteRequest,
+  ScheduleDeleteResult,
   ScheduleDeliveryHistoryRequest, ScheduleDeliveryHistoryResult, ScheduleListRequest, ScheduleRecord,
   ScheduleUpdateRequest, ScheduleUpdateResult, SubagentSessionError,
 } from './types.ts'
@@ -225,14 +226,23 @@ export class ScheduleService extends TypertRemoteService {
    * @param signal - Optional cancellation checked before persistence begins, including after FIFO waits.
    * @returns The durably stored schedule. Cancellation does not roll back an in-flight write.
    */
-  async create(sessionId: SessionId, request: ScheduleCreateRequest, signal?: AbortSignal): Promise<ScheduleRecord> {
+  async create(sessionId: SessionId, request: ScheduleCreateRequest, signal?: AbortSignal, requestId?: string): Promise<ScheduleRecord> {
     if (Number(request.at !== undefined) + Number(request.after_seconds !== undefined)
       + Number(request.every_seconds !== undefined) + Number(request.daily !== undefined)
       + Number(request.weekly !== undefined) + Number(request.cron !== undefined) > 1) {
       throw new ScheduleInputError('invalid_selector', 'Exactly one reminder selector is required.')
     }
     const title = scheduleTitle(request.title)
-    const id = ScheduleId(`schedule-${randomUUID()}`)
+    const id = ScheduleId(`schedule-${requestId ?? randomUUID()}`)
+    if (requestId !== undefined) {
+      const existing = await this.serialize(async () => (await this.getDomain()).table('tasks').get(id))
+      if (existing !== undefined) {
+        if (existing.sessionId !== sessionId || existing.record.title !== title || existing.record.prompt !== request.prompt.trim()) {
+          throw new ScheduleInputError('invalid_selector', 'The creation request ID is already in use.')
+        }
+        return existing.record
+      }
+    }
     const now = Date.now()
     let record: ScheduleRecord
     if (request.at !== undefined) {
@@ -253,6 +263,14 @@ export class ScheduleService extends TypertRemoteService {
       if (refusal !== undefined) throw new ScheduleInputError('subagent_session', refusal.message)
       const domain = await this.getDomain()
       signal?.throwIfAborted()
+      const existing = domain.table('tasks').get(id)
+      if (existing !== undefined) {
+        if (requestId === undefined || existing.sessionId !== sessionId || existing.record.title !== record.title
+          || existing.record.prompt !== record.prompt || existing.record.kind !== record.kind) {
+          throw new ScheduleInputError('invalid_selector', 'The creation request ID is already in use.')
+        }
+        return existing.record
+      }
       await domain.table('tasks').put(id, {
         sessionId, record, status: 'active', deliveryHistory: { records: [], earlierRecordsUnavailable: false },
       })
@@ -260,6 +278,18 @@ export class ScheduleService extends TypertRemoteService {
       this.runtime?.requestDrive()
       return record
     })
+  }
+
+  /** Create a schedule from the task page using a stable retry identity. */
+  @Remote('create')
+  async createFromClient(request: ScheduleClientCreateRequest, signal?: AbortSignal): Promise<ScheduleRecord> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(request.requestId)) {
+      throw new ScheduleInputError('invalid_selector', 'Invalid creation request ID.')
+    }
+    if (this.ctx.agents.get(request.sessionId) === undefined) {
+      throw new ScheduleInputError('invalid_selector', 'Session is not available.')
+    }
+    return this.create(request.sessionId, request.schedule, signal, request.requestId)
   }
 
   /**
@@ -373,6 +403,28 @@ export class ScheduleService extends TypertRemoteService {
     })
   }
 
+  /** Pause or resume one retained task without dispatching missed occurrences. */
+  @Remote('setPaused')
+  async setPaused(request: ScheduleDeleteRequest & { paused: boolean }): Promise<{ ok: boolean; reason?: string }> {
+    return this.serialize(async () => {
+      const tasks = (await this.getDomain()).table('tasks')
+      const current = tasks.get(request.id)
+      if (current === undefined || current.sessionId !== request.sessionId || current.status === 'inactive') return { ok: false, reason: 'unavailable' }
+      if (request.paused && current.status === 'paused' || !request.paused && current.status === 'active') return { ok: true }
+      let record = current.record
+      if (!request.paused && Date.parse(record.scheduledAt) <= Date.now()) {
+        if (!isRecurringScheduleRecord(record)) return { ok: false, reason: 'past' }
+        const next = resolveRecurringOccurrence(record, Date.now()).nextScheduledAt
+        if (next === undefined) return { ok: false, reason: 'past' }
+        record = { ...record, scheduledAt: next }
+      }
+      await tasks.put(request.id, { ...current, record, status: request.paused ? 'paused' : 'active' })
+      this.emitChanged()
+      this.runtime?.requestDrive()
+      return { ok: true }
+    })
+  }
+
   /**
    * Dispatch one post-commit `schedule/changed` notification, containing
    * synchronous listener failures: every call site emits only after its durable
@@ -431,7 +483,7 @@ export class ScheduleService extends TypertRemoteService {
     await this.serialize(async () => {
       const tasks = (await this.getDomain()).table('tasks')
       const active = [...tasks.entries()]
-        .filter(([, task]) => task.sessionId === sessionId && task.status === 'active')
+        .filter(([, task]) => task.sessionId === sessionId && task.status !== 'inactive')
         .map(([, task]) => task.record.id)
       if (active.length === 0) return
       // One row per write: the domain table has no batch delete, and each row is

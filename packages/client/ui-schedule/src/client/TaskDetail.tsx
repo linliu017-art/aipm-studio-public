@@ -31,6 +31,8 @@ import type { CronBuilderState } from './task-cron.ts'
 import { sessionLabel, sessionLinkState } from './session-link.ts'
 import { loadRecentTimeZones, rememberTimeZone } from './recent-time-zones.ts'
 import type { TaskManagerKey } from './task-manager-locales.ts'
+import { ReminderField } from './AdvanceReminder.tsx'
+import { readAdvanceReminder, setAdvanceReminder } from './advance-reminder.ts'
 import { TaskMenu } from './TaskMenu.tsx'
 import type { TaskMenuEntry } from './TaskMenu.tsx'
 import css from './TaskManagerPage.module.css'
@@ -164,6 +166,7 @@ export interface TaskDetailInjected extends DeliveryHistoryInjected, TaskTimingI
    * authoritative refresh; the wiring reports it as the app-wide toast.
    */
   readonly onDelete: (id: ScheduleId) => Promise<CatalogDeleteOutcome>
+  readonly onSetPaused: (task: ScheduleCatalogEntry, paused: boolean) => Promise<'ok' | 'past' | 'error'>
   /**
    * Reload the catalog after a query failure or an acknowledged timing update,
    * and from a surface that needs a read newer than its own record.
@@ -289,7 +292,7 @@ export function useTaskDetail(
  * @returns the detail region, its deletion confirmation dialog, and the linked Session entry.
  */
 export function TaskDetail({
-  task, authoritative, id, status, deleting, onDelete, onRetry, onUpdateTiming, loadHistory, onOpenSession,
+  task, authoritative, id, status, deleting, onDelete, onRetry, onUpdateTiming, onSetPaused, loadHistory, onOpenSession,
   onEditState, tab, onTabChange, confirmId, onConfirm, onDeleted, onClose, withinSession, useSessions, useWorkspaces, t,
 }: TaskDetailProps): ReactNode {
   const sessions = useSessions(snapshot => snapshot)
@@ -300,6 +303,10 @@ export function TaskDetail({
   const panelRef = useRef<HTMLElement>(null)
   const footerRef = useRef<HTMLDivElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [statusError, setStatusError] = useState<'past' | 'error' | null>(null)
+  const [reminder, setReminder] = useState(() => readAdvanceReminder(task.id)?.minutes ?? 0)
+  const [storedReminder, setStoredReminder] = useState(() => readAdvanceReminder(task.id)?.minutes ?? 0)
+  const [reminderError, setReminderError] = useState(false)
   // The next-run line states how long remains, so the panel reads the same
   // ticking clock the task list does.
   const now = useRelativeClock()
@@ -445,6 +452,7 @@ export function TaskDetail({
   }
 
   const menuItems: TaskMenuEntry[] = [
+    ...(task.status === 'inactive' ? [] : [{ id: 'pause', label: t(task.status === 'paused' ? 'task.resume' : 'task.pause'), disabled: busy || pending }]),
     {
       id: 'delete',
       label: t(deleting.includes(task.id) ? 'delete.pending' : 'delete.action'),
@@ -462,6 +470,10 @@ export function TaskDetail({
     chosenWeekdays.current = undefined
     explicitUnit.current = false
     previousKind.current = storedValues.kind
+    setReminder(readAdvanceReminder(task.id)?.minutes ?? 0)
+    setStoredReminder(readAdvanceReminder(task.id)?.minutes ?? 0)
+    setReminderError(false)
+    setStatusError(null)
     setTrackedIdentity(taskIdentity)
     setEdit(initialRuleEdit(task))
     setIntervalUnit(preferredIntervalUnit(storedValues.draft.seconds))
@@ -498,7 +510,7 @@ export function TaskDetail({
       : { ...current, shown: current.stored }))
   }, [task.status])
   const shown = edit.shown
-  const dirty = shownValues(shown) !== shownValues(edit.stored)
+  const dirty = shownValues(shown) !== shownValues(edit.stored) || reminder !== storedReminder
   // The deletion is done once the refreshed catalog reports no row: the owner
   // then leaves the task through `onDeleted`, and the guards below keep the
   // one frame before that effect from showing a rule the deletion removed.
@@ -626,6 +638,8 @@ export function TaskDetail({
     setEdit(current => ({ ...current, shown: { ...current.shown, ...patch } }))
   }
   const cancelDraft = (): void => {
+    setReminder(storedReminder)
+    setReminderError(false)
     // The stored values become the shown values again, so the notice clears with them.
     chosenWeekdays.current = undefined
     setEdit(current => ({ ...current, shown: current.stored }))
@@ -673,6 +687,11 @@ export function TaskDetail({
       setFailure(ruleError(result.value.code))
       return
     }
+    try {
+      setAdvanceReminder(task.id, reminder)
+      setStoredReminder(reminder)
+      setReminderError(false)
+    } catch { setReminderError(true); return }
     const saved = ruleValues(result.value.record)
     // A refresh that landed while this save was in flight already seeded a newer
     // record. This response describes the record the save submitted, so it must
@@ -773,9 +792,14 @@ export function TaskDetail({
               open={menuOpen}
               onClose={() => { setMenuOpen(false) }}
               items={menuItems}
-              onSelect={() => {
+              onSelect={(item) => {
                 setMenuOpen(false)
-                onConfirm(task.id)
+                if (item === 'delete') onConfirm(task.id)
+                else {
+                  setStatusError(null)
+                  setPending(true)
+                  void onSetPaused(task, task.status !== 'paused').then((result) => { setStatusError(result === 'ok' ? null : result) }).catch(() => { setStatusError('error') }).finally(() => { setPending(false) })
+                }
               }}
               align="end"
               portal
@@ -806,6 +830,7 @@ export function TaskDetail({
             rule form. It stays inside this region, so a read that starts or
             settles while this detail is mounted moves no fixed row above it. */}
         <CatalogFeedback status={status} populated onRetry={onRetry} t={t} />
+        {statusError !== null && <p role="alert">{t(statusError === 'past' ? 'task.statusPast' : 'task.statusError')}</p>}
         {/* The mock's `.detail-heading`: the editable name leads the scrolling
             rule view, directly above the next-run line. The records view's tab
             strip is its whole header and carries neither. A deleted task has no
@@ -835,8 +860,11 @@ export function TaskDetail({
                   local stamp as well. */}
               <span className={css.nextRunRelative}>{nextRun.relative}</span>
             </p>
-            : <p>{t('status.inactive')}</p>}
+            : <p>{t(task.status === 'paused' ? 'status.paused' : 'status.inactive')}</p>}
         </div>}
+        {tab === 'rule' && !deleted
+          && <><ReminderField value={reminder} onChange={setReminder} disabled={busy || pending || task.status === 'inactive'} t={t} />
+            {reminderError && <p role="alert">{t('advance.error')}</p>}</>}
         <div role="tabpanel" id={`${id}-rule-panel`} aria-labelledby={`${id}-rule-tab`}
           hidden={tab !== 'rule' || deleted} tabIndex={0}>
           {!deleted && <>

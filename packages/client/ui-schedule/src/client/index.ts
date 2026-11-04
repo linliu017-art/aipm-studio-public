@@ -56,6 +56,9 @@ import { createSessionScheduleSource, type SessionScheduleSourceFactory } from '
 import { TaskTabBindings } from './task-tab-bindings.ts'
 import { TaskManagerPage, type TaskManagerInjected } from './TaskManagerPage.tsx'
 import type { TaskDetailInjected } from './TaskDetail.tsx'
+import { AdvanceReminderOverlay } from './AdvanceReminder.tsx'
+import { setAdvanceReminder } from './advance-reminder.ts'
+import { requestTaskOpen } from './task-manager-navigation.ts'
 import { TaskManagerIcon } from './TaskManagerIcon.tsx'
 import { sessionLinkState } from './session-link.ts'
 import { en, NS, zh, type ScheduleCatalogKey } from './locales.ts'
@@ -76,7 +79,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Required services for catalogs, ambient Session marks, the right Sidebar, Remote queries, and original-Session navigation. */
 export const inject = [
   'slots', 'locale', 'remote', 'remote.schedule', 'conversation', 'uiConversation', 'uiWorkspace', 'sessions',
-  'workspaces', 'sidebarRightTabs', 'sidebarRight',
+  'workspaces', 'sidebarRightTabs', 'sidebarRight', 'layout',
 ]
 
 /**
@@ -102,11 +105,21 @@ export function apply(ctx: ClientContext): void {
   // One outcome store behind one `shell.overlay` entry announces every deletion
   // this plugin's surfaces settle, so the notice outlives the panel, popover, or
   // tab the deletion started in.
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'schedule.advance-reminder', locale: MANAGER_NS,
+    inject: () => ({ hooks: manager.hooks, openTask: (id: ScheduleId) => {
+      requestTaskOpen(id)
+      ctx.layout.selectPanel(PANEL_ID)
+    } }),
+  }, AdvanceReminderOverlay))
   const deleteToast = createDeleteToastSource()
   const reportedDelete = (onDelete: (id: ScheduleId) => Promise<CatalogDeleteOutcome>) =>
     async (id: ScheduleId): Promise<CatalogDeleteOutcome> => {
       const outcome = await onDelete(id)
       deleteToast.report(outcome)
+      if (outcome === 'deleted') {
+        try { setAdvanceReminder(id, 0) } catch { /* Deletion already succeeded. */ }
+      }
       return outcome
     }
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
@@ -142,6 +155,12 @@ export function apply(ctx: ClientContext): void {
     onDelete: reportedDelete(manager.onDelete),
     onRetry: manager.onRetry,
     onUpdateTiming: updateTask,
+    onSetPaused: async (task, paused) => {
+      const result = await ctx.remote.schedule.setPaused({ id: task.id, sessionId: task.sessionId, paused })
+      await manager.onRetry(manager.hooks.catalog.getSnapshot().readRequest)
+      if (!result.ok) return 'error'
+      return result.value.ok ? 'ok' : result.value.reason === 'past' ? 'past' : 'error'
+    },
     loadHistory,
     onOpenSession: openSession,
   }
@@ -171,8 +190,15 @@ export function apply(ctx: ClientContext): void {
     locale: MANAGER_NS,
     inject: (): TaskManagerInjected => ({
       ...detail,
-      // The page has no creation form: a new reminder starts in a Session.
-      onNewTask: () => { ctx.uiWorkspace.startSession() },
+      onCreateTask: async (input) => {
+        if (input.remindBeforeMinutes > 0) setAdvanceReminder(`schedule-${input.requestId}`, input.remindBeforeMinutes)
+        await ctx.sessions.create({ sessionId: input.sessionId,
+          ...(input.workspaceId === undefined ? {} : { workspaceId: input.workspaceId }) })
+        const result = await ctx.remote.schedule.create({ sessionId: input.sessionId,
+          requestId: input.requestId, schedule: input.schedule })
+        if (!result.ok) throw new Error('Schedule creation was not confirmed')
+        await manager.onRetry(manager.hooks.catalog.getSnapshot().readRequest)
+      },
     }),
   }, TaskManagerPage))
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({

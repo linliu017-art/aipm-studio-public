@@ -214,7 +214,7 @@ export type ScheduleCatalogEntry = ScheduleRecord & {
   /** Session receiving this reminder when it becomes due. */
   readonly sessionId: SessionId
   /** Inactive reminders remain visible but never schedule another delivery. */
-  readonly status: 'active' | 'inactive'
+  readonly status: 'active' | 'paused' | 'inactive'
   /** Most recent durably acknowledged inbox delivery, when available. */
   readonly lastDelivery?: ScheduleDeliveryReceipt
 }
@@ -384,6 +384,13 @@ export interface ScheduleCreateRequest {
   weekly?: WeeklyInput
   /** Five-field cron expression evaluated in an explicit IANA zone. */
   cron?: CronInput
+}
+
+/** Idempotent browser creation bound to a Session. */
+export interface ScheduleClientCreateRequest {
+  readonly sessionId: SessionId
+  readonly requestId: string
+  readonly schedule: ScheduleCreateRequest
 }
 
 /** Session-scoped task list, without Agent activation. */

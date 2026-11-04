@@ -936,3 +936,32 @@ describe('a session keeps the preset it was created with', () => {
 })
 
 afterAll(async () => { await ctx?.fiber.dispose() })
+
+it('lets the actual AIPM preset create a scheduled task in its session', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-aipm-schedule-'))
+  let instance: Context | undefined
+  try {
+    instance = await bootWeb(root, [], [join(REPO_ROOT, 'packages/aipm/aipm')], [
+      '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-aipm',
+    ])
+    const app = instance
+    const handle = await app.agents.create({
+      sessionId: SessionId('aipm-schedule-test'),
+      setup: agentCtx => app.agentPresets.mount(agentCtx, 'aipm').then(() => undefined),
+    })
+    try {
+      expect(toolNames(app, handle.agent)).toContain('schedule_create')
+      const result = await app.tools.execute({
+        callId: ToolCallId('aipm-schedule-create'), name: 'schedule_create',
+        arguments: { title: 'Weekly AI news', prompt: 'Prepare an AI news briefing', weekly: { weekdays: [1], time: '09:00:00', time_zone: 'Asia/Shanghai' } },
+        signal: new AbortController().signal, agent: handle.agent,
+      })
+      expect(result.isError).toBe(false)
+      const tasks = await app.schedule.catalog()
+      expect(tasks).toEqual(expect.arrayContaining([expect.objectContaining({ title: 'Weekly AI news', sessionId: handle.agent.session.id, status: 'active' })]))
+    } finally { await handle.dispose() }
+  } finally {
+    await instance?.fiber.dispose()
+    await rm(root, { recursive: true, force: true })
+  }
+}, 120_000)

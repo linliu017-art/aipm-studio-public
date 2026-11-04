@@ -25,6 +25,16 @@ describe('AIPM bundle', () => {
     expect(persona.prefix).toContain('不要编造用户经历、行为数据、放弃率或行业结论')
   })
 
+  it('makes scheduling available to the default AIPM assistant', () => {
+    const patches = yaml.load(readFileSync(
+      fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8',
+    ), { schema: entryListSchema }) as Array<{ insert?: Entry[] }>
+    const preset = patches.flatMap(row => row.insert ?? []).find(row => row.id === 'preset-aipm')
+    const plugins = (preset?.config as { plugins: Entry[] }).plugins
+    expect(plugins.find(row => row.id === 'tool-schedule')).toMatchObject({ name: '@deepseek-ai/dsh-tool-schedule' })
+    expect((plugins.find(row => row.id === 'persona')?.config as { prefix: string }).prefix).toContain('schedule_create')
+  })
+
   it('loads packaged skills through the trusted bundled skill root', () => {
     const patch = yaml.load(
       readFileSync(fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8'),

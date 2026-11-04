@@ -21,6 +21,7 @@ let originalDarkTheme: string | null
 let originalThemeMetadata: Element[]
 
 beforeEach(() => {
+  sessionStorage.clear()
   originalRootStyle = document.documentElement.getAttribute('style')
   originalBodyStyle = document.body.getAttribute('style')
   originalDarkTheme = document.body.getAttribute('data-ds-dark-theme')
@@ -80,6 +81,20 @@ async function bench() {
 describe('ui-layout client apply', () => {
   it('declares its service dependencies', () => {
     expect(inject).toEqual(['slots', 'theme', 'locale', 'shortcuts'])
+  })
+
+  it('restores the selected panel after it registers and saves the current page on refresh', async () => {
+    sessionStorage.setItem('dsh.layout.active-panel.v1', 'schedules')
+    const { ctx, slots } = await bench()
+    const fiber = ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    const layout = ctx.get('layout') as LayoutController
+    expect(layout.panelInfo.getSnapshot().activePanelId).toBeNull()
+    const dispose = slots.register({ name: 'main', key: 'schedules' as MainPanelId }, () => null)
+    await vi.waitFor(() => { expect(layout.panelInfo.getSnapshot().activePanelId).toBe('schedules') })
+    window.dispatchEvent(new Event('pagehide'))
+    expect(sessionStorage.getItem('dsh.layout.active-panel.v1')).toBe('schedules')
+    dispose()
   })
 
   it('provides ctx.layout and declares the root-scoped frame slots', async () => {

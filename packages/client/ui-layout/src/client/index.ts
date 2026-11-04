@@ -18,6 +18,7 @@ import { AppFrame } from './AppFrame.tsx'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
 import { ThemePresenter } from './theme-presenter.ts'
+import { loadPanelForReload, savePanelForReload } from './panel-restore.ts'
 
 // Contract exports only (export-convergence rule: cross-package consumers
 // keep a symbol exported; test-only/package-internal symbols live off /src).
@@ -140,6 +141,7 @@ export function apply(ctx: ClientContext): void {
     const handle = createLayoutStore()
     const instance = handle.create()
     const store: typeof handle = { ...handle, create: () => instance }
+    let restorePanel = loadPanelForReload()
     const retainMainPanels = (): void => {
       instance.actions.retainMainPanels(ctx.slots.entries('main').flatMap(entry =>
         entry.options.key === undefined ? [] : [entry.options.key]))
@@ -165,9 +167,22 @@ export function apply(ctx: ClientContext): void {
       },
       store,
     }, AppFrame)
-    const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
-    retainMainPanels()
+    const syncPanels = (): void => {
+      retainMainPanels()
+      if (restorePanel !== null && ctx.slots.entries('main').some(entry => entry.options.key === restorePanel)) {
+        const target = restorePanel
+        restorePanel = null
+        if (layout.panelInfo.getSnapshot().activePanelId === null) layout.selectPanel(target)
+      }
+    }
+    const savePanel = (): void => { savePanelForReload(layout.panelInfo.getSnapshot().activePanelId ?? restorePanel) }
+    window.addEventListener('pagehide', savePanel)
+    window.addEventListener('beforeunload', savePanel)
+    const disposePanels = ctx.slots.subscribe('main', syncPanels)
+    syncPanels()
     return () => {
+      window.removeEventListener('pagehide', savePanel)
+      window.removeEventListener('beforeunload', savePanel)
       layout.dispose()
       disposePanels()
       disposeRegistration()

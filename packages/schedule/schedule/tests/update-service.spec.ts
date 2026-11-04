@@ -522,3 +522,76 @@ it('reports a deleted task as not found for update and repeated delete', async (
   expect(put).not.toHaveBeenCalled()
   expect(changed).not.toHaveBeenCalled()
 })
+
+it('pauses recurring tasks durably and resumes after missed occurrences without dispatching them', async () => {
+  const test = await setup()
+  const record = await test.service.create(sessionId, { prompt: 'Review', title: 'Review', every_seconds: 300 })
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: true })).toEqual({ ok: true })
+  expect(table(test).get(record.id)?.status).toBe('paused')
+  await vi.advanceTimersByTimeAsync(15 * 60_000)
+  expect(test.resolve).not.toHaveBeenCalled()
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: false })).toEqual({ ok: true })
+  const resumed = table(test).get(record.id)!
+  expect(resumed.status).toBe('active')
+  expect(Date.parse(resumed.record.scheduledAt)).toBeGreaterThan(Date.now())
+  expect(test.resolve).not.toHaveBeenCalled()
+})
+
+it('keeps an expired paused one-time task paused until its time is changed', async () => {
+  const test = await setup()
+  const record = await test.service.create(sessionId, { prompt: 'Review', title: 'Review', after_seconds: 60 })
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: true })).toEqual({ ok: true })
+  await vi.advanceTimersByTimeAsync(61_000)
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: false })).toEqual({ ok: false, reason: 'past' })
+  expect(table(test).get(record.id)?.status).toBe('paused')
+})
+
+it('pauses and resumes a future one-time task without changing its target', async () => {
+  const test = await setup()
+  const record = await test.service.create(sessionId, { prompt: 'One time', title: 'One time', after_seconds: 600 })
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: true })).toEqual({ ok: true })
+  await vi.advanceTimersByTimeAsync(60_000)
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: false })).toEqual({ ok: true })
+  expect(table(test).get(record.id)).toMatchObject({ status: 'active', record: { scheduledAt: record.scheduledAt } })
+  expect(test.resolve).not.toHaveBeenCalled()
+})
+
+it('permits an expired paused one-time task to resume after its time is edited', async () => {
+  const test = await setup()
+  const record = await test.service.create(sessionId, { prompt: 'One time', title: 'One time', after_seconds: 60 })
+  await test.service.setPaused({ sessionId, id: record.id, paused: true })
+  await vi.advanceTimersByTimeAsync(61_000)
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: false })).toEqual({ ok: false, reason: 'past' })
+  const future = new Date(Date.now() + 600_000).toISOString()
+  const updated = await test.service.update({ sessionId, id: record.id, expected: record, change: { kind: 'at', at: future } })
+  expect(updated).toMatchObject({ updated: true })
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: false })).toEqual({ ok: true })
+  expect(table(test).get(record.id)).toMatchObject({ status: 'active', record: { scheduledAt: future } })
+})
+
+it('pauses and resumes a one-time task changed into a daily schedule after the daily time passes', async () => {
+  const test = await setup()
+  const record = await test.service.create(sessionId, { prompt: 'Daily reminder', title: 'Daily reminder', after_seconds: 60 })
+  const changed = await test.service.update({ sessionId, id: record.id, expected: record,
+    change: { kind: 'daily', daily: { time: '00:05:00', time_zone: 'UTC' } } })
+  expect(changed).toMatchObject({ updated: true, record: { kind: 'daily' } })
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: true })).toEqual({ ok: true })
+  await vi.advanceTimersByTimeAsync(10 * 60_000)
+  expect(test.resolve).not.toHaveBeenCalled()
+  expect(await test.service.setPaused({ sessionId, id: record.id, paused: false })).toEqual({ ok: true })
+  expect(table(test).get(record.id)).toMatchObject({ status: 'active', record: { kind: 'daily', scheduledAt: '2026-09-17T00:05:00.000Z' } })
+  expect(test.resolve).not.toHaveBeenCalled()
+})
+
+it('keeps a paused task paused across a service restart', async () => {
+  const test = await setup()
+  const record = await test.service.create(sessionId, { prompt: 'Daily', title: 'Daily', every_seconds: 300 })
+  await test.service.setPaused({ sessionId, id: record.id, paused: true })
+  await test.ctx.fiber.dispose()
+  const restarted = await setup({ pool: test.pool })
+  expect(table(restarted).get(record.id)?.status).toBe('paused')
+  await vi.advanceTimersByTimeAsync(600_000)
+  expect(restarted.resolve).not.toHaveBeenCalled()
+  expect(await restarted.service.setPaused({ sessionId, id: record.id, paused: false })).toEqual({ ok: true })
+  expect(table(restarted).get(record.id)?.status).toBe('active')
+})

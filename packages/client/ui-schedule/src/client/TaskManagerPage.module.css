@@ -6,7 +6,7 @@
   min-height: 0;
   overflow: hidden;
   color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-bg-base);
+  background: radial-gradient(circle at 50% 0, var(--dsw-nini-accent-soft), transparent 38%), var(--dsw-alias-bg-base);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -1466,3 +1466,16 @@
     gap: 0;
   }
 }
+
+.listRowItem { position: relative; }
+.listRowItem .rowMenu { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); z-index: 1; }
+.listRowItem .row { padding-right: 54px; }
+
+.groupHeading { margin: 22px 0 8px; list-style: none; }
+.groupHeading:first-child { margin-top: 4px; }
+.groupTitle, .groupToggle { color: var(--dsw-alias-label-secondary); font-size: 13px; font-weight: 600; line-height: 24px; }
+.groupToggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0; border: 0; background: transparent; font-family: inherit; text-align: left; cursor: pointer; }
+.groupToggle:hover { color: var(--dsw-alias-label-primary); }
+.groupToggle:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 3px; border-radius: 4px; }
+.groupCount { margin-left: 6px; color: var(--dsw-alias-label-tertiary); font-weight: 400; }
+.groupToggleLabel { color: var(--dsw-alias-label-tertiary); font-weight: 400; }
