@@ -1479,3 +1479,30 @@
 .groupToggle:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 3px; border-radius: 4px; }
 .groupCount { margin-left: 6px; color: var(--dsw-alias-label-tertiary); font-weight: 400; }
 .groupToggleLabel { color: var(--dsw-alias-label-tertiary); font-weight: 400; }
+
+.resultEmpty, .resultStatus { color: var(--text-secondary, #6b7280); }
+.resultText { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+
+.listRowItem .rowRun { position: absolute; right: 48px; top: 50%; transform: translateY(-50%); z-index: 1; }
+.listRowItem .row { padding-right: 158px; }
+.rowRun button, .detailRun button { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.runWarning { display: block; font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.hasDetails .rowRun .runText { display: none; }
+.hasDetails .listRowItem .row { padding-right: 90px; }
+.rowRun .runWarning { position: absolute; right: 0; top: 100%; width: 200px; background: var(--dsw-alias-background-primary, white); z-index: 2; }
+
+.resultsTrigger { border: 0; border-radius: 16px; padding: 5px 10px; background: var(--dsw-alias-interactive-bg-hover); color: inherit; font: inherit; white-space: nowrap; cursor: pointer; }
+.resultsTrigger span { margin-left: 4px; color: var(--dsw-alias-label-secondary); }
+.resultsPanelHeader { display: flex; align-items: center; justify-content: space-between; padding: 20px var(--detail-gutter); border-bottom: 0.5px solid var(--dsw-alias-border-l4); }
+.resultsPanelHeader h2 { margin: 0; font-size: 16px; font-weight: 500; }
+.resultsPanelHeader h2 span { color: var(--dsw-alias-label-secondary); font-weight: 400; }
+.resultsClose { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 6px; }
+.newResults { overflow: auto; padding: 12px var(--detail-gutter); }
+.newResults h2 { font-size: 14px; margin: 0 0 8px; }
+.newResults h2 span { color: var(--dsw-alias-label-secondary); font-weight: 400; margin-left: 4px; }
+.newResultRow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 8px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.newResultRow:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.newResultRow:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); }
+.newResultDot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #3478f6; }
+.newResultName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.newResultRow time, .newResultRow > span:nth-last-child(2) { color: var(--dsw-alias-label-secondary); font-size: 12px; }

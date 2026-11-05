@@ -146,6 +146,8 @@ Each delivery adds fixed framing and content-dependent payload tokens. A recurri
 
 Reminder messages append to the original Session's history and preserve earlier message content; they do not replace the existing request prefix.
 
+Manual runs append one delivery receipt. A one-shot task becomes inactive after confirmed delivery; a recurring task retains its stored rule, target, and status. As with scheduled deliveries, enqueue and receipt persistence are not atomic; after an unconfirmed error, inspect the Session before retrying.
+
 ## Known Limitations and Deferred Work
 
 <a id="known-limitations-and-deferred-work"></a>

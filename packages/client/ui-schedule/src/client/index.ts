@@ -60,6 +60,8 @@ import { AdvanceReminderOverlay } from './AdvanceReminder.tsx'
 import { setAdvanceReminder } from './advance-reminder.ts'
 import { requestTaskOpen } from './task-manager-navigation.ts'
 import { TaskManagerIcon } from './TaskManagerIcon.tsx'
+import { loadTaskResult } from './result-source.ts'
+import { createManualRunController } from './manual-run.ts'
 import { sessionLinkState } from './session-link.ts'
 import { en, NS, zh, type ScheduleCatalogKey } from './locales.ts'
 import { en as managerEn, zh as managerZh, type TaskManagerKey } from './task-manager-locales.ts'
@@ -78,7 +80,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Required services for catalogs, ambient Session marks, the right Sidebar, Remote queries, and original-Session navigation. */
 export const inject = [
-  'slots', 'locale', 'remote', 'remote.schedule', 'conversation', 'uiConversation', 'uiWorkspace', 'sessions',
+  'slots', 'locale', 'remote', 'remote.schedule', 'remote.session', 'conversation', 'uiConversation', 'uiWorkspace', 'sessions',
   'workspaces', 'sidebarRightTabs', 'sidebarRight', 'layout',
 ]
 
@@ -145,6 +147,15 @@ export function apply(ctx: ClientContext): void {
     return result
   }
   const loadHistory = (request: ScheduleDeliveryHistoryRequest) => ctx.remote.schedule.history(request)
+  const loadResult = (sessionId: SessionId, messageId: string, signal: AbortSignal) =>
+    loadTaskResult(ctx.remote.session, sessionId, messageId, signal)
+  const manualRun = createManualRunController(async (task) => {
+    const result = await ctx.remote.schedule.runNow({ id: task.id, sessionId: task.sessionId })
+    if (!result.ok) throw result.error
+    await manager.onRetry(manager.hooks.catalog.getSnapshot().readRequest)
+    return result.value.messageId
+  }, loadResult)
+  ctx.effect(() => () => { manualRun.dispose() }, 'ui-schedule: manual runs')
   const openSession = (id: SessionId): void => {
     if (sessionLinkState(id, ctx.sessions.list.getSnapshot(), ctx.workspaces.list.getSnapshot()) === 'available') {
       ctx.uiWorkspace.openSession(id)
@@ -162,6 +173,8 @@ export function apply(ctx: ClientContext): void {
       return result.value.ok ? 'ok' : result.value.reason === 'past' ? 'past' : 'error'
     },
     loadHistory,
+    loadResult,
+    manualRun,
     onOpenSession: openSession,
   }
   // The Sidebar persists a tab's layout record and not its navigation
@@ -190,6 +203,7 @@ export function apply(ctx: ClientContext): void {
     locale: MANAGER_NS,
     inject: (): TaskManagerInjected => ({
       ...detail,
+      loadResultsHistory: loadHistory,
       onCreateTask: async (input) => {
         if (input.remindBeforeMinutes > 0) setAdvanceReminder(`schedule-${input.requestId}`, input.remindBeforeMinutes)
         await ctx.sessions.create({ sessionId: input.sessionId,

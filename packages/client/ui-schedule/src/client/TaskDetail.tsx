@@ -24,7 +24,7 @@ import type { CatalogDeleteOutcome, CatalogSnapshot } from './catalog-source.ts'
 import { draftZone, secondPrecision, slashDate, timingDraft, timingError, timingSnapshot, zonedWallClock } from './task-timing.ts'
 import type { TaskTimingInjected, TimingDraft } from './task-timing.ts'
 import { useRelativeClock } from './relative-clock.ts'
-import { formatScheduleFrequency, nextRunParts, recordTimeZone, zoneChoices, zoneLabel, zoneName } from './schedule-format.ts'
+import { formatScheduleFrequency, formatScheduleNextRun, nextRunParts, recordTimeZone, taskName, zoneChoices, zoneLabel, zoneName } from './schedule-format.ts'
 import type { FrequencyZone } from './schedule-format.ts'
 import { cronPreview, cronShapeExpression, parseCronExpression, recognizeCronShape } from './task-cron.ts'
 import type { CronBuilderState } from './task-cron.ts'
@@ -34,11 +34,14 @@ import type { TaskManagerKey } from './task-manager-locales.ts'
 import { ReminderField } from './AdvanceReminder.tsx'
 import { readAdvanceReminder, setAdvanceReminder } from './advance-reminder.ts'
 import { TaskMenu } from './TaskMenu.tsx'
+import { ManualRunButton } from './ManualRunButton.tsx'
+import type { ManualRunController } from './manual-run.ts'
+import { TaskResultPreview, type LoadTaskResult } from './TaskResultPreview.tsx'
 import type { TaskMenuEntry } from './TaskMenu.tsx'
 import css from './TaskManagerPage.module.css'
 
 /** The two views of one task's detail: its rule, or its saved delivery records. */
-export type TaskDetailTab = 'rule' | 'records'
+export type TaskDetailTab = 'result' | 'rule' | 'records'
 
 /** Locale seat of the task manager namespace, as this component receives it. */
 type RuleTranslate = PropsLocale<'schedule.manager'>['t']
@@ -159,6 +162,8 @@ const sessionLinkMessages = {
  * actions one task's detail calls.
  */
 export interface TaskDetailInjected extends DeliveryHistoryInjected, TaskTimingInjected {
+  readonly loadResult: LoadTaskResult
+  readonly manualRun?: ManualRunController
   /**
    * Delete one retained task through its original Session binding.
    * @param id - Task shown in this detail.
@@ -188,6 +193,8 @@ export type TaskDetailProps = TaskDetailInjected
   & {
     /** Task shown; an authoritative catalog row refreshes on its own, without an edit draft. */
     readonly task: ScheduleCatalogEntry
+    readonly requestedResult?: { taskId: ScheduleId; id: string; at: string } | undefined
+    readonly onViewedResult?: ((task: ScheduleCatalogEntry, id: string) => void) | undefined
     /** Whether an authoritative catalog row backs the shown task; a draft alone disables deletion. */
     readonly authoritative: boolean
     /** Element id shared by the detail panels and any control that points at them. */
@@ -254,16 +261,17 @@ export function useTaskDetail(
   injected: TaskDetailInjected & PropsLocale<'schedule.manager'> & Pick<PropsRuntime<'main'>, 'useSessions' | 'useWorkspaces'>,
   catalog: CatalogSnapshot<ScheduleCatalogEntry>,
   taskId: ScheduleId | undefined,
+  initialTab: TaskDetailTab = 'result',
 ): TaskDetailController {
   const [draft, setDraft] = useState<ScheduleCatalogEntry | null>(null)
-  const [tab, setTab] = useState<TaskDetailTab>('rule')
+  const [tab, setTab] = useState<TaskDetailTab>(initialTab)
   const [confirmId, setConfirmId] = useState<ScheduleId | null>(null)
   const id = useId()
   useEffect(() => {
     setDraft(null)
-    setTab('rule')
+    setTab(initialTab)
     setConfirmId(null)
-  }, [taskId])
+  }, [taskId, initialTab])
   const record = taskId === undefined ? undefined : catalog.records.find(item => item.id === taskId)
   const task = record ?? (draft !== null && draft.id === taskId ? draft : undefined)
   return {
@@ -292,9 +300,16 @@ export function useTaskDetail(
  * @returns the detail region, its deletion confirmation dialog, and the linked Session entry.
  */
 export function TaskDetail({
-  task, authoritative, id, status, deleting, onDelete, onRetry, onUpdateTiming, onSetPaused, loadHistory, onOpenSession,
-  onEditState, tab, onTabChange, confirmId, onConfirm, onDeleted, onClose, withinSession, useSessions, useWorkspaces, t,
+  task, authoritative, id, status, deleting, onDelete, onRetry, onUpdateTiming, onSetPaused,
+  loadHistory, loadResult, manualRun, onOpenSession,
+  onEditState, tab, onTabChange, confirmId, onConfirm, onDeleted, onClose, withinSession, requestedResult, onViewedResult,
+  useSessions, useWorkspaces, t,
 }: TaskDetailProps): ReactNode {
+  const [selectedResult, setSelectedResult] = useState<{ taskId: ScheduleId; id: string; at: string } | undefined>()
+  const latestResult = task.lastDelivery === undefined ? undefined : { id: task.lastDelivery.messageId, at: task.lastDelivery.scheduledAt }
+  const resultSelection = selectedResult?.taskId === task.id ? selectedResult : latestResult
+  useEffect(() => { setSelectedResult(undefined) }, [task.id, task.lastDelivery?.messageId])
+  useEffect(() => { if (requestedResult?.taskId === task.id) setSelectedResult(requestedResult) }, [requestedResult, task.id])
   const sessions = useSessions(snapshot => snapshot)
   const workspaces = useWorkspaces(snapshot => snapshot)
   const detailTabsRef = useRef<HTMLDivElement>(null)
@@ -315,7 +330,7 @@ export function TaskDetail({
   const sessionLink = sessionLinkState(task.sessionId, sessions, workspaces)
   const linkedSession = sessionLabel(task.sessionId, sessions)
   const sessionNotice = sessionLink === 'available' ? undefined : t(sessionLinkMessages[sessionLink])
-  const linkedShown = tab === 'rule' && withinSession !== task.sessionId
+  const linkedShown = (tab === 'rule' || tab === 'result') && withinSession !== task.sessionId
   const linkedText = t('detail.session')
   const [linkedCompact, setLinkedCompact] = useState(false)
   const linkedRef = useRef<HTMLSpanElement>(null)
@@ -714,7 +729,7 @@ export function TaskDetail({
     <aside ref={panelRef} className={css.detail} id={id} tabIndex={-1} aria-label={t('detail.label')}>
       <div className={css.detailTabsBar}>
         <div ref={detailTabsRef} className={css.detailTabs} role="tablist" aria-label={t('detail.tabs')}>
-          {(['rule', 'records'] as const).map(value => (
+          {(['result', 'rule', 'records'] as const).map(value => (
             <button
               key={value}
               type="button"
@@ -732,9 +747,11 @@ export function TaskDetail({
                 switch (event.key) {
                   case 'ArrowLeft':
                   case 'ArrowRight':
-                    next = value === 'rule' ? 'records' : 'rule'
+                    next = event.key === 'ArrowRight'
+                      ? (value === 'result' ? 'rule' : value === 'rule' ? 'records' : 'result')
+                      : (value === 'result' ? 'records' : value === 'rule' ? 'result' : 'rule')
                     break
-                  case 'Home': next = 'rule'; break
+                  case 'Home': next = 'result'; break
                   case 'End': next = 'records'; break
                   default: return
                 }
@@ -779,6 +796,7 @@ export function TaskDetail({
               </Button>
             </span>
           </Tooltip>}
+          {manualRun !== undefined && <ManualRunButton task={task} controller={manualRun} t={t} />}
           {/* The menu closes Escape from its own document keydown listener; this
               wrapper covers a menu whose own listener stands down, where the page's
               Escape handler would otherwise close the whole detail with it. */}
@@ -865,6 +883,17 @@ export function TaskDetail({
         {tab === 'rule' && !deleted
           && <><ReminderField value={reminder} onChange={setReminder} disabled={busy || pending || task.status === 'inactive'} t={t} />
             {reminderError && <p role="alert">{t('advance.error')}</p>}</>}
+        <div role="tabpanel" id={`${id}-result-panel`} aria-labelledby={`${id}-result-tab`} hidden={tab !== 'result' || deleted} tabIndex={0}>
+          {tab === 'result' && !deleted && <>
+            <h2 className={css.readonlyName}>{taskName(task)}</h2>
+            {resultSelection !== undefined && <p className={css.resultStatus}>
+              {t(resultSelection.id === task.lastDelivery?.messageId ? 'result.latest' : 'result.history')}{' · '}
+              <time dateTime={resultSelection.at}>{formatScheduleNextRun(resultSelection.at, t('time.locale'), recordTimeZone(task))}</time>
+            </p>}
+            <TaskResultPreview key={`${task.sessionId}:${resultSelection?.id ?? ''}`} sessionId={task.sessionId}
+              messageId={resultSelection?.id} loadResult={loadResult} onViewed={(id) => { onViewedResult?.(task, id) }} t={t} />
+          </>}
+        </div>
         <div role="tabpanel" id={`${id}-rule-panel`} aria-labelledby={`${id}-rule-tab`}
           hidden={tab !== 'rule' || deleted} tabIndex={0}>
           {!deleted && <>
@@ -904,6 +933,7 @@ export function TaskDetail({
             latestMessageId={task.lastDelivery?.messageId}
             timeZone={recordTimeZone(task)}
             loadHistory={loadHistory}
+            onViewResult={(messageId, at) => { setSelectedResult({ taskId: task.id, id: messageId, at }); onTabChange('result') }}
             t={t}
           />}
         </div>
@@ -911,7 +941,7 @@ export function TaskDetail({
       {/* A notice about the original Session states its own line under the strip:
           it appears only when that Session is archived or unreadable, and the
           linked control above it stays in the strip either way. */}
-      {tab === 'rule' && sessionNotice !== undefined && <p id={`${id}-session-state`} className={css.detailNotice} role="status">
+      {linkedShown && sessionNotice !== undefined && <p id={`${id}-session-state`} className={css.detailNotice} role="status">
         {sessionNotice}
       </p>}
       {/* On the rule tab a failure shows inside the Run time card's hint slot;

@@ -85,7 +85,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
       expect(Array.from(times, time => time.dateTime)).toEqual([records[index]!.scheduledAt])
       expect(times[0]!.textContent).toBe(formatScheduleNextRun(records[index]!.scheduledAt, dictionary['time.locale']))
       expect(region.querySelector('img')).toBeNull()
-      expect(within(region).queryByRole('button')).toBeNull()
+      expect(within(region).queryByRole('button', { name: dictionary['delivery.expand'] })).toBeNull()
       expect(region.textContent).not.toContain(records[index]!.messageId)
     }
     expect(screen.queryByText(dictionary['delivery.empty'])).toBeNull()
@@ -367,7 +367,7 @@ it('offers the instruction toggle only while the collapsed instruction overflows
     />)
     const region = await screen.findByRole('region', { name: en['delivery.label'] })
     const prompt = region.querySelector<HTMLElement>(`.${css.savedPrompt}`)!
-    expect(within(region).queryByRole('button')).toBeNull()
+    expect(within(region).queryByRole('button', { name: en['delivery.expand'] })).toBeNull()
     const collapsed = FakeResizeObserver.made.at(-1)!
     expect(collapsed.observe).toHaveBeenCalledWith(prompt)
     // A narrower panel wraps the instruction onto a third line.
@@ -378,7 +378,7 @@ it('offers the instruction toggle only while the collapsed instruction overflows
     expect(collapsed.disconnect).toHaveBeenCalledTimes(1)
     lines = 2
     fireEvent.click(within(region).getByRole('button', { name: en['delivery.collapse'] }))
-    expect(within(region).queryByRole('button')).toBeNull()
+    expect(within(region).queryByRole('button', { name: en['delivery.expand'] })).toBeNull()
     const remeasured = FakeResizeObserver.made.at(-1)!
     expect(remeasured).not.toBe(collapsed)
     view.unmount()

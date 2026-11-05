@@ -9,7 +9,7 @@
  * a save failure stated on the Delivery records tab, and the cron rows' close
  * paths and occurrence-seeded day shape.
  */
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent as rawFireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
@@ -24,6 +24,19 @@ import { timingSnapshot } from '../src/client/task-timing.ts'
 import { en } from '../src/client/task-manager-locales.ts'
 import { zoneOffsetMinutes } from './zone-fixture.ts'
 import css from '../src/client/TaskManagerPage.module.css'
+
+// These cases exercise rule editing; open Rules after selecting a task.
+const fireEvent = Object.assign((...args: Parameters<typeof rawFireEvent>) => rawFireEvent(...args), rawFireEvent, {
+  click(element: Element, ...args: Parameters<typeof rawFireEvent.click> extends [Element, ...infer Tail] ? Tail : never) {
+    const selectedRow = element.classList.contains(css.row)
+    const result = rawFireEvent.click(element, ...args)
+    if (selectedRow) {
+      const rules = screen.queryByRole('tab', { name: en['detail.rule'] })
+      if (rules !== null) rawFireEvent.click(rules)
+    }
+    return result
+  },
+}) as typeof rawFireEvent
 
 const at: ScheduleCatalogEntry = {
   id: 'task-at' as ScheduleId, sessionId: 'session-alpha' as SessionId, kind: 'at', status: 'active',
@@ -126,6 +139,7 @@ function mount(
       ok: true, value: { id: expected.id, updated: false, record: expected },
     })),
     onOpenSession: vi.fn(),
+    loadResult: vi.fn(async () => ({ kind: 'unavailable' as const })),
     loadHistory: vi.fn<TaskManagerPageProps['loadHistory']>(async ({ id }) => ({
       ok: true, value: {
         id, records: [], earlierRecordsUnavailable: false,

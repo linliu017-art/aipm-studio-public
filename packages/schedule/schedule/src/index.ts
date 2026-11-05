@@ -1,5 +1,6 @@
 /** Host-wide durable reminders and shared human/model management. */
 import { randomUUID } from 'node:crypto'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import z from '@deepseek-ai/schemastery'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
@@ -9,7 +10,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionActivity } from '@deepseek-ai/dsh-workspace'
 import { ScheduleRuntime } from './runtime.ts'
 import { scheduleDomain } from './storage.ts'
-import { deliveryHistoryPage } from './delivery-history.ts'
+import { appendDelivery, deliveryHistoryPage } from './delivery-history.ts'
 import { resolveScheduleUpdate } from './update.ts'
 import {
   foldScheduleEvents, ScheduleInputError, ScheduleLogError, ScheduleId, createAfterScheduleRecord, createAtScheduleRecord,
@@ -224,6 +225,7 @@ export class ScheduleService extends TypertRemoteService {
    * @param sessionId - Original Session receiving the reminder.
    * @param request - Validated tool selector, required title, and reminder content.
    * @param signal - Optional cancellation checked before persistence begins, including after FIFO waits.
+   * @param requestId - Optional stable identity for an idempotent creation retry.
    * @returns The durably stored schedule. Cancellation does not roll back an in-flight write.
    */
   async create(sessionId: SessionId, request: ScheduleCreateRequest, signal?: AbortSignal, requestId?: string): Promise<ScheduleRecord> {
@@ -280,7 +282,12 @@ export class ScheduleService extends TypertRemoteService {
     })
   }
 
-  /** Create a schedule from the task page using a stable retry identity. */
+  /**
+   * Create a schedule from the task page using a stable retry identity.
+   * @param request - Session, schedule, and stable creation request identity.
+   * @param signal - Optional cancellation checked before persistence begins.
+   * @returns The durably stored schedule.
+   */
   @Remote('create')
   async createFromClient(request: ScheduleClientCreateRequest, signal?: AbortSignal): Promise<ScheduleRecord> {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(request.requestId)) {
@@ -403,7 +410,42 @@ export class ScheduleService extends TypertRemoteService {
     })
   }
 
-  /** Pause or resume one retained task without dispatching missed occurrences. */
+  /**
+   * Deliver a task once, ending a one-shot rule after durable enqueue.
+   * @param request - Task and Session identifying the retained task.
+   * @returns The enqueued message identity.
+   */
+  @Remote('runNow')
+  async runNow(request: ScheduleDeleteRequest): Promise<{ messageId: string }> {
+    return this.serialize(async () => {
+      const tasks = (await this.getDomain()).table('tasks')
+      const current = tasks.get(request.id)
+      if (current === undefined || current.sessionId !== request.sessionId) {
+        throw new ScheduleInputError('invalid_selector', 'Task is unavailable.')
+      }
+      const resolved = await this.ctx.sessionController.resolveAgent(current.sessionId)
+      if ('error' in resolved) throw resolved.error
+      const at = new Date().toISOString()
+      const text = ['[MANUAL TASK RUN]', 'The user requested an immediate run of this task.',
+        `schedule_id_json: ${JSON.stringify(current.record.id)}`,
+        `occurrence_at: ${at}`, `reminder_prompt_json: ${JSON.stringify(current.record.prompt)}`].join('\n')
+      const message = createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'schedule' } })
+      resolved.agent.followup(message)
+      if (!await this.ctx.sessions.flush(resolved.agent.session)) throw new Error('Session did not acknowledge the task.')
+      const receipt = { scheduledAt: at, deliveredAt: new Date().toISOString(), messageId: message.id }
+      const status = isRecurringScheduleRecord(current.record) ? current.status : 'inactive'
+      await tasks.put(request.id, { ...current, status, ...appendDelivery(current, receipt, this.retention) })
+      this.emitChanged()
+      this.runtime?.requestDrive()
+      return { messageId: message.id }
+    })
+  }
+
+  /**
+   * Pause or resume one retained task without dispatching missed occurrences.
+   * @param request - Task, Session, and requested pause state.
+   * @returns Whether the state changed or the reason it could not change.
+   */
   @Remote('setPaused')
   async setPaused(request: ScheduleDeleteRequest & { paused: boolean }): Promise<{ ok: boolean; reason?: string }> {
     return this.serialize(async () => {

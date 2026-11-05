@@ -73,6 +73,7 @@ function sidebarStubs(): SidebarStubs {
 
 interface RemoteStubInput {
   schedule?: object
+  session?: object
   $on: (event: 'schedule/changed', listener: () => void) => () => void
 }
 
@@ -97,6 +98,7 @@ async function baseContext(
   new RemoteStub(ctx, remote.$on)
   await ctx.plugin({ apply(provider: Context) {
     provider.provide('remote.schedule', (remote.schedule ?? {}) as never)
+    provider.provide('remote.session', (remote.session ?? {}) as never)
   } }).await()
   ctx.provide('uiWorkspace', { openSession: vi.fn(), startSession: vi.fn() } as never)
   ctx.provide('layout', { selectPanel: vi.fn() } as never)
@@ -140,7 +142,7 @@ function declareTranscriptSeats(ctx: Context): () => void {
 describe('ui-schedule browser half', () => {
   it('declares only the services used by registration', () => {
     expect(inject).toEqual([
-      'slots', 'locale', 'remote', 'remote.schedule', 'conversation', 'uiConversation', 'uiWorkspace', 'sessions',
+      'slots', 'locale', 'remote', 'remote.schedule', 'remote.session', 'conversation', 'uiConversation', 'uiWorkspace', 'sessions',
       'workspaces', 'sidebarRightTabs', 'sidebarRight', 'layout',
     ])
   })
@@ -423,9 +425,9 @@ describe('ui-schedule browser half', () => {
     const panel = ctx.slots.entries('sidebar.panellist')[0]!
     expect(panel.options.id).toBe('schedules')
     ctx.locale.setLocale('en')
-    expect(resolveSlotLabel(panel.options.label)).toBe('Automation tasks')
+    expect(resolveSlotLabel(panel.options.label)).toBe('Task center')
     ctx.locale.setLocale('zh')
-    expect(resolveSlotLabel(panel.options.label)).toBe('自动化任务')
+    expect(resolveSlotLabel(panel.options.label)).toBe('任务中心')
     const face = injectedFace(entry, undefined as never) as TaskManagerInjected
     const dispose = face.hooks.catalog.subscribe(vi.fn())
     try {

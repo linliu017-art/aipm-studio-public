@@ -29,6 +29,7 @@ type Props = DeliveryHistoryInjected & PropsLocale<'schedule.manager'> & {
   latestMessageId: Cursor
   /** IANA zone of the task's own wall-clock rule; undefined for a one-shot or interval task. */
   timeZone?: string | undefined
+  onViewResult: (messageId: string, scheduledAt: string) => void
 }
 
 /**
@@ -67,7 +68,7 @@ function SavedPrompt({ prompt, t }: { prompt: string } & PropsLocale<'schedule.m
  * @param props - Exact task binding, latest receipt identity, Remote callback, task zone, and locale.
  * @returns Saved records and explicit loading, failure, and pagination actions.
  */
-export function DeliveryHistory({ id, sessionId, latestMessageId, timeZone, loadHistory, t }: Props) {
+export function DeliveryHistory({ id, sessionId, latestMessageId, timeZone, loadHistory, onViewResult, t }: Props) {
   const [page, setPage] = useState<Page>()
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<Failure>()
@@ -155,6 +156,7 @@ export function DeliveryHistory({ id, sessionId, latestMessageId, timeZone, load
             <time className={css.deliveryTime} dateTime={record.scheduledAt}>{formatOccurrence(record.scheduledAt)}</time>
           </div>
           {record.prompt !== undefined && <SavedPrompt prompt={record.prompt} t={t} />}
+          <Button size="sm" onClick={() => { onViewResult(record.messageId, record.scheduledAt) }}>{t('result.view')}</Button>
         </div>
       </section>)}
       {page?.nextBefore !== undefined && failure === undefined && <Button variant="outline" disabled={loading}

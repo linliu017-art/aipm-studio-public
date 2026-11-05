@@ -65,7 +65,7 @@ export function ScheduleTaskTab(props: ScheduleTaskTabProps): ReactNode {
   const { tab } = useTabInfo()
   const { navigated, navigation, recovered, params } = useTaskTabTarget(sessionId, tab, taskBindings)
   const catalog = useCatalog(snapshot => snapshot)
-  const detail = useTaskDetail(props, catalog, params?.id)
+  const detail = useTaskDetail(props, catalog, params?.id, 'rule')
   const { task, record: catalogRecord } = detail
   // A restored tab can appear with a task whose creation the last successful read
   // has not seen yet, so the retained records state that this tab's task is gone

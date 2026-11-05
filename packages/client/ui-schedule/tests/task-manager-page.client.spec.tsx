@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { act, cleanup, fireEvent, isInaccessible, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent as rawFireEvent, isInaccessible, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { bindSnapshotSelector, makeTranslate, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
@@ -11,6 +11,7 @@ import type { ScheduleCatalogEntry, ScheduleDeleteResult, ScheduleId, ScheduleUp
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { TaskManagerPage, type TaskManagerPageProps } from '../src/client/TaskManagerPage.tsx'
 import { TaskManagerIcon } from '../src/client/TaskManagerIcon.tsx'
+import { createManualRunController } from '../src/client/manual-run.ts'
 import { createCatalogSource, type CatalogSnapshot } from '../src/client/catalog-source.ts'
 import {
   FALLBACK_ZONES, formatScheduleAbsolute, formatScheduleFrequency, formatScheduleNextRun,
@@ -25,6 +26,21 @@ import modalCss from '../../ui-primitives/src/Modal.module.css'
 import pluginsCss from '../../ui-plugin-manager/src/client/PluginManagerPage.module.css'
 
 /** The Modal layer's own padding, which the delete dialog's cap has to clear. */
+// Most legacy cases exercise rule editing; explicitly open that tab after selecting a row.
+// New result-default behavior is tested separately with rawFireEvent.
+const fireEvent = Object.assign((...args: Parameters<typeof rawFireEvent>) => rawFireEvent(...args), rawFireEvent, {
+  click(element: Element, ...args: Parameters<typeof rawFireEvent.click> extends [Element, ...infer Tail] ? Tail : never) {
+    const selectedRow = element.classList.contains(css.row)
+    const result = rawFireEvent.click(element, ...args)
+    if (selectedRow) {
+      const tabs = screen.queryAllByRole('tab')
+      const rules = tabs.find(tab => tab.textContent === en['detail.rule'] || tab.textContent === zh['detail.rule'])
+      if (rules !== undefined) rawFireEvent.click(rules)
+    }
+    return result
+  },
+}) as typeof rawFireEvent
+
 const MODAL_LAYER_PADDING = 24
 
 /**
@@ -181,6 +197,7 @@ function mount(
       ok: true, value: { id: expected.id, updated: false, record: expected },
     })),
     onOpenSession: vi.fn(),
+    loadResult: vi.fn(async () => ({ kind: 'unavailable' as const })),
     loadHistory: vi.fn<TaskManagerPageProps['loadHistory']>(async ({ id }) => {
       const receipt = snapshot.records.find(record => record.id === id)?.lastDelivery
       return { ok: true, value: {
@@ -233,18 +250,19 @@ function detailViewLabels(dictionary: typeof en | typeof zh) {
     }
 }
 
-function expectDetailView(dictionary: typeof en | typeof zh, active: 'rules' | 'records'): HTMLElement {
+function expectDetailView(dictionary: typeof en | typeof zh, active: 'rules' | 'records' | 'result'): HTMLElement {
   const labels = detailViewLabels(dictionary)
   const detail = screen.getByRole('complementary', { name: dictionary['detail.label'] })
   const tabs = within(detail).getByRole('tablist', { name: labels.tablist })
-  expect(within(tabs).getAllByRole('tab')).toHaveLength(2)
-  for (const view of ['rules', 'records'] as const) {
-    const tab = within(tabs).getByRole('tab', { name: labels[view] })
+  expect(within(tabs).getAllByRole('tab')).toHaveLength(3)
+  for (const view of ['rules', 'records', 'result'] as const) {
+    const tab = within(tabs).getByRole('tab', { name: view === 'result' ? dictionary['detail.result'] : labels[view] })
     expect(tab.getAttribute('aria-selected')).toBe(String(view === active))
     expect(tab.tabIndex).toBe(view === active ? 0 : -1)
   }
-  const tab = within(tabs).getByRole('tab', { name: labels[active] })
-  const panel = within(detail).getByRole('tabpanel', { name: labels[active] })
+  const activeLabel = active === 'result' ? dictionary['detail.result'] : labels[active]
+  const tab = within(tabs).getByRole('tab', { name: activeLabel })
+  const panel = within(detail).getByRole('tabpanel', { name: activeLabel })
   expect(within(detail).getAllByRole('tabpanel')).toEqual([panel])
   expect(panel.id).not.toBe('')
   expect(tab.id).not.toBe('')
@@ -776,7 +794,7 @@ describe('Task manager catalog', () => {
     const heading = page.querySelector<HTMLElement>(`.${css.pageHeading!}`)!
     expect(heading.querySelector('h1')?.textContent).toBe(en['title'])
     expect(heading.querySelector('p')).toBeNull()
-    expect(heading.querySelector(`.${css.creationActions!}`)?.textContent).toBe(en['new.action'])
+    expect(heading.querySelector(`.${css.creationActions!}`)?.textContent).toContain(en['new.action'])
     // The filter row carries the status group alone: the type chips are gone.
     const filters = page.querySelector<HTMLElement>(`.${css.filters!}`)!
     expect(within(filters).getAllByRole('group')).toHaveLength(1)
@@ -1119,7 +1137,7 @@ describe.each([['English', en], ['Chinese', zh]] as const)('task detail views in
     expect(within(recordPanel).getAllByRole('region', { name: dictionary['delivery.label'] })).toHaveLength(1)
     expect(receipt.querySelector<HTMLTimeElement>(`.${css.deliveryTime}`)?.dateTime).toBe(delivery.scheduledAt)
     expect(receipt.querySelector('details')).toBeNull()
-    expect(within(receipt).queryByRole('button')).toBeNull()
+    expect(within(receipt).getByRole('button', { name: dictionary['result.view'] })).toBeDefined()
     expect(visibleText(recordPanel, labels.empty)).toHaveLength(0)
     expect(within(detail).queryByRole('textbox', { name: dictionary['detail.instruction'] })).toBeNull()
     for (const text of [dictionary['detail.status'], dictionary['detail.frequency'], dictionary['detail.id'], dictionary['rule.title'], at.id]) {
@@ -1209,15 +1227,16 @@ describe.each([['English', en], ['Chinese', zh]] as const)('task detail views in
     fireEvent.click(screen.getByRole('button', { name: 'Review release' }))
     const rules = screen.getByRole('tab', { name: labels.rules })
     const recordTab = screen.getByRole('tab', { name: labels.records })
+    const resultTab = screen.getByRole('tab', { name: dictionary['detail.result'] })
     rules.focus()
     for (const [key, active] of [
-      ['ArrowRight', 'records'], ['ArrowRight', 'rules'],
-      ['ArrowLeft', 'records'], ['ArrowLeft', 'rules'],
-      ['End', 'records'], ['End', 'records'], ['Home', 'rules'], ['Home', 'rules'],
+      ['ArrowRight', 'records'], ['ArrowRight', 'result'], ['ArrowRight', 'rules'],
+      ['ArrowLeft', 'result'], ['ArrowLeft', 'records'], ['ArrowLeft', 'rules'],
+      ['End', 'records'], ['End', 'records'], ['Home', 'result'], ['Home', 'result'], ['ArrowRight', 'rules'],
     ] as const) {
       expect(fireEvent.keyDown(document.activeElement!, { key })).toBe(false)
       expectDetailView(dictionary, active)
-      expect(document.activeElement).toBe(active === 'rules' ? rules : recordTab)
+      expect(document.activeElement).toBe(active === 'rules' ? rules : active === 'result' ? resultTab : recordTab)
     }
     expect(fireEvent.keyDown(rules, { key: 'Tab' })).toBe(true)
     expectDetailView(dictionary, 'rules')
@@ -1350,7 +1369,7 @@ describe('saved-history task binding', () => {
     expect(record.querySelector(`.${css.savedPrompt}`)).toBeNull()
     expect(record.querySelectorAll('p')).toHaveLength(0)
     expect(record.querySelector('details')).toBeNull()
-    expect(within(record).queryByRole('button')).toBeNull()
+    expect(within(record).getByRole('button', { name: dictionary['result.view'] })).toBeDefined()
   })
 
   it.each(['success', 'rejection'] as const)('ignores old-task late %s and never displays its records in another task', async (outcome) => {
@@ -1437,7 +1456,7 @@ describe('Task manager details', () => {
     expect(occurrence?.textContent ?? '').toMatch(/[A-Za-z]{3,}|月/)
     expect(occurrence?.textContent ?? '').not.toMatch(/\d{2}-\d{2}/)
     expect(receipt.querySelector('details')).toBeNull()
-    expect(within(receipt).queryByRole('button')).toBeNull()
+    expect(within(receipt).getByRole('button', { name: dictionary['result.view'] })).toBeDefined()
     expect(receipt.querySelectorAll('time')).toHaveLength(1)
     expect(within(detail).queryByRole('region', { name: /history|历史/i })).toBeNull()
     expect(detail.querySelector('footer')).toBeNull()
@@ -3591,7 +3610,7 @@ describe('Task detail rule header and run-time card', () => {
     vi.spyOn(Element.prototype, 'clientWidth', 'get').mockImplementation(() => strip - entryWidth())
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
       if (this.classList.contains(css.detailContext!)) return new DOMRect(0, 0, entryWidth(), 28)
-      if (this.getAttribute('role') === 'tab') return new DOMRect(this.getAttribute('data-detail-tab') === 'rule' ? 0 : 80, 0, 40, 30)
+      if (this.getAttribute('role') === 'tab') return new DOMRect(this.getAttribute('data-detail-tab') === 'result' ? 0 : this.getAttribute('data-detail-tab') === 'rule' ? 40 : 80, 0, 40, 30)
       return new DOMRect(0, 0, 0, 0)
     })
     try {
@@ -4507,5 +4526,99 @@ describe('timing pickers', () => {
     expect(screen.getByRole('dialog', { name: dictionary['timing.date'] })).toBeDefined()
     expect(screen.getByRole('button', { name: dictionary['timing.prevMonth'] })).toBeDefined()
     expect(screen.getByRole('button', { name: dictionary['timing.nextMonth'] })).toBeDefined()
+  })
+})
+
+
+describe('task results', () => {
+  it('opens the latest result by default, links to the session, and opens a historical result', async () => {
+    const latest = { ...delivery, messageId: 'latest' as typeof delivery.messageId }
+    const previous = { ...delivery, messageId: 'previous' as typeof delivery.messageId, scheduledAt: '2026-09-30T09:00:00.000Z' }
+    const loadResult = vi.fn(async (_session: SessionId, id: string) => ({ kind: 'completed' as const, text: `Result ${id}` }))
+    const loadHistory = vi.fn(async () => ({ ok: true as const, value: { id: at.id, records: [latest, previous],
+      earlierRecordsUnavailable: false, earlierRecordsPruned: false, retention: { days: 30, records: 200 } } }))
+    const h = mount({ records: [{ ...at, lastDelivery: latest }] }, en, { loadResult, loadHistory })
+    rawFireEvent.click(screen.getByRole('button', { name: 'Review release' }))
+    expect(screen.getByRole('tab', { name: en['detail.result'] }).getAttribute('aria-selected')).toBe('true')
+    await screen.findByText('Result latest')
+    rawFireEvent.click(screen.getByRole('button', { name: en['detail.openSession'] }))
+    expect(h.props.onOpenSession).toHaveBeenCalledWith(at.sessionId)
+    rawFireEvent.click(screen.getByRole('tab', { name: en['detail.records'] }))
+    const records = await screen.findAllByRole('region', { name: en['delivery.label'] })
+    rawFireEvent.click(within(records[1]!).getByRole('button', { name: en['result.view'] }))
+    await screen.findByText('Result previous')
+    expect(screen.getByText((_, node) => node?.tagName === 'P' && (node.textContent ?? '').includes(en['result.history']))).toBeDefined()
+  })
+})
+
+
+describe('manual run controls', () => {
+  it('keeps list and detail buttons synchronized while a paused task runs', async () => {
+    const gate = Promise.withResolvers<string>()
+    const dispatch = vi.fn(() => gate.promise)
+    const controller = createManualRunController(dispatch, vi.fn(async () => ({ kind: 'completed' as const, text: 'done' })))
+    try {
+      mount({ records: [{ ...at, status: 'paused' }] }, en, { manualRun: controller })
+      rawFireEvent.click(screen.getByRole('button', { name: 'Review release' }))
+      const buttons = screen.getAllByRole('button', { name: 'Run now：Review release' })
+      expect(buttons).toHaveLength(2)
+      rawFireEvent.click(buttons[0]!)
+      expect(dispatch).toHaveBeenCalledOnce()
+      expect(screen.getAllByRole('button', { name: 'Running：Review release' }).every(button => button.hasAttribute('disabled'))).toBe(true)
+      await act(async () => { gate.resolve('message'); await gate.promise })
+      await waitFor(() => { expect(screen.getAllByRole('button', { name: 'Run now：Review release' })).toHaveLength(2) })
+    } finally { controller.dispose() }
+  })
+})
+
+it('places a recurring task already delivered today in upcoming and keeps paused tasks paused', () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date(2026, 10, 5, 10, 0, 0))
+  try {
+    const scheduled = new Date(2026, 10, 5, 22, 0, 0).toISOString()
+    const delivered = new Date(2026, 10, 5, 9, 0, 0).toISOString()
+    const deliveredTask = { ...daily, scheduledAt: scheduled, lastDelivery: { ...delivery, deliveredAt: delivered } }
+    const pausedTask = { ...deliveredTask, id: 'paused-test' as ScheduleId, title: 'Paused report', status: 'paused' as const }
+    mount({ records: [deliveredTask, pausedTask] }, en)
+    const list = screen.getByRole('list', { name: en['list.label'] })
+    const text = list.textContent ?? ''
+    expect(text).toContain(en['group.upcoming'])
+    expect(text).not.toContain(en['group.today'])
+    expect(text.indexOf(en['group.upcoming'])).toBeLessThan(text.indexOf('Daily weather'))
+    expect(text.indexOf(en['status.paused'])).toBeLessThan(text.indexOf('Paused report'))
+  } finally { vi.useRealTimers() }
+})
+
+describe('new results', () => {
+  it('keeps results in a separate panel and marks only the opened result read', async () => {
+    const latest = { ...delivery, prompt: 'Write a report', messageId: 'new-latest' as typeof delivery.messageId }
+    const old = { ...delivery, prompt: 'Write a report', messageId: 'new-old' as typeof delivery.messageId,
+      deliveredAt: '2026-09-30T09:00:00Z', scheduledAt: '2026-09-30T09:00:00Z' }
+    const pending = { ...delivery, prompt: 'Write a report', messageId: 'new-pending' as typeof delivery.messageId }
+    const reminder = { ...delivery, prompt: '提醒用户：该睡觉了', messageId: 'reminder' as typeof delivery.messageId }
+    const failed = { ...delivery, prompt: 'Write a report', messageId: 'failed' as typeof delivery.messageId }
+    const history = vi.fn(async () => ({ ok: true as const, value: { id: at.id, records: [latest, old, pending, reminder, failed],
+      earlierRecordsUnavailable: false, earlierRecordsPruned: false, retention: { days: 30, records: 200 } } }))
+    const result = vi.fn(async (_session: SessionId, id: string) => id === 'new-pending'
+      ? { kind: 'running' as const } : id === 'failed' ? { kind: 'failed' as const, reason: 'error' }
+        : { kind: 'completed' as const, text: `Result ${id}` })
+    mount({ records: [{ ...at, lastDelivery: latest }] }, en, { loadResultsHistory: history, loadResult: result })
+    const trigger = await screen.findByRole('button', { name: /New results 2/ })
+    expect(screen.queryByRole('region', { name: en['newResults.title'] })).toBeNull()
+    rawFireEvent.click(trigger)
+    const section = screen.getByRole('region', { name: en['newResults.title'] })
+    const buttons = within(section).getAllByRole('button')
+    expect(buttons).toHaveLength(2)
+    rawFireEvent.click(buttons[1]!)
+    await screen.findByText('Result new-old')
+    expect(screen.queryByRole('region', { name: en['newResults.title'] })).toBeNull()
+    expect(screen.getByText(en['result.history'], { exact: false })).toBeDefined()
+    await waitFor(() => { expect(trigger.textContent).toContain('1') })
+    rawFireEvent.click(trigger)
+    expect(within(screen.getByRole('region', { name: en['newResults.title'] })).getAllByRole('button')).toHaveLength(1)
+    expect(screen.queryByRole('complementary', { name: en['detail.label'] })).toBeNull()
+    rawFireEvent.keyDown(screen.getByTestId('task-manager-page'), { key: 'Escape' })
+    expect(screen.queryByRole('region', { name: en['newResults.title'] })).toBeNull()
+    expect(JSON.parse(localStorage.getItem('dsh.schedule.read-results.v1') ?? '[]')).toContain(`${at.id}:new-old`)
   })
 })

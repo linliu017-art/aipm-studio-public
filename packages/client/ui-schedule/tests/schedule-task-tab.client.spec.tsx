@@ -178,10 +178,10 @@ describe.each([['English', en], ['Chinese', zh]] as const)('task tab body in %s'
     const rule = within(detail).getByRole('region', { name: dictionary['rule.title'] })
     expect(rule).toBeDefined()
     expect(rule.textContent).toContain(dictionary['rule.everySeconds'])
-    expect(within(tabs).getAllByRole('tab')).toHaveLength(2)
+    expect(within(tabs).getAllByRole('tab')).toHaveLength(3)
     fireEvent.click(within(detail).getByRole('button', { name: dictionary['detail.more'] }))
     const menu = screen.getByRole('menu')
-    expect(within(menu).getAllByRole('menuitem')).toHaveLength(1)
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(2)
     expect(within(menu).getByRole('menuitem', { name: dictionary['delete.action'] })).toBeDefined()
     fireEvent.keyDown(menu, { key: 'Escape' })
     // The tab already sits in the task's own Session, so the linked-Session entry is redundant.

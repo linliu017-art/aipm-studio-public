@@ -17,6 +17,8 @@ import type { FrequencyZone } from './schedule-format.ts'
 import { CreateTaskForm, type CreateTaskInput } from './CreateTaskForm.tsx'
 import { clearTaskOpenRequest, OPEN_TASK_EVENT, selectedTaskForPage, SELECTED_TASK_KEY } from './task-manager-navigation.ts'
 import { TaskMenu } from './TaskMenu.tsx'
+import { ManualRunButton } from './ManualRunButton.tsx'
+import { useNewResults } from './use-new-results.ts'
 import css from './TaskManagerPage.module.css'
 
 /** Injected catalog and task actions for the management page. */
@@ -24,6 +26,7 @@ export interface TaskManagerInjected extends TaskDetailInjected {
   /** Host task catalog with its query and deletion state. */
   readonly hooks: { readonly catalog: HostObservable<CatalogSnapshot<ScheduleCatalogEntry>> }
   readonly onCreateTask: (input: CreateTaskInput) => Promise<void>
+  readonly loadResultsHistory?: TaskDetailInjected['loadHistory']
 }
 
 /** Root-scoped task catalog props derived from the framework and injected actions. */
@@ -41,6 +44,8 @@ type StatusFilter = 'all' | ScheduleCatalogEntry['status']
 export function TaskManagerPage(props: TaskManagerPageProps) {
   const { useCatalog, onCreateTask, onRetry, t } = props
   const [creating, setCreating] = useState(false)
+  const [resultsOpen, setResultsOpen] = useState(false)
+  const resultsTrigger = useRef<HTMLButtonElement>(null)
   const [rowMenu, setRowMenu] = useState<ScheduleId | null>(null)
   const [deleteRow, setDeleteRow] = useState<ScheduleCatalogEntry | null>(null)
   const [rowError, setRowError] = useState<'past' | 'error' | null>(null)
@@ -49,6 +54,8 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
   const onNewTask = () => { setCreating(true) }
   const catalog = useCatalog(snapshot => snapshot)
   const { records, status } = catalog
+  const newResults = useNewResults(records, props.loadResultsHistory, props.loadResult)
+  const [requestedResult, setRequestedResult] = useState<{ taskId: ScheduleId; id: string; at: string }>()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedId, setSelectedId] = useState<ScheduleId | null>(selectedTaskForPage)
@@ -64,8 +71,10 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
       const id = (event as CustomEvent<unknown>).detail
       if (typeof id !== 'string') return
       clearTaskOpenRequest()
+      setRequestedResult(undefined)
+      setResultsOpen(false)
       setSelectedId(id as ScheduleId)
-      setTab('rule')
+      setTab('result')
     }
     window.addEventListener(OPEN_TASK_EVENT, onOpen)
     return () => { window.removeEventListener(OPEN_TASK_EVENT, onOpen) }
@@ -94,10 +103,17 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
   startOfToday.setHours(0, 0, 0, 0)
   const startOfTomorrow = new Date(startOfToday)
   startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
+  // A recurring task already delivered today belongs with its next occurrence.
+  const deliveredToday = (record: ScheduleCatalogEntry): boolean => {
+    const delivered = record.lastDelivery === undefined ? NaN : Date.parse(record.lastDelivery.deliveredAt)
+    return delivered >= startOfToday.getTime() && delivered < startOfTomorrow.getTime()
+      && (record.kind === 'every' || record.kind === 'daily' || record.kind === 'weekly' || record.kind === 'cron')
+  }
   const groups = [
     { id: 'overdue', title: t('group.overdue'), records: rows.filter(record => record.status === 'active' && Date.parse(record.scheduledAt) < startOfToday.getTime()) },
-    { id: 'today', title: t('group.today'), records: rows.filter(record => record.status === 'active' && Date.parse(record.scheduledAt) >= startOfToday.getTime() && Date.parse(record.scheduledAt) < startOfTomorrow.getTime()) },
-    { id: 'upcoming', title: t('group.upcoming'), records: rows.filter(record => record.status === 'active' && Date.parse(record.scheduledAt) >= startOfTomorrow.getTime()) },
+    { id: 'today', title: t('group.today'), records: rows.filter(record => record.status === 'active' && Date.parse(record.scheduledAt) >= startOfToday.getTime() && Date.parse(record.scheduledAt) < startOfTomorrow.getTime() && !deliveredToday(record)) },
+    { id: 'upcoming', title: t('group.upcoming'), records: rows.filter(record => record.status === 'active' && (Date.parse(record.scheduledAt) >= startOfTomorrow.getTime() ||
+      (Date.parse(record.scheduledAt) >= startOfToday.getTime() && deliveredToday(record)))) },
     { id: 'unknown', title: t('group.unknown'), records: rows.filter(record => record.status === 'active' && !Number.isFinite(Date.parse(record.scheduledAt))) },
     { id: 'paused', title: t('status.paused'), records: rows.filter(record => record.status === 'paused') },
     { id: 'ended', title: t('status.inactive'), records: rows.filter(record => record.status === 'inactive').toReversed() },
@@ -137,17 +153,18 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
 
   return (
     <section
-      className={clsx(css.page, selected !== undefined && css.hasDetails)}
+      className={clsx(css.page, (selected !== undefined || resultsOpen) && css.hasDetails)}
       aria-label={t('title')}
       data-testid="task-manager-page"
       onKeyDown={(event) => {
         // A dropdown that closed on this Escape has already consumed the key: the
         // Menu primitive closes from the document capture phase and calls
         // preventDefault there, before React dispatches this handler.
-        if (event.key !== 'Escape' || event.defaultPrevented || confirmId !== null || selectedId === null) return
+        if (event.key !== 'Escape' || event.defaultPrevented || confirmId !== null || (selectedId === null && !resultsOpen)) return
         event.preventDefault()
         event.stopPropagation()
-        closeDetails()
+        if (resultsOpen) { setResultsOpen(false); resultsTrigger.current?.focus() }
+        else closeDetails()
       }}
     >
       <div className={css.listPane}>
@@ -156,6 +173,9 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
             <div className={css.pageHeading}>
               <h1 ref={headingRef} tabIndex={-1}>{t('title')}</h1>
               <div className={css.creationActions}>
+                <button ref={resultsTrigger} type="button" className={css.resultsTrigger} aria-expanded={resultsOpen} aria-controls={resultsOpen ? 'new-results-panel' : undefined} onClick={() => {
+                  setSelectedId(null); setResultsOpen(!resultsOpen)
+                }}>{t('newResults.title')} <span>{newResults.entries.length}</span></button>
                 <Button variant="primary" size="sm" className={css.newButton} icon={<IconPlusOutlineRegular size={13} />} onClick={onNewTask}>{t('new.action')}</Button>
               </div>
             </div>
@@ -222,8 +242,10 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
                           aria-controls={selectedId === record.id ? detailId : undefined}
                           onClick={(event) => {
                             rowRef.current = event.currentTarget
+                            setResultsOpen(false)
+                            setRequestedResult(undefined)
                             setSelectedId(record.id)
-                            setTab('rule')
+                            setTab('result')
                           }}
                         >
                           <IconClockOutlineRegular className={css.rowGlyph} />
@@ -242,6 +264,7 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
                             </span>
                           </span>
                         </Button>
+                        {props.manualRun !== undefined && <ManualRunButton task={record} controller={props.manualRun} compact t={t} />}
                         <TaskMenu className={css.rowMenu} open={rowMenu === record.id} onClose={() => { setRowMenu(null) }} align="end" portal
                           anchor={<Button className={css.rowMore} aria-label={`${t('detail.more')}：${taskName(record)}`}
                             aria-haspopup="menu" aria-expanded={rowMenu === record.id}
@@ -279,8 +302,33 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
           }}>{t('delete.confirm')}</Button></>} />}
       {creating && <CreateTaskForm t={t} useWorkspaces={props.useWorkspaces} onCreate={onCreateTask}
         onClose={() => { setCreating(false) }} />}
+      {resultsOpen && <aside id="new-results-panel" className={clsx(css.detail, css.resultsPanel)} aria-label={t('newResults.title')}>
+        <div className={css.resultsPanelHeader}><h2>{t('newResults.title')} <span>{newResults.entries.length}</span></h2>
+          <button type="button" className={css.resultsClose} aria-label={t('newResults.close')} onClick={() => { setResultsOpen(false); resultsTrigger.current?.focus() }}><IconCloseOutlineRegular /></button>
+        </div>
+        <section className={css.newResults} aria-label={t('newResults.title')}>
+          {newResults.entries.length === 0 && !newResults.error && <p>{t('newResults.empty')}</p>}
+          {newResults.error && <p role="status">{t('newResults.error')}</p>}
+          {newResults.limited && <p role="status">{t('newResults.limited')}</p>}
+          {newResults.entries.map(({ task, record, kind }) => <button key={`${task.id}:${record.messageId}`}
+            type="button" className={css.newResultRow} onClick={() => {
+              rowRef.current = resultsTrigger.current
+              setResultsOpen(false)
+              setRequestedResult({ taskId: task.id, id: record.messageId, at: record.scheduledAt })
+              setSelectedId(task.id); setTab('result')
+            }}>
+            <span className={css.newResultDot} aria-hidden="true" />
+            <span className={css.newResultName}>{taskName(task)}</span>
+            <time dateTime={record.deliveredAt}>{new Date(record.deliveredAt).toLocaleString(t('time.locale'))}</time>
+            <span>{t(kind === 'completed' ? 'newResults.completed' : kind === 'failed' ? 'newResults.failed' : 'newResults.shared')}</span>
+            <span>{t('newResults.view')}</span>
+          </button>)}
+        </section>
+      </aside>}
       {selected !== undefined && <TaskDetail
         {...detail.props}
+        requestedResult={requestedResult}
+        onViewedResult={newResults.markRead}
         task={selected}
         authoritative={catalogRecord !== undefined}
         onDeleted={closeDetails}
