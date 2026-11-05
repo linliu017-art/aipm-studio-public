@@ -35,7 +35,7 @@ const transportFailure: Result = { ok: false, error: new RemoteError('gateway/in
 function mount(dictionary: typeof en | typeof zh = en) {
   const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue(result())
   const props = { id, sessionId, latestMessageId: records[0]!.messageId, loadHistory, t: makeTranslate(dictionary) }
-  const view = render(<DeliveryHistory {...props} />)
+  const view = render(<DeliveryHistory onViewResult={() => {}} {...props} />)
   return { loadHistory, props, view }
 }
 async function resolve(pending: ReturnType<typeof Promise.withResolvers<Result>>, value: Result): Promise<void> {
@@ -204,7 +204,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
   it('reads legacy unavailability without inventing a prompt or a notice', async () => {
     const pending = Promise.withResolvers<Result>()
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>(() => pending.promise)
-    render(<DeliveryHistory
+    render(<DeliveryHistory onViewResult={() => {}}
       id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     const { prompt: _prompt, ...receipt } = records[0]!
@@ -229,7 +229,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
       .mockResolvedValueOnce({ ok: true, value: { ...first.value, ...policy } })
       .mockResolvedValueOnce(transportFailure)
       .mockResolvedValueOnce({ ok: true, value: { ...last.value, ...policy } })
-    render(<DeliveryHistory
+    render(<DeliveryHistory onViewResult={() => {}}
       id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     await screen.findByRole('button', { name: dictionary['delivery.loadMore'] })
@@ -254,7 +254,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue({
       ok: true, value: { id, records: [], earlierRecordsUnavailable: true, earlierRecordsPruned, retention: { days: 30, records: 200 } },
     })
-    render(<DeliveryHistory
+    render(<DeliveryHistory onViewResult={() => {}}
       id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     await screen.findByText(dictionary['delivery.empty'])
@@ -265,7 +265,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     const pending = Promise.withResolvers<Result>()
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>(() => pending.promise)
     if (mode === 'throw') loadHistory.mockImplementationOnce(() => { throw new Error('Private thrown detail') })
-    render(<DeliveryHistory
+    render(<DeliveryHistory onViewResult={() => {}}
       id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
     if (mode === 'reject') await reject(pending)
@@ -287,7 +287,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
 
   it('renders each saved occurrence in the task zone rather than the browser zone', async () => {
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue(result())
-    render(<DeliveryHistory
+    render(<DeliveryHistory onViewResult={() => {}}
       id={id} sessionId={sessionId} latestMessageId={records[0]!.messageId}
       timeZone={TASK_ZONE} loadHistory={loadHistory} t={makeTranslate(dictionary)}
     />)
@@ -362,7 +362,7 @@ it('offers the instruction toggle only while the collapsed instruction overflows
   vi.spyOn(Element.prototype, 'scrollHeight', 'get').mockImplementation(() => lines * 22)
   try {
     const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>().mockResolvedValue(result(0, 1))
-    const view = render(<DeliveryHistory
+    const view = render(<DeliveryHistory onViewResult={() => {}}
       id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(en)}
     />)
     const region = await screen.findByRole('region', { name: en['delivery.label'] })
@@ -435,7 +435,7 @@ it.each(['success', 'rejection'] as const)('refreshes the newest page while igno
   const newest = Promise.withResolvers<Result>()
   h.loadHistory.mockReturnValueOnce(older.promise).mockReturnValueOnce(newest.promise)
   fireEvent.click(screen.getByRole('button', { name: en['delivery.loadMore'] }))
-  h.view.rerender(<DeliveryHistory {...h.props} latestMessageId={'new-receipt' as ScheduleDeliveryRecord['messageId']} />)
+  h.view.rerender(<DeliveryHistory onViewResult={() => {}} {...h.props} latestMessageId={'new-receipt' as ScheduleDeliveryRecord['messageId']} />)
   expect(h.loadHistory).toHaveBeenCalledTimes(3)
   expect(h.loadHistory).toHaveBeenLastCalledWith({ id, sessionId, limit: 20 })
   if (outcome === 'success') await resolve(older, result(20, 40))
@@ -454,7 +454,7 @@ it('preserves loaded records on failed receipt refresh and retries newest rather
   const h = mount()
   await screen.findByText(formatScheduleNextRun(records[0]!.scheduledAt, en['time.locale']))
   h.loadHistory.mockResolvedValueOnce(transportFailure)
-  h.view.rerender(<DeliveryHistory {...h.props} latestMessageId={'new-receipt' as ScheduleDeliveryRecord['messageId']} />)
+  h.view.rerender(<DeliveryHistory onViewResult={() => {}} {...h.props} latestMessageId={'new-receipt' as ScheduleDeliveryRecord['messageId']} />)
   await screen.findByRole('alert')
   expect(occurrences()).toHaveLength(20)
   h.loadHistory.mockResolvedValueOnce(result(40, 45))
@@ -467,7 +467,7 @@ it('preserves loaded records on failed receipt refresh and retries newest rather
 it.each(['success', 'rejection'] as const)('ignores a late %s after view unmount', async (outcome) => {
   const pending = Promise.withResolvers<Result>()
   const loadHistory = vi.fn<DeliveryHistoryInjected['loadHistory']>(() => pending.promise)
-  const view = render(<DeliveryHistory
+  const view = render(<DeliveryHistory onViewResult={() => {}}
     id={id} sessionId={sessionId} latestMessageId={undefined} loadHistory={loadHistory} t={makeTranslate(en)}
   />)
   view.unmount()

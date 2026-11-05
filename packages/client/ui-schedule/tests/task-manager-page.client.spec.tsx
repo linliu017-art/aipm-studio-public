@@ -29,9 +29,9 @@ import pluginsCss from '../../ui-plugin-manager/src/client/PluginManagerPage.mod
 // Most legacy cases exercise rule editing; explicitly open that tab after selecting a row.
 // New result-default behavior is tested separately with rawFireEvent.
 const fireEvent = Object.assign((...args: Parameters<typeof rawFireEvent>) => rawFireEvent(...args), rawFireEvent, {
-  click(element: Element, ...args: Parameters<typeof rawFireEvent.click> extends [Element, ...infer Tail] ? Tail : never) {
-    const selectedRow = element.classList.contains(css.row)
-    const result = rawFireEvent.click(element, ...args)
+  click(element: Element, options?: Parameters<typeof rawFireEvent.click>[1]) {
+    const selectedRow = element.classList.contains(css.row!)
+    const result = rawFireEvent.click(element, options)
     if (selectedRow) {
       const tabs = screen.queryAllByRole('tab')
       const rules = tabs.find(tab => tab.textContent === en['detail.rule'] || tab.textContent === zh['detail.rule'])
