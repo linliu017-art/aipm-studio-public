@@ -54,6 +54,8 @@ Archiving a Session with active reminders is refused until they stop, and choosi
 
 Every update is a complete-record compare-and-set inside the same FIFO as creation and deletion, and it preserves the task id, original Session binding, status, latest receipt, and complete saved history. Missing tasks or wrong bindings return `schedule_not_found`; inactive tasks return `schedule_ended`. If delivery, target advancement, or another edit changed the expected record, the update returns `schedule_conflict` without overwriting it. Name, instruction, and timing validation errors retain their specific codes; storage failures reject rather than report persisted success. Refresh the catalog and capture a new expected record before retrying a conflict. See the [task page](../../client/ui-schedule/README.md) for the staged form's Save and Cancel behavior.
 
+Manual runs append one delivery receipt. A one-shot task becomes inactive after confirmed delivery; a recurring task retains its stored rule, target, and status. As with scheduled deliveries, enqueue and receipt persistence are not atomic; after an unconfirmed error, inspect the Session before retrying.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
@@ -145,8 +147,6 @@ Each delivery adds fixed framing and content-dependent payload tokens. A recurri
 #### KV Cache effect
 
 Reminder messages append to the original Session's history and preserve earlier message content; they do not replace the existing request prefix.
-
-Manual runs append one delivery receipt. A one-shot task becomes inactive after confirmed delivery; a recurring task retains its stored rule, target, and status. As with scheduled deliveries, enqueue and receipt persistence are not atomic; after an unconfirmed error, inspect the Session before retrying.
 
 ## Known Limitations and Deferred Work
 

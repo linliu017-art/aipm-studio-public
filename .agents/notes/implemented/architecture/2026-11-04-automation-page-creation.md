@@ -20,6 +20,14 @@ An optional browser-local lead time belongs to a task id. The shell overlay watc
 
 The current main panel and selected task are retained in tab-scoped session storage and restored after the main slot registers. New advance notices play a short Web Audio cue after a user gesture; a restored notice does not replay it and unavailable audio does not block the notice.
 
+## Alternatives considered
+
+**Open a chat from New.** The previous action reused the conversation flow, but users had to leave the task list to enter the task and schedule. A form in the task page keeps creation and management together.
+
+## Consequences
+
+Users can create a task from the task list. The client must retain the Session and request identities across retries because Session creation and task storage are separate writes. Advance notices are local to the browser, so another device needs its own notice settings.
+
 ## Verification
 
 Host idempotency and client form behavior are covered by focused tests. An isolated Web server was used to create a task and observe its catalog entry. The full GUI suite currently has unrelated failures; browser replay could not build its native addon under the installed macOS SDK.
