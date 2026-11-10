@@ -2,15 +2,37 @@
 
 English | [中文](README.zh.md)
 
+<picture>
+  <source media="(max-width: 580px)" srcset=".github/assets/aipm-home-en-narrow.png">
+  <img alt="Take a product idea from notes to delivery. The cover shows a project brief, an onboarding prototype, and an acceptance checklist." src=".github/assets/aipm-home-en-wide.png">
+</picture>
+
 AIPM Studio is a personal AI product-management workspace built on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). The application currently displays the name **Nini Flow**. This independent derivative is maintained by [linliu017-art](https://github.com/linliu017-art) and has no official affiliation with or endorsement from DeepSeek.
+
+<picture>
+  <source media="(max-width: 580px)" srcset=".github/assets/aipm-features-en-narrow.png">
+  <img alt="Agent Workshop outputs include an AI product PRD, a technical plan, and a developer handoff pack. An example scheduled task summarizes project progress on Fridays at 4 p.m." src=".github/assets/aipm-features-en-wide.png">
+</picture>
+
+<a id="agent-workshop"></a>
+
+**Agent Workshop** turns an AI product idea or existing materials into a PRD and technical plan. It can also reconstruct requirements from code, check implementation gaps, assess the impact of a change, or package documents for a developer handoff.
+
+<a id="scheduled-tasks"></a>
+
+**Scheduled tasks** let you plan one-time or recurring AI work and optionally link it to a project. For example, ask it to summarize progress and follow-ups from project materials every Friday at 4 p.m. The running application service sends the instruction to the task's conversation on schedule.
 
 ## What works
 
+- **Research and initiation** — Turn interviews and competitor notes into a project brief with a clear MVP scope.
+- **Requirements and design** — Turn existing requirements into a PRD or an interactive prototype for review.
+- **Development and acceptance** — Use an agreed scope to prepare a delivery plan or an acceptance checklist.
+
 - Organize a product project into nine independent work areas, with stage progress, source materials, and generated documents.
 - Complete a requested deliverable using the project's existing materials, then stop for the next user instruction.
-- Use 13 bundled skills for initiation, requirements, PRDs, prototypes, research, task planning, and writing, including Agent Workshop for AI product PRDs and technical plans. Launch and retrospective work still use general methods.
+- Use 13 bundled skills for initiation, requirements, PRDs, prototypes, research, task planning, and writing. Launch and retrospective work still use general methods.
 
-This project is experimental. Review generated decisions and documents, and back up important project files before letting the agent edit them.
+Review generated decisions and documents, and back up important project files before letting the agent edit them.
 
 <a id="run"></a><a id="run-from-source"></a>
 

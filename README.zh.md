@@ -2,15 +2,37 @@
 
 [English](README.md) | 中文
 
+<picture>
+  <source media="(max-width: 580px)" srcset=".github/assets/aipm-home-zh-narrow.png">
+  <img alt="把产品想法一步步做出来。横幅展示同一个项目的立项报告、新手引导原型和验收清单。" src=".github/assets/aipm-home-zh-wide.png">
+</picture>
+
 AIPM Studio 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 构建的个人 AI 产品经理工作台，应用内目前显示为 **Nini Flow**。这是由 [linliu017-art](https://github.com/linliu017-art) 维护的独立衍生项目，与 DeepSeek 没有官方隶属或背书关系。
+
+<picture>
+  <source media="(max-width: 580px)" srcset=".github/assets/aipm-features-zh-narrow.png">
+  <img alt="Agent 工坊可产出 AI 产品 PRD、技术方案和开发交接包。定时任务示例为每周五 16:00 整理项目进展。" src=".github/assets/aipm-features-zh-wide.png">
+</picture>
+
+<a id="agent-workshop"></a>
+
+**Agent 工坊**可以把 AI 产品想法或已有材料整理成 PRD 和技术方案，也能从现有代码反推需求、检查实现差距、分析改动影响，或打包文档交给开发。
+
+<a id="scheduled-tasks"></a>
+
+**定时任务**可以安排一次性或重复的 AI 工作，也能关联已有项目。比如每周五 16:00 根据项目资料整理本周进展和待跟进事项。应用服务运行时会按计划把指令发到任务会话。
 
 ## 已有能力
 
+- **调研与立项** — 整理访谈和竞品资料，写一份明确 MVP 范围的立项报告。
+- **需求与设计** — 根据已有需求，写一版 PRD，或做个能拿去评审的可点击原型。
+- **开发跟进与验收** — 用已确认的范围排开发计划，或整理测试用例和验收清单。
+
 - 把产品项目整理为九个独立工作区域，记录阶段进度、输入材料和产出文档。
 - 结合项目已有资料完成用户指定的一项产出，然后等待下一条指令。
-- 使用 13 个内置技能完成立项、需求澄清、PRD、原型、调研、任务规划和写作，其中 Agent 工坊支持 AI 产品 PRD 与技术方案。上线和复盘仍使用通用方法。
+- 使用 13 个内置技能完成立项、需求澄清、PRD、原型、调研、任务规划和写作。上线和复盘仍使用通用方法。
 
-本项目处于实验阶段。请人工审阅生成的决策与文档，并在让智能体修改重要项目文件前做好备份。
+请人工审阅生成的决策与文档，并在让智能体修改重要项目文件前做好备份。
 
 <a id="run"></a><a id="run-from-source"></a>
 

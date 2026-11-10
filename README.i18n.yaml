@@ -3,11 +3,11 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write README.md
 /aipm-studio:
-  en: 7a4f01e157102ce1
-  zh: 39e076f8e18038fb
+  en: ed34ccb645750c6b
+  zh: 8d99bc933664a081
 /aipm-studio/what-works:
-  en: b50110cddebce798
-  zh: bee7575cdb5e3d90
+  en: 4559ec4a6bb02c38
+  zh: f890c56ff1f0207a
 /aipm-studio/run-from-this-repository:
   en: f987d2a18093b32e
   zh: 3a27d46888bd1262
