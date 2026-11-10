@@ -311,7 +311,7 @@ type ScheduleDeleteResult =
 
 ## Web catalog
 
-The Remote `schedule.catalog()` method returns active and inactive Host tasks with their original Session bindings, ordered by `scheduledAt` ascending and then lexicographically by `id`. It reads only the Schedule domain, without activating Sessions or reading their history. Browser consumers receive this browser-safe type:
+The Remote `schedule.catalog()` method returns active, paused, and inactive Host tasks with their original Session bindings, ordered by `scheduledAt` ascending and then lexicographically by `id`. It reads only the Schedule domain, without activating Sessions or reading their history. Browser consumers receive this browser-safe type:
 
 ```ts type-equiv
 /** Durable Session inbox delivery acknowledgment, not model execution completion. */
@@ -331,7 +331,7 @@ type ScheduleCatalogEntry = ScheduleRecord & {
   /** Session receiving this reminder when it becomes due. */
   readonly sessionId: SessionId
   /** Inactive reminders remain visible but never schedule another delivery. */
-  readonly status: 'active' | 'inactive'
+  readonly status: 'active' | 'paused' | 'inactive'
   /** Most recent durably acknowledged inbox delivery, when available. */
   readonly lastDelivery?: ScheduleDeliveryReceipt
 }

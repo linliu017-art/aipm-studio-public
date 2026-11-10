@@ -311,7 +311,7 @@ type ScheduleDeleteResult =
 
 ## Web 目录
 
-Remote 方法 `schedule.catalog()` 返回活动和未运行的宿主任务及其原始 Session 绑定，先按 `scheduledAt` 升序排列，再按 `id` 字典序排列。它只读取 Schedule domain，不激活 Session 或读取其历史。浏览器消费方接收以下可安全用于浏览器的类型：
+Remote 方法 `schedule.catalog()` 返回活动、暂停和未运行的宿主任务及其原始 Session 绑定，先按 `scheduledAt` 升序排列，再按 `id` 字典序排列。它只读取 Schedule domain，不激活 Session 或读取其历史。浏览器消费方接收以下可安全用于浏览器的类型：
 
 ```ts type-equiv
 /** Durable Session inbox delivery acknowledgment, not model execution completion. */
@@ -331,7 +331,7 @@ type ScheduleCatalogEntry = ScheduleRecord & {
   /** Session receiving this reminder when it becomes due. */
   readonly sessionId: SessionId
   /** Inactive reminders remain visible but never schedule another delivery. */
-  readonly status: 'active' | 'inactive'
+  readonly status: 'active' | 'paused' | 'inactive'
   /** Most recent durably acknowledged inbox delivery, when available. */
   readonly lastDelivery?: ScheduleDeliveryReceipt
 }
